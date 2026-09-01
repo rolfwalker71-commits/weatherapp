@@ -30,14 +30,14 @@ export function dockBarClass(): string {
 
 export function fabClass(chrome: Chrome): string {
 	if (chrome === 'desktop') {
-		return 'size-12 rounded-md bg-primary text-on-primary';
+		return 'size-12 shrink-0 rounded-md bg-primary text-on-primary';
 	}
-	return 'size-16 rounded-[1.75rem] bg-primary text-on-primary';
+	return 'size-16 min-h-16 min-w-16 shrink-0 rounded-[1.75rem] bg-primary text-on-primary';
 }
 
 export function fabClearance(chrome: Chrome): string {
 	if (chrome === 'desktop') return 'bottom-6 right-6';
-	return 'bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] right-4';
+	return 'bottom-[calc(6.75rem+env(safe-area-inset-bottom,0px))] right-[max(1rem,env(safe-area-inset-right,0px))]';
 }
 
 export function sectionId(id: string): string {

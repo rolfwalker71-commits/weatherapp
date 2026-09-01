@@ -45,6 +45,39 @@ export function formatTime(iso: string): string {
 	return timeFmt.format(new Date(iso));
 }
 
+export function formatUpdatedRelative(iso: string, now = Date.now()): string {
+	const then = new Date(iso).getTime();
+	if (Number.isNaN(then)) return '';
+	const minutes = Math.max(0, Math.round((now - then) / 60_000));
+	if (minutes < 1) return 'gerade eben';
+	if (minutes === 1) return 'vor 1 Min.';
+	if (minutes < 60) return `vor ${minutes} Min.`;
+	const hours = Math.floor(minutes / 60);
+	if (hours === 1) return 'vor 1 Std.';
+	if (hours < 24) return `vor ${hours} Std.`;
+	const days = Math.floor(hours / 24);
+	if (days === 1) return 'vor 1 Tag';
+	return `vor ${days} Tagen`;
+}
+
+export function formatUpdatedAt(iso: string, now = Date.now()): string {
+	const relative = formatUpdatedRelative(iso, now);
+	const exact = formatTime(iso);
+	return relative ? `${relative} · ${exact}` : exact;
+}
+
+export function formatRefreshStatus(
+	iso: string,
+	stale: boolean,
+	now = Date.now(),
+	offline = false
+): string {
+	const when = formatUpdatedAt(iso, now);
+	if (offline) return `Offline · Stand ${when}`;
+	if (stale) return `Zwischengespeichert · ${when}`;
+	return `Aktualisiert ${when}`;
+}
+
 export function formatHour(iso: string): string {
 	return new Intl.DateTimeFormat('de-CH', { hour: '2-digit' }).format(new Date(iso));
 }

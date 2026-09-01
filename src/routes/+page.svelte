@@ -8,7 +8,6 @@
 	import FavoriteChips from '$lib/components/FavoriteChips.svelte';
 	import HourDetail from '$lib/components/HourDetail.svelte';
 	import HourlyForecast from '$lib/components/HourlyForecast.svelte';
-	import LocateFab from '$lib/components/LocateFab.svelte';
 	import MetricGrid from '$lib/components/MetricGrid.svelte';
 	import NavBar from '$lib/components/NavBar.svelte';
 	import NavRail from '$lib/components/NavRail.svelte';
@@ -16,7 +15,7 @@
 	import { chromeState } from '$lib/chrome.svelte';
 	import type { DayPoint, HourPoint } from '$lib/types';
 	import { weatherMood } from '$lib/wmo';
-	import { hydrateFromCache, locateUser, weatherState } from '$lib/weather.svelte';
+	import { hydrateFromCache, locateUser, startAutoRefresh, weatherState } from '$lib/weather.svelte';
 
 	let selectedHour = $state<HourPoint | null>(null);
 	let selectedDay = $state<DayPoint | null>(null);
@@ -42,6 +41,7 @@
 	onMount(() => {
 		hydrateFromCache();
 		void locateUser();
+		return startAutoRefresh();
 	});
 </script>
 
@@ -58,7 +58,7 @@
 		<main
 			id="main"
 			class="min-w-0 flex-1 px-4 py-4 sm:px-6 sm:py-6 {chromeState.chrome === 'android'
-				? 'pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))]'
+				? 'pb-[calc(8rem+env(safe-area-inset-bottom,0px))]'
 				: 'lg:pb-10'}"
 		>
 			<div class="mb-4">
@@ -110,7 +110,6 @@
 
 	{#if chromeState.chrome !== 'desktop'}
 		<NavBar />
-		<LocateFab />
 	{/if}
 </div>
 

@@ -10,16 +10,16 @@
 	}
 
 	html[data-chrome='android'] {
-		--background: 254 247 255;
-		--foreground: 29 27 32;
-		--card: 243 237 247;
-		--primary: 103 80 164;
+		--background: 244 251 251;
+		--foreground: 22 29 29;
+		--card: 236 244 244;
+		--primary: 0 104 116;
 		--on-primary: 255 255 255;
-		--secondary: 232 222 248;
-		--muted: 232 222 248;
-		--muted-foreground: 73 69 79;
-		--border: 202 196 208;
-		--ring: 103 80 164;
+		--secondary: 204 232 233;
+		--muted: 204 232 233;
+		--muted-foreground: 63 72 73;
+		--border: 176 186 187;
+		--ring: 0 104 116;
 		--destructive: 186 26 26;
 		--radius: 1.75rem;
 		--font-sans: Roboto, 'Roboto Flex', system-ui, sans-serif;
@@ -27,16 +27,16 @@
 	}
 
 	html[data-chrome='android'].dark {
-		--background: 20 18 24;
-		--foreground: 230 224 233;
-		--card: 33 31 38;
-		--primary: 208 188 255;
-		--on-primary: 55 30 115;
-		--secondary: 79 55 139;
-		--muted: 54 47 68;
-		--muted-foreground: 202 196 208;
-		--border: 73 69 79;
-		--ring: 208 188 255;
+		--background: 15 20 21;
+		--foreground: 222 227 228;
+		--card: 28 36 37;
+		--primary: 77 216 232;
+		--on-primary: 0 54 61;
+		--secondary: 0 79 88;
+		--muted: 42 51 52;
+		--muted-foreground: 196 205 206;
+		--border: 61 71 72;
+		--ring: 77 216 232;
 		--destructive: 242 184 181;
 	}
 
@@ -140,8 +140,15 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
+		overflow: visible;
+		flex-shrink: 0;
 		color: rgb(var(--foreground));
 		background-color: rgb(var(--muted));
+	}
+
+	.icon-btn svg {
+		display: block;
+		flex-shrink: 0;
 	}
 
 	html[data-chrome='android'] .icon-btn {
@@ -207,7 +214,7 @@
 		color: #1a73e8;
 	}
 	.wx-icon-week {
-		color: #6750a4;
+		color: #006874;
 	}
 
 	html.dark .wx-icon-clear,
@@ -243,7 +250,7 @@
 		color: #ffab40;
 	}
 	html.dark .wx-icon-week {
-		color: #d0bcff;
+		color: #4dd8e8;
 	}
 
 	html[data-chrome='desktop'] .wx-icon-week {
@@ -490,7 +497,7 @@
 	}
 	html[data-chrome='android'] .wx-page[data-mood='night'] {
 		background:
-			radial-gradient(120% 70% at 100% -8%, #b39ddb 0%, transparent 52%),
+			radial-gradient(120% 70% at 100% -8%, #80deea 0%, transparent 52%),
 			rgb(var(--background));
 	}
 	html[data-chrome='android'] .wx-page[data-mood='rain'] {
@@ -505,7 +512,7 @@
 	}
 	html[data-chrome='android'] .wx-page[data-mood='storm'] {
 		background:
-			radial-gradient(120% 70% at 100% -8%, #ce93d8 0%, transparent 52%),
+			radial-gradient(120% 70% at 100% -8%, #4dd0e1 0%, transparent 52%),
 			rgb(var(--background));
 	}
 	html[data-chrome='android'] .wx-page[data-mood='cloud'],
@@ -554,10 +561,10 @@
 	}
 
 	html[data-chrome='android'] .hero-wash[data-mood='clear'] {
-		background: linear-gradient(160deg, #ffe082 0%, #ffcc80 45%, #e8def8 100%);
+		background: linear-gradient(160deg, #ffe082 0%, #ffcc80 45%, #cce8e9 100%);
 	}
 	html[data-chrome='android'] .hero-wash[data-mood='night'] {
-		background: linear-gradient(160deg, #5e35b1 0%, #7e57c2 40%, #4f378b 100%);
+		background: linear-gradient(160deg, #0d47a1 0%, #1565c0 40%, #004f58 100%);
 	}
 	html[data-chrome='android'] .hero-wash[data-mood='rain'] {
 		background: linear-gradient(160deg, #64b5f6 0%, #90caf9 40%, #bbdefb 100%);
@@ -566,15 +573,15 @@
 		background: linear-gradient(160deg, #e3f2fd 0%, #bbdefb 50%, #e8eaf6 100%);
 	}
 	html[data-chrome='android'] .hero-wash[data-mood='storm'] {
-		background: linear-gradient(160deg, #7e57c2 0%, #b39ddb 45%, #ce93d8 100%);
+		background: linear-gradient(160deg, #006874 0%, #00838f 45%, #4dd0e1 100%);
 	}
 	html[data-chrome='android'] .hero-wash[data-mood='cloud'],
 	html[data-chrome='android'] .hero-wash[data-mood='fog'] {
-		background: linear-gradient(160deg, #b0bec5 0%, #cfd8dc 50%, #e8def8 100%);
+		background: linear-gradient(160deg, #b0bec5 0%, #cfd8dc 50%, #cce8e9 100%);
 	}
 
 	html[data-chrome='android'].dark .hero-wash[data-mood='clear'] {
-		background: linear-gradient(160deg, #6d4c12 0%, #5d4037 50%, #4f378b 100%);
+		background: linear-gradient(160deg, #6d4c12 0%, #5d4037 50%, #004f58 100%);
 	}
 	html[data-chrome='android'].dark .hero-wash[data-mood='night'] {
 		background: linear-gradient(160deg, #1a1140 0%, #311b92 50%, #4a148c 100%);
@@ -671,11 +678,26 @@
 
 	.radar-frame {
 		isolation: isolate;
+		position: relative;
+		z-index: 0;
 		background: rgb(var(--muted));
 	}
 
 	.radar-map {
+		position: relative;
 		z-index: 0;
+	}
+
+	.radar-map .leaflet-pane,
+	.radar-map .leaflet-control-container,
+	.radar-map .leaflet-top,
+	.radar-map .leaflet-bottom {
+		z-index: 1 !important;
+	}
+
+	.radar-map .leaflet-control-zoom {
+		margin: 0.75rem 0 0 0.75rem;
+		border: none !important;
 	}
 
 	.radar-map .leaflet-control-attribution {

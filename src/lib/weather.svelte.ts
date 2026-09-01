@@ -23,6 +23,13 @@ export const weatherState = $state({
 	section: 'aktuell' as SectionId
 });
 
+export const clockState = $state({
+	now: Date.now()
+});
+
+export const AUTO_REFRESH_MS = 15 * 60 * 1000;
+const CLOCK_TICK_MS = 30_000;
+
 let inFlight: AbortController | null = null;
 
 export async function loadPlace(place: Place, options?: { recent?: boolean }): Promise<void> {
@@ -111,4 +118,34 @@ export function starPlace(place: Place): void {
 
 export function isFavorite(place: Place): boolean {
 	return weatherState.favorites.some((item) => samePlace(item, place));
+}
+
+function refreshIfDue(): void {
+	if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+	if (weatherState.loading || weatherState.locating) return;
+	const fetchedAt = weatherState.bundle?.fetchedAt;
+	if (!fetchedAt) return;
+	const age = Date.now() - new Date(fetchedAt).getTime();
+	if (Number.isNaN(age) || age < AUTO_REFRESH_MS) return;
+	void loadPlace(weatherState.place, { recent: false });
+}
+
+export function startAutoRefresh(): () => void {
+	clockState.now = Date.now();
+
+	const tick = () => {
+		clockState.now = Date.now();
+		refreshIfDue();
+	};
+
+	const timer = setInterval(tick, CLOCK_TICK_MS);
+	const onVisibility = () => {
+		if (document.visibilityState === 'visible') tick();
+	};
+	document.addEventListener('visibilitychange', onVisibility);
+
+	return () => {
+		clearInterval(timer);
+		document.removeEventListener('visibilitychange', onVisibility);
+	};
 }

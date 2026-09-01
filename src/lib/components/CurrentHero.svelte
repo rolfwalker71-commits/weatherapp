@@ -3,10 +3,10 @@
 	import Star from '@lucide/svelte/icons/star';
 	import Wind from '@lucide/svelte/icons/wind';
 	import { chromeState } from '$lib/chrome.svelte';
-	import { formatKmH, formatPercent, formatTemp, formatTime, placeLabel, windDirection } from '$lib/format';
+	import { formatKmH, formatPercent, formatRefreshStatus, formatTemp, placeLabel, windDirection } from '$lib/format';
 	import { panelClass } from '$lib/platform';
 	import { getWmo, weatherMood } from '$lib/wmo';
-	import { isFavorite, starPlace, weatherState } from '$lib/weather.svelte';
+	import { clockState, isFavorite, starPlace, weatherState } from '$lib/weather.svelte';
 	import WeatherIcon from './WeatherIcon.svelte';
 
 	const bundle = $derived(weatherState.bundle);
@@ -33,9 +33,6 @@
 				<div class="min-w-0">
 					<p class="text-sm opacity-75">
 						{bundle.timezone.replace('_', ' ')}
-						{#if weatherState.stale}
-							· zwischengespeichert
-						{/if}
 					</p>
 					<h1 class="mt-1 break-words text-2xl font-semibold leading-snug tracking-tight sm:text-3xl">
 						{weatherState.place.name}
@@ -75,12 +72,17 @@
 				/>
 			</div>
 
-			{#if today}
-				<p class="text-sm opacity-75">
-					Heute {formatTemp(today.tMin)} bis {formatTemp(today.tMax)}
-					· Aktualisiert {formatTime(bundle.fetchedAt)}
-				</p>
-			{/if}
+			<p class="text-sm opacity-75">
+				{#if today}
+					Heute {formatTemp(today.tMin)} bis {formatTemp(today.tMax)} ·
+				{/if}
+				{formatRefreshStatus(
+					bundle.fetchedAt,
+					weatherState.stale,
+					clockState.now,
+					weatherState.error?.startsWith('Offline') ?? false
+				)}
+			</p>
 
 			<dl class="grid grid-cols-2 gap-3 sm:grid-cols-3">
 				<div class="{tile} wx-chip-cloud p-4">

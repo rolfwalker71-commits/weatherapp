@@ -2,11 +2,22 @@
 	import LocateFixed from '@lucide/svelte/icons/locate-fixed';
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import { chromeState } from '$lib/chrome.svelte';
-	import { loadPlace, locateUser, weatherState } from '$lib/weather.svelte';
+	import { formatRefreshStatus } from '$lib/format';
+	import { clockState, loadPlace, locateUser, weatherState } from '$lib/weather.svelte';
 	import CitySearch from './CitySearch.svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
 
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
+	const updatedLabel = $derived(
+		weatherState.bundle
+			? formatRefreshStatus(
+					weatherState.bundle.fetchedAt,
+					weatherState.stale,
+					clockState.now,
+					weatherState.error?.startsWith('Offline') ?? false
+				)
+			: 'Wetter'
+	);
 </script>
 
 <header
@@ -22,15 +33,26 @@
 	>
 		<div class="flex items-center justify-between gap-3">
 			<div class="min-w-0">
-				<p class="text-sm text-muted-foreground">Wetter</p>
-				<p class="truncate text-lg font-semibold tracking-tight">Schweiz & Welt</p>
+				<p class="text-sm leading-snug text-muted-foreground">{updatedLabel}</p>
+				<p class="break-words text-lg font-semibold leading-snug tracking-tight">Schweiz & Welt</p>
 			</div>
 			<div class="flex items-center gap-2 lg:hidden">
 				<button
 					type="button"
 					class="icon-btn"
+					onclick={() => void locateUser()}
+					aria-label="Standort"
+					title="Standort verwenden"
+					disabled={weatherState.locating}
+				>
+					<LocateFixed class="size-5 {weatherState.locating ? 'animate-pulse' : ''}" />
+				</button>
+				<button
+					type="button"
+					class="icon-btn"
 					onclick={() => void loadPlace(weatherState.place)}
 					aria-label="Aktualisieren"
+					title="Aktualisieren"
 					disabled={weatherState.loading}
 				>
 					<RefreshCw class="size-5 wx-icon-week {weatherState.loading ? 'animate-spin' : ''}" />
@@ -47,7 +69,7 @@
 			<div class="hidden items-center gap-2 lg:flex">
 				<button
 					type="button"
-					class="inline-flex h-11 items-center gap-2 rounded-md bg-primary/10 px-3 text-sm text-primary"
+					class="inline-flex min-h-11 items-center gap-2 rounded-md bg-primary/10 px-3 text-sm text-primary"
 					onclick={() => void locateUser()}
 					disabled={weatherState.locating}
 				>
@@ -59,6 +81,8 @@
 					class="icon-btn"
 					onclick={() => void loadPlace(weatherState.place)}
 					aria-label="Aktualisieren"
+					title="Aktualisieren"
+					disabled={weatherState.loading}
 				>
 					<RefreshCw class="size-5 wx-icon-week {weatherState.loading ? 'animate-spin' : ''}" />
 				</button>

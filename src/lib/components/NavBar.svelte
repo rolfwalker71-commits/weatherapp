@@ -9,7 +9,7 @@
 	}
 </script>
 
-<nav class="{dockBarClass()} fixed inset-x-0 bottom-0 z-20" aria-label="Bereiche">
+<nav class="{dockBarClass()} fixed inset-x-0 bottom-0 z-[1050]" aria-label="Bereiche">
 	<ul class="grid grid-cols-5" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
 		{#each NAV_ITEMS as item}
 			{@const active = weatherState.section === item.id}

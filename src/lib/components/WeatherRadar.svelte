@@ -13,6 +13,7 @@
 		fetchWindGrid,
 		radarTileUrl,
 		windTone,
+		type MapBounds,
 		type RadarFrame,
 		type WindPoint
 	} from '$lib/radar';
@@ -153,10 +154,9 @@
 			}
 		}
 
-		function flyToPlace() {
+		function placeMarker() {
 			if (!map || !L) return;
 			const { latitude, longitude } = weatherState.place;
-			map.setView([latitude, longitude], Math.max(map.getZoom() || 8, 8));
 			marker?.remove();
 			marker = L.circleMarker([latitude, longitude], {
 				radius: 8,
@@ -165,6 +165,24 @@
 				fillColor: themeState.dark ? '#60cdff' : '#005fb8',
 				fillOpacity: 0.85
 			}).addTo(map);
+		}
+
+		function flyToPlace() {
+			if (!map || !L) return;
+			const { latitude, longitude } = weatherState.place;
+			map.setView([latitude, longitude], Math.max(map.getZoom() || 8, 8));
+			placeMarker();
+		}
+
+		function boundsFromMap(): MapBounds | null {
+			if (!map) return null;
+			const box = map.getBounds();
+			return {
+				south: box.getSouth(),
+				north: box.getNorth(),
+				west: box.getWest(),
+				east: box.getEast()
+			};
 		}
 
 		async function loadCatalog() {
@@ -182,15 +200,31 @@
 			}
 		}
 
+		let windAbort: AbortController | null = null;
+		let windTimer: ReturnType<typeof setTimeout> | undefined;
+
 		async function loadWind() {
+			const bounds = boundsFromMap();
+			if (!bounds) return;
+			windAbort?.abort();
+			const controller = new AbortController();
+			windAbort = controller;
 			try {
-				const points = await fetchWindGrid(weatherState.place.latitude, weatherState.place.longitude);
-				if (cancelled) return;
+				const points = await fetchWindGrid(bounds, controller.signal);
+				if (cancelled || controller.signal.aborted) return;
 				windPoints = points;
 				drawWind(points);
-			} catch {
-				if (!cancelled) windPoints = [];
+			} catch (error) {
+				if ((error as Error).name === 'AbortError' || cancelled) return;
+				windPoints = [];
 			}
+		}
+
+		function scheduleWind() {
+			clearTimeout(windTimer);
+			windTimer = setTimeout(() => {
+				void loadWind();
+			}, 380);
 		}
 
 		async function start() {
@@ -205,6 +239,8 @@
 
 			setBase();
 			flyToPlace();
+			map.on('moveend', scheduleWind);
+			map.on('zoomend', scheduleWind);
 			await Promise.all([loadCatalog(), loadWind()]);
 
 			api = {
@@ -212,10 +248,12 @@
 				showFrame: (index) => showRadar(frames[index]),
 				refreshPlace: () => {
 					flyToPlace();
-					void loadWind();
 				},
 				setBase,
-				invalidate: () => map?.invalidateSize()
+				invalidate: () => {
+					map?.invalidateSize();
+					scheduleWind();
+				}
 			};
 
 			playTimer = setInterval(() => {
@@ -234,7 +272,11 @@
 			cancelled = true;
 			clearInterval(playTimer);
 			clearInterval(catalogTimer);
+			clearTimeout(windTimer);
+			windAbort?.abort();
 			api = null;
+			map?.off('moveend', scheduleWind);
+			map?.off('zoomend', scheduleWind);
 			map?.remove();
 		};
 	});
@@ -248,7 +290,7 @@
 					<Radar class="size-5 wx-icon-rain" /> Wetterradar
 				</h2>
 				<p class="text-sm text-muted-foreground">
-					Niederschlag der letzten zwei Stunden und Windfeld um {weatherState.place.name}
+					Niederschlag der letzten zwei Stunden und Windfeld im sichtbaren Kartenausschnitt
 				</p>
 			</div>
 			<div
@@ -353,7 +395,7 @@
 					aus {windDirection(current.wind_direction_10m)} · Böen {formatKmH(current.wind_gusts_10m)}
 				</p>
 				<p class="mt-2 text-sm text-muted-foreground">
-					{windPoints.length} Windpfeile im Umkreis
+					{windPoints.length} Windpfeile im sichtbaren Ausschnitt
 				</p>
 			{:else}
 				<p class="text-sm text-muted-foreground">Winddaten werden geladen.</p>

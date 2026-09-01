@@ -8,9 +8,9 @@ import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1] / "static"
-PURPLE = (103, 80, 164)
+PURPLE = (0, 104, 116)
 GOLD = (255, 213, 79)
-CLOUD = (232, 222, 248)
+CLOUD = (204, 232, 233)
 
 
 def chunk(tag: bytes, data: bytes) -> bytes:

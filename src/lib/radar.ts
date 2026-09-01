@@ -57,25 +57,47 @@ export function radarTileUrl(host: string, path: string): string {
 	return `${host}${path}/256/{z}/{x}/{y}/4/1_1.png`;
 }
 
-export function buildWindGrid(lat: number, lon: number, size = 5, step = 0.32): { lats: number[]; lons: number[] } {
+export interface MapBounds {
+	south: number;
+	north: number;
+	west: number;
+	east: number;
+}
+
+const MAX_WIND_POINTS = 70;
+
+/** Fill the visible map with a regular grid, denser when zoomed in. */
+export function buildWindGridFromBounds(bounds: MapBounds): { lats: number[]; lons: number[] } {
+	let west = bounds.west;
+	let east = bounds.east;
+	if (east < west) {
+		east += 360;
+	}
+	const latSpan = Math.max(0.08, bounds.north - bounds.south);
+	const lonSpan = Math.max(0.08, east - west);
+	let rows = Math.min(8, Math.max(4, Math.round(latSpan / 0.28)));
+	let cols = Math.min(10, Math.max(5, Math.round(lonSpan / 0.28)));
+	while (rows * cols > MAX_WIND_POINTS) {
+		if (cols >= rows) cols -= 1;
+		else rows -= 1;
+	}
+
 	const lats: number[] = [];
 	const lons: number[] = [];
-	const half = Math.floor(size / 2);
-	for (let row = -half; row <= half; row += 1) {
-		for (let col = -half; col <= half; col += 1) {
-			lats.push(Number((lat + row * step).toFixed(3)));
-			lons.push(Number((lon + col * step).toFixed(3)));
+	for (let row = 0; row < rows; row += 1) {
+		const lat = bounds.south + ((row + 0.5) / rows) * latSpan;
+		for (let col = 0; col < cols; col += 1) {
+			let lon = west + ((col + 0.5) / cols) * lonSpan;
+			if (lon > 180) lon -= 360;
+			lats.push(Number(lat.toFixed(3)));
+			lons.push(Number(lon.toFixed(3)));
 		}
 	}
 	return { lats, lons };
 }
 
-export async function fetchWindGrid(
-	latitude: number,
-	longitude: number,
-	signal?: AbortSignal
-): Promise<WindPoint[]> {
-	const { lats, lons } = buildWindGrid(latitude, longitude);
+export async function fetchWindGrid(bounds: MapBounds, signal?: AbortSignal): Promise<WindPoint[]> {
+	const { lats, lons } = buildWindGridFromBounds(bounds);
 	const url = new URL('https://api.open-meteo.com/v1/forecast');
 	url.searchParams.set('latitude', lats.join(','));
 	url.searchParams.set('longitude', lons.join(','));
