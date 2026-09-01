@@ -44,10 +44,6 @@
 	const now = $derived(weatherState.bundle ? new Date(weatherState.bundle.current.time).getTime() : Date.now());
 	const todayDate = $derived(weatherState.bundle?.days[0]?.date);
 
-	function onKey(event: KeyboardEvent) {
-		if (event.key === 'Escape') onClose();
-	}
-
 	function dayLabel(item: DayPoint, index: number): string {
 		if (index === 0 || item.date === todayDate) return 'Heute';
 		return formatWeekday(item.date);
@@ -57,8 +53,6 @@
 		return new Date(hour.time).getTime() + 60 * 60 * 1000 <= now;
 	}
 </script>
-
-<svelte:window onkeydown={onKey} />
 
 {#if day && wmo}
 	<div class="fixed inset-0 z-40 flex items-end justify-center lg:items-center">

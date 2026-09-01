@@ -33,11 +33,19 @@
 		selectedHour = null;
 	});
 
+	function onKey(event: KeyboardEvent) {
+		if (event.key !== 'Escape') return;
+		if (selectedHour) selectedHour = null;
+		else selectedDay = null;
+	}
+
 	onMount(() => {
 		hydrateFromCache();
 		void locateUser();
 	});
 </script>
+
+<svelte:window onkeydown={onKey} />
 
 <svelte:head>
 	<title>Wetter · {weatherState.place.name}</title>

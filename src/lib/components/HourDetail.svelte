@@ -24,12 +24,7 @@
 	const mood = $derived(hour ? weatherMood(hour.code, hour.isDay) : 'cloud');
 	const uvTone = $derived(scaleFillClass(uvLevel(hour?.uv).tone));
 
-	function onKey(event: KeyboardEvent) {
-		if (event.key === 'Escape') onClose();
-	}
 </script>
-
-<svelte:window onkeydown={onKey} />
 
 {#if hour && wmo}
 	<div class="fixed inset-0 z-50 flex items-end justify-center lg:items-center">
