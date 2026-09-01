@@ -1,0 +1,6 @@
+services:
+  weather:
+    image: ghcr.io/${GHCR_IMAGE:-rolfwalker71-commits/weatherapp}:${TAG:-latest}
+    ports:
+      - "4425:4425"
+    restart: unless-stopped

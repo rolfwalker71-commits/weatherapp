@@ -1,0 +1,748 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	:root {
+		--app-font-scale: 1;
+		font-size: calc(100% * var(--app-font-scale));
+		--ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+	}
+
+	html[data-chrome='android'] {
+		--background: 254 247 255;
+		--foreground: 29 27 32;
+		--card: 243 237 247;
+		--primary: 103 80 164;
+		--on-primary: 255 255 255;
+		--secondary: 232 222 248;
+		--muted: 232 222 248;
+		--muted-foreground: 73 69 79;
+		--border: 202 196 208;
+		--ring: 103 80 164;
+		--destructive: 186 26 26;
+		--radius: 1.75rem;
+		--font-sans: Roboto, 'Roboto Flex', system-ui, sans-serif;
+		--ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+	}
+
+	html[data-chrome='android'].dark {
+		--background: 20 18 24;
+		--foreground: 230 224 233;
+		--card: 33 31 38;
+		--primary: 208 188 255;
+		--on-primary: 55 30 115;
+		--secondary: 79 55 139;
+		--muted: 54 47 68;
+		--muted-foreground: 202 196 208;
+		--border: 73 69 79;
+		--ring: 208 188 255;
+		--destructive: 242 184 181;
+	}
+
+	html[data-chrome='desktop'] {
+		--background: 243 243 243;
+		--foreground: 32 32 32;
+		--card: 255 255 255;
+		--primary: 0 95 184;
+		--on-primary: 255 255 255;
+		--secondary: 243 243 243;
+		--muted: 243 243 243;
+		--muted-foreground: 96 96 96;
+		--border: 229 229 229;
+		--ring: 0 95 184;
+		--destructive: 196 43 28;
+		--radius: 0.375rem;
+		--font-sans: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+	}
+
+	html[data-chrome='desktop'].dark {
+		--background: 32 32 32;
+		--foreground: 255 255 255;
+		--card: 44 44 44;
+		--primary: 96 205 255;
+		--on-primary: 0 33 54;
+		--secondary: 44 44 44;
+		--muted: 44 44 44;
+		--muted-foreground: 200 200 200;
+		--border: 58 58 58;
+		--ring: 96 205 255;
+		--destructive: 255 153 145;
+	}
+
+	html[data-chrome='ios'] {
+		--background: 242 242 247;
+		--foreground: 29 29 31;
+		--card: 255 255 255;
+		--primary: 0 122 255;
+		--on-primary: 255 255 255;
+		--secondary: 242 242 247;
+		--muted: 242 242 247;
+		--muted-foreground: 110 110 115;
+		--border: 209 209 214;
+		--ring: 0 122 255;
+		--destructive: 255 59 48;
+		--radius: 1rem;
+		--font-sans: system-ui, sans-serif;
+	}
+
+	html {
+		background-color: rgb(var(--background));
+		color: rgb(var(--foreground));
+		font-family: var(--font-sans);
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	body {
+		margin: 0;
+		min-height: 100dvh;
+		background-color: rgb(var(--background));
+		color: rgb(var(--foreground));
+	}
+
+	:focus-visible {
+		outline: 0.125rem solid rgb(var(--ring));
+		outline-offset: 0.125rem;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			transition-duration: 0.01ms !important;
+		}
+	}
+}
+
+@layer components {
+	.mica {
+		background-color: rgb(var(--card) / 0.8);
+		backdrop-filter: blur(1.25rem) saturate(1.4);
+	}
+
+	html[data-chrome='android'] .mica {
+		background-color: rgb(var(--card));
+		backdrop-filter: none;
+	}
+
+	.panel {
+		border-radius: var(--radius);
+		background-color: rgb(var(--card));
+	}
+
+	html[data-chrome='desktop'] .panel {
+		box-shadow: none;
+		box-shadow: inset 0 0 0 1px rgb(var(--border));
+	}
+
+	.icon-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		color: rgb(var(--foreground));
+		background-color: rgb(var(--muted));
+	}
+
+	html[data-chrome='android'] .icon-btn {
+		width: 3rem;
+		height: 3rem;
+		min-width: 3rem;
+		min-height: 3rem;
+		border-radius: 1.25rem;
+	}
+
+	html[data-chrome='desktop'] .icon-btn {
+		width: 2.5rem;
+		height: 2.5rem;
+		min-width: 2.5rem;
+		min-height: 2.5rem;
+		border-radius: 0.25rem;
+	}
+
+	html[data-chrome='android'] .icon-btn:hover {
+		background-color: rgb(var(--secondary));
+	}
+
+	html[data-chrome='desktop'] .icon-btn:hover {
+		background-color: rgb(var(--primary) / 0.1);
+	}
+
+	.wx-icon-clear,
+	.wx-icon-sun {
+		color: #e6a100;
+	}
+	.wx-icon-night {
+		color: #7c5cdb;
+	}
+	.wx-icon-rain,
+	.wx-icon-drop {
+		color: #1a73e8;
+	}
+	.wx-icon-snow {
+		color: #4c8dff;
+	}
+	.wx-icon-storm {
+		color: #9b3de8;
+	}
+	.wx-icon-cloud {
+		color: #5f7d95;
+	}
+	.wx-icon-fog {
+		color: #7a8894;
+	}
+	.wx-icon-wind {
+		color: #00897b;
+	}
+	.wx-icon-flower {
+		color: #ec407a;
+	}
+	.wx-icon-thermo {
+		color: #e65100;
+	}
+	.wx-icon-star {
+		color: #f4b400;
+	}
+	.wx-icon-clock {
+		color: #1a73e8;
+	}
+	.wx-icon-week {
+		color: #6750a4;
+	}
+
+	html.dark .wx-icon-clear,
+	html.dark .wx-icon-sun {
+		color: #ffcc33;
+	}
+	html.dark .wx-icon-night {
+		color: #c5b3ff;
+	}
+	html.dark .wx-icon-rain,
+	html.dark .wx-icon-drop {
+		color: #7ab8ff;
+	}
+	html.dark .wx-icon-snow {
+		color: #9fd0ff;
+	}
+	html.dark .wx-icon-storm {
+		color: #d7a6ff;
+	}
+	html.dark .wx-icon-cloud {
+		color: #b0bec5;
+	}
+	html.dark .wx-icon-fog {
+		color: #cfd8dc;
+	}
+	html.dark .wx-icon-wind {
+		color: #4db6ac;
+	}
+	html.dark .wx-icon-flower {
+		color: #f48fb1;
+	}
+	html.dark .wx-icon-thermo {
+		color: #ffab40;
+	}
+	html.dark .wx-icon-week {
+		color: #d0bcff;
+	}
+
+	html[data-chrome='desktop'] .wx-icon-week {
+		color: #005fb8;
+	}
+
+	html[data-chrome='desktop'].dark .wx-icon-week {
+		color: #60cdff;
+	}
+
+	.wx-chip-clear {
+		background: #ffe082;
+		color: #4e342e;
+	}
+	.wx-chip-night {
+		background: #d1c4e9;
+		color: #311b92;
+	}
+	.wx-chip-rain {
+		background: #bbdefb;
+		color: #0d47a1;
+	}
+	.wx-chip-snow {
+		background: #e3f2fd;
+		color: #0d47a1;
+	}
+	.wx-chip-storm {
+		background: #e1bee7;
+		color: #4a148c;
+	}
+	.wx-chip-cloud {
+		background: #cfd8dc;
+		color: #263238;
+	}
+	.wx-chip-fog {
+		background: #eceff1;
+		color: #37474f;
+	}
+
+	html.dark .wx-chip-clear {
+		background: #5d4e1e;
+		color: #ffe082;
+	}
+	html.dark .wx-chip-night {
+		background: #2d2150;
+		color: #d1c4e9;
+	}
+	html.dark .wx-chip-rain {
+		background: #1a3a5c;
+		color: #bbdefb;
+	}
+	html.dark .wx-chip-snow {
+		background: #1e3a5f;
+		color: #e3f2fd;
+	}
+	html.dark .wx-chip-storm {
+		background: #3d1f4d;
+		color: #e1bee7;
+	}
+	html.dark .wx-chip-cloud {
+		background: #2c353a;
+		color: #eceff1;
+	}
+	html.dark .wx-chip-fog {
+		background: #2a3034;
+		color: #cfd8dc;
+	}
+
+	html[data-chrome='desktop'] .wx-chip-clear {
+		background: #fff8e1;
+		color: #5d4037;
+	}
+	html[data-chrome='desktop'] .wx-chip-night {
+		background: #f3e5f5;
+		color: #4a148c;
+	}
+	html[data-chrome='desktop'] .wx-chip-rain {
+		background: #e3f2fd;
+		color: #0d47a1;
+	}
+	html[data-chrome='desktop'] .wx-chip-snow {
+		background: #e8f4fd;
+		color: #1565c0;
+	}
+	html[data-chrome='desktop'] .wx-chip-storm {
+		background: #f3e5f5;
+		color: #6a1b9a;
+	}
+	html[data-chrome='desktop'] .wx-chip-cloud {
+		background: #eceff1;
+		color: #37474f;
+	}
+	html[data-chrome='desktop'] .wx-chip-fog {
+		background: #f5f5f5;
+		color: #455a64;
+	}
+
+	html[data-chrome='desktop'].dark .wx-chip-clear {
+		background: #3d3414;
+		color: #ffe082;
+	}
+	html[data-chrome='desktop'].dark .wx-chip-night {
+		background: #2a2140;
+		color: #e1bee7;
+	}
+	html[data-chrome='desktop'].dark .wx-chip-rain {
+		background: #16324a;
+		color: #90caf9;
+	}
+	html[data-chrome='desktop'].dark .wx-chip-snow {
+		background: #17344f;
+		color: #bbdefb;
+	}
+	html[data-chrome='desktop'].dark .wx-chip-storm {
+		background: #33203f;
+		color: #ce93d8;
+	}
+	html[data-chrome='desktop'].dark .wx-chip-cloud,
+	html[data-chrome='desktop'].dark .wx-chip-fog {
+		background: #2f3438;
+		color: #eceff1;
+	}
+
+	.wx-scale-good {
+		background: #c8e6c9;
+		color: #1b5e20;
+	}
+	.wx-scale-fair {
+		background: #fff9c4;
+		color: #f57f17;
+	}
+	.wx-scale-warn {
+		background: #ffe0b2;
+		color: #e65100;
+	}
+	.wx-scale-bad {
+		background: #ffcdd2;
+		color: #b71c1c;
+	}
+	.wx-scale-extreme {
+		background: #f8bbd0;
+		color: #880e4f;
+	}
+	.wx-scale-neutral {
+		background: rgb(var(--muted));
+		color: rgb(var(--foreground));
+	}
+
+	html.dark .wx-scale-good {
+		background: #1b4332;
+		color: #b7efc5;
+	}
+	html.dark .wx-scale-fair {
+		background: #4d3d12;
+		color: #ffe082;
+	}
+	html.dark .wx-scale-warn {
+		background: #4e2e12;
+		color: #ffcc80;
+	}
+	html.dark .wx-scale-bad {
+		background: #4a1c1c;
+		color: #ffcdd2;
+	}
+	html.dark .wx-scale-extreme {
+		background: #4a1530;
+		color: #f8bbd0;
+	}
+
+	html[data-chrome='desktop'] .wx-scale-good {
+		background: #e8f5e9;
+		color: #1b5e20;
+	}
+	html[data-chrome='desktop'] .wx-scale-fair {
+		background: #fffde7;
+		color: #f57f17;
+	}
+	html[data-chrome='desktop'] .wx-scale-warn {
+		background: #fff3e0;
+		color: #e65100;
+	}
+	html[data-chrome='desktop'] .wx-scale-bad {
+		background: #ffebee;
+		color: #b71c1c;
+	}
+	html[data-chrome='desktop'] .wx-scale-extreme {
+		background: #fce4ec;
+		color: #880e4f;
+	}
+
+	.wx-bar-good {
+		background: #43a047;
+	}
+	.wx-bar-fair {
+		background: #fbc02d;
+	}
+	.wx-bar-warn {
+		background: #fb8c00;
+	}
+	.wx-bar-bad {
+		background: #e53935;
+	}
+	.wx-bar-extreme {
+		background: #ad1457;
+	}
+	.wx-bar-neutral,
+	.wx-bar-rain {
+		background: #1a73e8;
+	}
+
+	.wx-scale-icon-good {
+		color: #2e7d32;
+	}
+	.wx-scale-icon-fair {
+		color: #f9a825;
+	}
+	.wx-scale-icon-warn {
+		color: #ef6c00;
+	}
+	.wx-scale-icon-bad {
+		color: #c62828;
+	}
+	.wx-scale-icon-extreme {
+		color: #ad1457;
+	}
+	.wx-scale-icon-neutral {
+		color: rgb(var(--muted-foreground));
+	}
+
+	.wx-temp-bar {
+		background: linear-gradient(90deg, #42a5f5, #ffca28, #ef6c00);
+	}
+
+	.wx-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	html[data-chrome='android'] .wx-page[data-mood='clear'] {
+		background:
+			radial-gradient(120% 70% at 100% -8%, #ffe082 0%, transparent 52%),
+			rgb(var(--background));
+	}
+	html[data-chrome='android'] .wx-page[data-mood='night'] {
+		background:
+			radial-gradient(120% 70% at 100% -8%, #b39ddb 0%, transparent 52%),
+			rgb(var(--background));
+	}
+	html[data-chrome='android'] .wx-page[data-mood='rain'] {
+		background:
+			radial-gradient(120% 70% at 100% -8%, #90caf9 0%, transparent 52%),
+			rgb(var(--background));
+	}
+	html[data-chrome='android'] .wx-page[data-mood='snow'] {
+		background:
+			radial-gradient(120% 70% at 100% -8%, #e3f2fd 0%, transparent 52%),
+			rgb(var(--background));
+	}
+	html[data-chrome='android'] .wx-page[data-mood='storm'] {
+		background:
+			radial-gradient(120% 70% at 100% -8%, #ce93d8 0%, transparent 52%),
+			rgb(var(--background));
+	}
+	html[data-chrome='android'] .wx-page[data-mood='cloud'],
+	html[data-chrome='android'] .wx-page[data-mood='fog'] {
+		background:
+			radial-gradient(120% 70% at 100% -8%, #b0bec5 0%, transparent 52%),
+			rgb(var(--background));
+	}
+
+	html[data-chrome='android'].dark .wx-page[data-mood='clear'] {
+		background:
+			radial-gradient(120% 70% at 100% -8%, #7a5c12 0%, transparent 55%),
+			rgb(var(--background));
+	}
+	html[data-chrome='android'].dark .wx-page[data-mood='night'] {
+		background:
+			radial-gradient(120% 70% at 100% -8%, #4a2f7a 0%, transparent 55%),
+			rgb(var(--background));
+	}
+	html[data-chrome='android'].dark .wx-page[data-mood='rain'] {
+		background:
+			radial-gradient(120% 70% at 100% -8%, #1a4a73 0%, transparent 55%),
+			rgb(var(--background));
+	}
+	html[data-chrome='android'].dark .wx-page[data-mood='snow'] {
+		background:
+			radial-gradient(120% 70% at 100% -8%, #1e4a72 0%, transparent 55%),
+			rgb(var(--background));
+	}
+	html[data-chrome='android'].dark .wx-page[data-mood='storm'] {
+		background:
+			radial-gradient(120% 70% at 100% -8%, #5a2d6e 0%, transparent 55%),
+			rgb(var(--background));
+	}
+	html[data-chrome='android'].dark .wx-page[data-mood='cloud'],
+	html[data-chrome='android'].dark .wx-page[data-mood='fog'] {
+		background:
+			radial-gradient(120% 70% at 100% -8%, #37474f 0%, transparent 55%),
+			rgb(var(--background));
+	}
+
+	.hero-wash {
+		pointer-events: none;
+		position: absolute;
+		inset: 0;
+	}
+
+	html[data-chrome='android'] .hero-wash[data-mood='clear'] {
+		background: linear-gradient(160deg, #ffe082 0%, #ffcc80 45%, #e8def8 100%);
+	}
+	html[data-chrome='android'] .hero-wash[data-mood='night'] {
+		background: linear-gradient(160deg, #5e35b1 0%, #7e57c2 40%, #4f378b 100%);
+	}
+	html[data-chrome='android'] .hero-wash[data-mood='rain'] {
+		background: linear-gradient(160deg, #64b5f6 0%, #90caf9 40%, #bbdefb 100%);
+	}
+	html[data-chrome='android'] .hero-wash[data-mood='snow'] {
+		background: linear-gradient(160deg, #e3f2fd 0%, #bbdefb 50%, #e8eaf6 100%);
+	}
+	html[data-chrome='android'] .hero-wash[data-mood='storm'] {
+		background: linear-gradient(160deg, #7e57c2 0%, #b39ddb 45%, #ce93d8 100%);
+	}
+	html[data-chrome='android'] .hero-wash[data-mood='cloud'],
+	html[data-chrome='android'] .hero-wash[data-mood='fog'] {
+		background: linear-gradient(160deg, #b0bec5 0%, #cfd8dc 50%, #e8def8 100%);
+	}
+
+	html[data-chrome='android'].dark .hero-wash[data-mood='clear'] {
+		background: linear-gradient(160deg, #6d4c12 0%, #5d4037 50%, #4f378b 100%);
+	}
+	html[data-chrome='android'].dark .hero-wash[data-mood='night'] {
+		background: linear-gradient(160deg, #1a1140 0%, #311b92 50%, #4a148c 100%);
+	}
+	html[data-chrome='android'].dark .hero-wash[data-mood='rain'] {
+		background: linear-gradient(160deg, #0d47a1 0%, #1565c0 50%, #1a237e 100%);
+	}
+	html[data-chrome='android'].dark .hero-wash[data-mood='snow'] {
+		background: linear-gradient(160deg, #1a237e 0%, #283593 55%, #37474f 100%);
+	}
+	html[data-chrome='android'].dark .hero-wash[data-mood='storm'] {
+		background: linear-gradient(160deg, #4a148c 0%, #6a1b9a 50%, #311b92 100%);
+	}
+	html[data-chrome='android'].dark .hero-wash[data-mood='cloud'],
+	html[data-chrome='android'].dark .hero-wash[data-mood='fog'] {
+		background: linear-gradient(160deg, #37474f 0%, #455a64 55%, #211f26 100%);
+	}
+
+	html[data-chrome='desktop'] .hero-wash[data-mood='clear'] {
+		background: linear-gradient(120deg, #fff8e1 0%, rgb(var(--card)) 70%);
+	}
+	html[data-chrome='desktop'] .hero-wash[data-mood='night'] {
+		background: linear-gradient(120deg, #ede7f6 0%, rgb(var(--card)) 70%);
+	}
+	html[data-chrome='desktop'] .hero-wash[data-mood='rain'] {
+		background: linear-gradient(120deg, #e3f2fd 0%, rgb(var(--card)) 70%);
+	}
+	html[data-chrome='desktop'] .hero-wash[data-mood='snow'] {
+		background: linear-gradient(120deg, #e8f4fd 0%, rgb(var(--card)) 70%);
+	}
+	html[data-chrome='desktop'] .hero-wash[data-mood='storm'] {
+		background: linear-gradient(120deg, #f3e5f5 0%, rgb(var(--card)) 70%);
+	}
+	html[data-chrome='desktop'] .hero-wash[data-mood='cloud'],
+	html[data-chrome='desktop'] .hero-wash[data-mood='fog'] {
+		background: linear-gradient(120deg, #eceff1 0%, rgb(var(--card)) 70%);
+	}
+
+	html[data-chrome='desktop'].dark .hero-wash[data-mood='clear'] {
+		background: linear-gradient(120deg, #3d3414 0%, rgb(var(--card)) 75%);
+	}
+	html[data-chrome='desktop'].dark .hero-wash[data-mood='night'] {
+		background: linear-gradient(120deg, #2a2140 0%, rgb(var(--card)) 75%);
+	}
+	html[data-chrome='desktop'].dark .hero-wash[data-mood='rain'] {
+		background: linear-gradient(120deg, #16324a 0%, rgb(var(--card)) 75%);
+	}
+	html[data-chrome='desktop'].dark .hero-wash[data-mood='snow'] {
+		background: linear-gradient(120deg, #17344f 0%, rgb(var(--card)) 75%);
+	}
+	html[data-chrome='desktop'].dark .hero-wash[data-mood='storm'] {
+		background: linear-gradient(120deg, #33203f 0%, rgb(var(--card)) 75%);
+	}
+	html[data-chrome='desktop'].dark .hero-wash[data-mood='cloud'],
+	html[data-chrome='desktop'].dark .hero-wash[data-mood='fog'] {
+		background: linear-gradient(120deg, #2f3438 0%, rgb(var(--card)) 75%);
+	}
+
+	html[data-chrome='android'] .hero-on-wash,
+	html[data-chrome='android'] .hero-on-wash .text-muted-foreground {
+		color: inherit;
+	}
+
+	html[data-chrome='android'] .hero-wash[data-mood='clear'] ~ .hero-on-wash,
+	html[data-chrome='android'] .hero-on-clear {
+		color: #3e2723;
+	}
+	html[data-chrome='android'] .hero-on-night {
+		color: #ede7f6;
+	}
+	html[data-chrome='android'] .hero-on-rain {
+		color: #0d47a1;
+	}
+	html[data-chrome='android'] .hero-on-snow {
+		color: #0d47a1;
+	}
+	html[data-chrome='android'] .hero-on-storm {
+		color: #4a148c;
+	}
+	html[data-chrome='android'] .hero-on-cloud,
+	html[data-chrome='android'] .hero-on-fog {
+		color: #263238;
+	}
+
+	html[data-chrome='android'].dark .hero-on-clear,
+	html[data-chrome='android'].dark .hero-on-night,
+	html[data-chrome='android'].dark .hero-on-rain,
+	html[data-chrome='android'].dark .hero-on-snow,
+	html[data-chrome='android'].dark .hero-on-storm,
+	html[data-chrome='android'].dark .hero-on-cloud,
+	html[data-chrome='android'].dark .hero-on-fog {
+		color: #f3e5f5;
+	}
+
+	.radar-frame {
+		isolation: isolate;
+		background: rgb(var(--muted));
+	}
+
+	.radar-map {
+		z-index: 0;
+	}
+
+	.radar-map .leaflet-control-attribution {
+		font-size: 0.65rem;
+		background: rgb(var(--card));
+		color: rgb(var(--muted-foreground));
+	}
+
+	.wx-wind-marker {
+		background: transparent !important;
+		border: none !important;
+	}
+
+	.wx-wind-arrow {
+		width: 0;
+		height: 0;
+		border-left: 0.35rem solid transparent;
+		border-right: 0.35rem solid transparent;
+		border-bottom: 1.15rem solid currentColor;
+		filter: drop-shadow(0 0 0.05rem rgb(var(--background)));
+	}
+
+	.wx-wind-calm {
+		color: #00897b;
+	}
+
+	.wx-wind-fresh {
+		color: #1a73e8;
+	}
+
+	.wx-wind-strong {
+		color: #e65100;
+	}
+
+	html.dark .wx-wind-calm {
+		color: #4db6ac;
+	}
+
+	html.dark .wx-wind-fresh {
+		color: #7ab8ff;
+	}
+
+	html.dark .wx-wind-strong {
+		color: #ffab40;
+	}
+
+	.wx-leg {
+		display: inline-block;
+		width: 0.75rem;
+		height: 0.75rem;
+		border-radius: 999px;
+	}
+
+	.wx-leg-1 {
+		background: #81d4fa;
+	}
+
+	.wx-leg-2 {
+		background: #43a047;
+	}
+
+	.wx-leg-3 {
+		background: #e53935;
+	}
+
+	.wx-leg-4 {
+		background: #f8fafc;
+		box-shadow: inset 0 0 0 1px #90caf9;
+	}
+}
