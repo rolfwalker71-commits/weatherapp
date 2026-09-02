@@ -2,6 +2,7 @@
 	import { chromeState } from '$lib/chrome.svelte';
 	import { moodChipClass } from '$lib/colors';
 	import { formatHour, formatPercent, formatTemp } from '$lib/format';
+	import { insightLine, snowFrost } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
 	import type { HourPoint } from '$lib/types';
 	import { weatherMood } from '$lib/wmo';
@@ -16,6 +17,8 @@
 
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
 	const hours = $derived(weatherState.bundle?.hours ?? []);
+	const line = $derived(weatherState.bundle ? insightLine(weatherState.bundle) : '');
+	const frost = $derived(weatherState.bundle ? snowFrost(weatherState.bundle) : null);
 	const maxPrecip = $derived(Math.max(1, ...hours.map((h) => h.precipMm)));
 </script>
 
@@ -23,7 +26,9 @@
 	<div class="mb-4 flex items-end justify-between gap-3">
 		<div>
 			<h2 class="text-xl font-semibold leading-snug tracking-tight">Nächste 24 Stunden</h2>
-			<p class="text-sm text-muted-foreground">Wischen für den Verlauf · Tippen für Details</p>
+			<p class="text-sm text-muted-foreground">
+				{line}{frost ? ` · ${frost.snowLabel}` : ''}
+			</p>
 		</div>
 	</div>
 

@@ -1,0 +1,17 @@
+services:
+  push:
+    image: ghcr.io/${GHCR_IMAGE_PUSH:-rolfwalker71-commits/weatherapp-push}:${TAG:-latest}
+    ports:
+      - "4426:4426"
+    environment:
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:weather@localhost}
+      PUSH_SEND_ENABLED: ${PUSH_SEND_ENABLED:-false}
+      SQLITE_PATH: /data/push.db
+    volumes:
+      - push-data:/data
+    restart: unless-stopped
+
+volumes:
+  push-data:

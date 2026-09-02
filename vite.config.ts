@@ -3,6 +3,16 @@ import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+	server: {
+		host: '0.0.0.0',
+		port: 5173,
+		proxy: {
+			'/api/push': {
+				target: 'http://127.0.0.1:4426',
+				rewrite: (path) => path.replace(/^\/api\/push/, '')
+			}
+		}
+	},
 	plugins: [
 		sveltekit(),
 		SvelteKitPWA({
@@ -46,6 +56,7 @@ export default defineConfig({
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,webmanifest}'],
 				navigateFallback: '/200.html',
+				importScripts: ['/push-sw.js'],
 				runtimeCaching: [
 					{
 						urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/i,

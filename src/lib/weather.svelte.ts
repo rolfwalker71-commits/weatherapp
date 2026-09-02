@@ -1,4 +1,4 @@
-import { BERN, fetchWeather, reverseGeocode } from './api';
+import { BERN, emptyExtras, fetchWeather, reverseGeocode } from './api';
 import {
 	loadFavorites,
 	loadLastBundle,
@@ -73,10 +73,10 @@ export function hydrateFromCache(): void {
 	const cached = loadLastBundle();
 	if (last) weatherState.place = last;
 	if (cached) {
-		weatherState.bundle = {
+		weatherState.bundle = emptyExtras({
 			...cached,
 			allHours: cached.allHours ?? cached.hours
-		};
+		});
 		weatherState.place = cached.place;
 		weatherState.stale = true;
 	}

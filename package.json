@@ -7,7 +7,9 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"push:dev": "npm --prefix push-api start",
+		"vapid-keys": "npx --yes web-push generate-vapid-keys"
 	},
 	"devDependencies": {
 		"@lucide/svelte": "^1.39.0",

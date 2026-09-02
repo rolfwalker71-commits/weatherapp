@@ -5,6 +5,7 @@
 	import { chromeState } from '$lib/chrome.svelte';
 	import { scaleBarClass, scaleFillClass, scaleIconClass } from '$lib/colors';
 	import { panelClass } from '$lib/platform';
+	import { windowAdvice } from '$lib/lifestyle';
 	import { weatherState } from '$lib/weather.svelte';
 
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
@@ -13,6 +14,9 @@
 	const alder = $derived(pollenLevel(weatherState.bundle?.pollen.alder));
 	const birch = $derived(pollenLevel(weatherState.bundle?.pollen.birch));
 	const grass = $derived(pollenLevel(weatherState.bundle?.pollen.grass));
+	const windowHint = $derived(weatherState.bundle ? windowAdvice(weatherState.bundle) : null);
+	const trend = $derived(weatherState.bundle?.airTrend ?? []);
+	const maxPm = $derived(Math.max(8, ...trend.map((point) => point.pm25 ?? 0)));
 
 	const shape = $derived(isDesktop ? 'rounded-md p-3' : 'rounded-[1.25rem] p-3');
 </script>
@@ -40,7 +44,29 @@
 				PM2.5 {air.pm2_5?.toFixed(1) ?? '–'} µg/m³ · PM10 {air.pm10?.toFixed(1) ?? '–'} µg/m³
 			</p>
 		{/if}
+		{#if windowHint}
+			<p class="mt-2 text-sm font-medium leading-snug">{windowHint.label}</p>
+		{/if}
 	</div>
+
+	{#if trend.length}
+		<div class="mb-5">
+			<p class="mb-2 font-medium">Feinstaub-Trend</p>
+			<div class="flex items-end gap-1" aria-label="PM2.5 Verlauf">
+				{#each trend as point (point.time)}
+					<div class="flex h-12 min-w-0 flex-1 items-end">
+						<div
+							class="w-full {isDesktop ? 'rounded-sm' : 'rounded-full'} {windowHint?.close
+								? 'wx-bar-warn'
+								: 'wx-bar-good'}"
+							style="height: {Math.max(10, ((point.pm25 ?? 0) / maxPm) * 100)}%;"
+							title="PM2.5 {point.pm25?.toFixed(1) ?? '–'}"
+						></div>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
 
 	<div>
 		<p class="mb-3 flex items-center gap-2 font-medium"><Flower2 class="size-4 wx-icon-flower" /> Pollen</p>

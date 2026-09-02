@@ -41,3 +41,15 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Build and push push-api
+        uses: docker/build-push-action@v6
+        with:
+          context: ./push-api
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-push:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-push:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

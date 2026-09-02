@@ -9,22 +9,25 @@
 	import { formatHour, formatKmH, formatMm, formatPercent, windDirection } from '$lib/format';
 	import { panelClass } from '$lib/platform';
 	import {
+		capeTone,
 		fetchRadarCatalog,
 		fetchWindGrid,
+		hailProxyLabel,
+		infraredTileUrl,
 		radarTileUrl,
 		windTone,
 		type MapBounds,
 		type RadarFrame,
+		type SatelliteFrame,
 		type WindPoint
 	} from '$lib/radar';
 	import { themeState } from '$lib/theme.svelte';
 	import { weatherState } from '$lib/weather.svelte';
 
-	type Layer = 'regen' | 'wind';
-
 	interface RadarApi {
-		setLayer: (next: Layer) => void;
+		applyLayers: () => void;
 		showFrame: (index: number) => void;
+		showInfrared: (index: number) => void;
 		refreshPlace: () => void;
 		setBase: () => void;
 		invalidate: () => void;
@@ -34,11 +37,19 @@
 	const hours = $derived((weatherState.bundle?.hours ?? []).slice(0, 12));
 	const current = $derived(weatherState.bundle?.current);
 	const maxPrecip = $derived(Math.max(0.2, ...hours.map((hour) => hour.precipMm)));
+	const hailLabel = $derived(
+		hailProxyLabel(weatherState.bundle?.hours[0]?.cape ?? null, weatherState.bundle?.hours[0]?.freezingLevel ?? null)
+	);
 
-	let layer = $state<Layer>('regen');
+	let showRain = $state(true);
+	let showWind = $state(true);
+	let showInfrared = $state(false);
+	let showCape = $state(false);
 	let frames = $state<RadarFrame[]>([]);
+	let infrared = $state<SatelliteFrame[]>([]);
 	let host = $state('https://tilecache.rainviewer.com');
 	let frameIndex = $state(0);
+	let irIndex = $state(0);
 	let playing = $state(true);
 	let mapError = $state<string | null>(null);
 	let windPoints = $state<WindPoint[]>([]);
@@ -54,16 +65,24 @@
 
 	const chip = $derived(
 		isDesktop
-			? 'h-full min-h-0 flex-1 self-stretch rounded-md px-3 text-sm'
-			: 'h-full min-h-0 flex-1 self-stretch rounded-full px-3 text-sm'
+			? 'min-h-10 rounded-md px-3 text-sm'
+			: 'min-h-10 rounded-full px-3 text-sm'
 	);
 
 	$effect(() => {
-		api?.setLayer(layer);
+		showRain;
+		showWind;
+		showInfrared;
+		showCape;
+		api?.applyLayers();
 	});
 
 	$effect(() => {
 		api?.showFrame(frameIndex);
+	});
+
+	$effect(() => {
+		api?.showInfrared(irIndex);
 	});
 
 	$effect(() => {
@@ -81,18 +100,27 @@
 		if (weatherState.section === 'radar') api?.invalidate();
 	});
 
+	function onScrubStart() {
+		playing = false;
+	}
+
 	onMount(() => {
 		let cancelled = false;
 		let map: import('leaflet').Map | undefined;
 		let baseLayer: import('leaflet').TileLayer | undefined;
 		let radarLayer: import('leaflet').TileLayer | undefined;
+		let infraredLayer: import('leaflet').TileLayer | undefined;
 		let windLayer: import('leaflet').LayerGroup | undefined;
+		let capeLayer: import('leaflet').LayerGroup | undefined;
 		let marker: import('leaflet').CircleMarker | undefined;
 		let L: typeof import('leaflet');
 		let playTimer: ReturnType<typeof setInterval> | undefined;
 		let catalogTimer: ReturnType<typeof setInterval> | undefined;
-		let currentLayer: Layer = 'regen';
 		let currentHost = host;
+		let rainOn = true;
+		let windOn = true;
+		let irOn = false;
+		let capeOn = false;
 
 		function setBase() {
 			if (!map || !L) return;
@@ -110,9 +138,13 @@
 		}
 
 		function showRadar(frame: RadarFrame | undefined) {
-			if (!map || !L || !frame || currentLayer !== 'regen') return;
+			if (!map || !L || !frame || !rainOn) {
+				radarLayer?.remove();
+				radarLayer = undefined;
+				return;
+			}
 			const next = L.tileLayer(radarTileUrl(currentHost, frame.path), {
-				opacity: 0.72,
+				opacity: 0.62,
 				maxZoom: 7,
 				maxNativeZoom: 7
 			});
@@ -122,6 +154,23 @@
 				requestAnimationFrame(() => previous.remove());
 			}
 			radarLayer = next;
+		}
+
+		function showIr(frame: SatelliteFrame | undefined) {
+			if (!map || !L || !frame || !irOn) {
+				infraredLayer?.remove();
+				infraredLayer = undefined;
+				return;
+			}
+			const next = L.tileLayer(infraredTileUrl(currentHost, frame.path), {
+				opacity: 0.38,
+				maxZoom: 7,
+				maxNativeZoom: 7
+			});
+			next.addTo(map);
+			infraredLayer?.remove();
+			infraredLayer = next;
+			if (radarLayer) radarLayer.bringToFront();
 		}
 
 		function drawWind(points: WindPoint[]) {
@@ -138,20 +187,47 @@
 				});
 				L.marker([point.latitude, point.longitude], { icon, interactive: false }).addTo(windLayer);
 			}
-			if (currentLayer === 'wind') windLayer.addTo(map);
+			if (windOn) windLayer.addTo(map);
+			drawCape(points);
 		}
 
-		function setLayer(next: Layer) {
-			currentLayer = next;
+		function drawCape(points: WindPoint[]) {
+			if (!map || !L) return;
+			capeLayer?.remove();
+			capeLayer = L.layerGroup();
+			for (const point of points) {
+				const tone = capeTone(point.cape);
+				if (tone === 'none') continue;
+				L.circleMarker([point.latitude, point.longitude], {
+					radius: tone === 'strong' ? 10 : 7,
+					weight: 0,
+					fillColor: tone === 'strong' ? '#e65100' : '#f9a825',
+					fillOpacity: 0.28
+				}).addTo(capeLayer);
+			}
+			if (capeOn) capeLayer.addTo(map);
+		}
+
+		function applyLayers() {
+			rainOn = showRain;
+			windOn = showWind;
+			irOn = showInfrared;
+			capeOn = showCape;
 			if (!map) return;
-			if (next === 'regen') {
-				windLayer?.remove();
-				showRadar(frames[frameIndex]);
-			} else {
+			if (rainOn) showRadar(frames[frameIndex]);
+			else {
 				radarLayer?.remove();
 				radarLayer = undefined;
-				windLayer?.addTo(map);
 			}
+			if (irOn) showIr(infrared[irIndex] ?? infrared[infrared.length - 1]);
+			else {
+				infraredLayer?.remove();
+				infraredLayer = undefined;
+			}
+			if (windOn) windLayer?.addTo(map);
+			else windLayer?.remove();
+			if (capeOn) capeLayer?.addTo(map);
+			else capeLayer?.remove();
 		}
 
 		function placeMarker() {
@@ -192,9 +268,11 @@
 				currentHost = catalog.host;
 				host = catalog.host;
 				frames = catalog.frames;
+				infrared = catalog.infrared;
 				frameIndex = Math.max(0, catalog.frames.length - 1);
+				irIndex = Math.max(0, catalog.infrared.length - 1);
 				mapError = catalog.frames.length ? null : 'Keine Radarframes verfügbar.';
-				showRadar(catalog.frames[frameIndex]);
+				applyLayers();
 			} catch {
 				if (!cancelled) mapError = 'Radar derzeit nicht erreichbar.';
 			}
@@ -244,8 +322,9 @@
 			await Promise.all([loadCatalog(), loadWind()]);
 
 			api = {
-				setLayer,
+				applyLayers,
 				showFrame: (index) => showRadar(frames[index]),
+				showInfrared: (index) => showIr(infrared[index]),
 				refreshPlace: () => {
 					flyToPlace();
 				},
@@ -257,7 +336,7 @@
 			};
 
 			playTimer = setInterval(() => {
-				if (!playing || currentLayer !== 'regen' || frames.length < 2) return;
+				if (!playing || !rainOn || frames.length < 2) return;
 				frameIndex = (frameIndex + 1) % frames.length;
 			}, 520);
 
@@ -290,45 +369,41 @@
 					<Radar class="size-5 wx-icon-rain" /> Wetterradar
 				</h2>
 				<p class="text-sm text-muted-foreground">
-					Niederschlag der letzten zwei Stunden und Windfeld im sichtbaren Kartenausschnitt
+					Regen und Wind gleichzeitig, Infrarot und CAPE-Proxy — keine erfundene Blitzkarte
 				</p>
 			</div>
-			<div
-				class="flex h-10 min-h-10 w-full max-w-sm rounded-full bg-muted p-0.5 [html[data-chrome=desktop]_&]:rounded-md"
-				role="tablist"
-				aria-label="Kartenlayer"
-			>
+			<div class="flex flex-wrap gap-2" role="group" aria-label="Kartenlayer">
 				<button
 					type="button"
-					role="tab"
-					aria-selected={layer === 'regen'}
-					class="{chip} {layer === 'regen'
-						? isDesktop
-							? 'bg-primary/10 text-primary'
-							: 'wx-chip-rain'
-						: 'text-muted-foreground'}"
-					onclick={() => {
-						layer = 'regen';
-						playing = true;
-					}}
+					aria-pressed={showRain}
+					class="{chip} {showRain ? (isDesktop ? 'bg-primary/10 text-primary' : 'wx-chip-rain') : 'bg-muted text-muted-foreground'}"
+					onclick={() => (showRain = !showRain)}
 				>
-					Regenradar
+					Regen
 				</button>
 				<button
 					type="button"
-					role="tab"
-					aria-selected={layer === 'wind'}
-					class="{chip} {layer === 'wind'
-						? isDesktop
-							? 'bg-primary/10 text-primary'
-							: 'wx-chip-cloud'
-						: 'text-muted-foreground'}"
-					onclick={() => {
-						layer = 'wind';
-						playing = false;
-					}}
+					aria-pressed={showWind}
+					class="{chip} {showWind ? (isDesktop ? 'bg-primary/10 text-primary' : 'wx-chip-cloud') : 'bg-muted text-muted-foreground'}"
+					onclick={() => (showWind = !showWind)}
 				>
 					Wind
+				</button>
+				<button
+					type="button"
+					aria-pressed={showInfrared}
+					class="{chip} {showInfrared ? (isDesktop ? 'bg-primary/10 text-primary' : 'wx-chip-night') : 'bg-muted text-muted-foreground'}"
+					onclick={() => (showInfrared = !showInfrared)}
+				>
+					Infrarot
+				</button>
+				<button
+					type="button"
+					aria-pressed={showCape}
+					class="{chip} {showCape ? (isDesktop ? 'bg-primary/10 text-primary' : 'wx-chip-storm') : 'bg-muted text-muted-foreground'}"
+					onclick={() => (showCape = !showCape)}
+				>
+					CAPE
 				</button>
 			</div>
 		</div>
@@ -341,47 +416,44 @@
 			<div bind:this={mapEl} class="radar-map h-[22rem] w-full lg:h-[32rem]"></div>
 		</div>
 
-		{#if layer === 'regen'}
-			<div class="mt-4 flex items-center gap-3">
-				<button
-					type="button"
-					class="icon-btn"
-					onclick={() => (playing = !playing)}
-					aria-label={playing ? 'Animation anhalten' : 'Animation abspielen'}
-				>
-					{#if playing}
-						<Pause class="size-5 wx-icon-rain" />
-					{:else}
-						<Play class="size-5 wx-icon-rain" />
-					{/if}
-				</button>
-				<div class="min-w-0 flex-1">
-					<label class="sr-only" for="radar-time">Radarzeit</label>
-					<input
-						id="radar-time"
-						type="range"
-						min="0"
-						max={Math.max(0, frames.length - 1)}
-						bind:value={frameIndex}
-						class="w-full accent-primary"
-						disabled={frames.length < 2}
-						oninput={() => (playing = false)}
-					/>
-					<p class="mt-1 text-sm text-muted-foreground">{frameLabel}</p>
-				</div>
+		<div class="mt-4 flex items-center gap-3">
+			<button
+				type="button"
+				class="icon-btn"
+				onclick={() => (playing = !playing)}
+				aria-label={playing ? 'Animation anhalten' : 'Animation abspielen'}
+			>
+				{#if playing}
+					<Pause class="size-5 wx-icon-rain" />
+				{:else}
+					<Play class="size-5 wx-icon-rain" />
+				{/if}
+			</button>
+			<div class="min-w-0 flex-1">
+				<label class="sr-only" for="radar-time">Radarzeit, halten und ziehen</label>
+				<input
+					id="radar-time"
+					type="range"
+					min="0"
+					max={Math.max(0, frames.length - 1)}
+					bind:value={frameIndex}
+					class="w-full accent-primary"
+					disabled={frames.length < 2}
+					onpointerdown={onScrubStart}
+					ontouchstart={onScrubStart}
+					oninput={onScrubStart}
+				/>
+				<p class="mt-1 text-sm text-muted-foreground">{frameLabel} · Finger halten springt den Frame</p>
 			</div>
-			<div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
-				<span class="text-muted-foreground">Legende</span>
-				<span class="inline-flex items-center gap-1"><i class="wx-leg wx-leg-1"></i> leicht</span>
-				<span class="inline-flex items-center gap-1"><i class="wx-leg wx-leg-2"></i> mässig</span>
-				<span class="inline-flex items-center gap-1"><i class="wx-leg wx-leg-3"></i> stark</span>
-				<span class="inline-flex items-center gap-1"><i class="wx-leg wx-leg-4"></i> Schnee</span>
-			</div>
-		{:else}
-			<p class="mt-4 text-sm text-muted-foreground">
-				Pfeile zeigen, woher der Wind kommt. Farbe nach Stärke: ruhig, frisch, stark.
-			</p>
-		{/if}
+		</div>
+		<div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
+			<span class="text-muted-foreground">Legende</span>
+			<span class="inline-flex items-center gap-1"><i class="wx-leg wx-leg-1"></i> leicht</span>
+			<span class="inline-flex items-center gap-1"><i class="wx-leg wx-leg-2"></i> mässig</span>
+			<span class="inline-flex items-center gap-1"><i class="wx-leg wx-leg-3"></i> stark</span>
+			<span class="inline-flex items-center gap-1"><i class="wx-leg wx-leg-4"></i> Schnee</span>
+		</div>
+		<p class="mt-3 text-sm leading-snug text-muted-foreground">{hailLabel}</p>
 	</div>
 
 	<div class="grid grid-cols-1 border-t border-border lg:grid-cols-2">

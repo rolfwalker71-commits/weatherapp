@@ -6,13 +6,16 @@
 	import DailyForecast from '$lib/components/DailyForecast.svelte';
 	import DayDetail from '$lib/components/DayDetail.svelte';
 	import FavoriteChips from '$lib/components/FavoriteChips.svelte';
+	import HeuteInsights from '$lib/components/HeuteInsights.svelte';
 	import HourDetail from '$lib/components/HourDetail.svelte';
 	import HourlyForecast from '$lib/components/HourlyForecast.svelte';
 	import MetricGrid from '$lib/components/MetricGrid.svelte';
 	import NavBar from '$lib/components/NavBar.svelte';
 	import NavRail from '$lib/components/NavRail.svelte';
+	import SettingsSheet from '$lib/components/SettingsSheet.svelte';
 	import WeatherRadar from '$lib/components/WeatherRadar.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
+	import { hydrateCommute } from '$lib/commute.svelte';
 	import type { DayPoint, HourPoint } from '$lib/types';
 	import { weatherMood } from '$lib/wmo';
 	import { hydrateFromCache, locateUser, startAutoRefresh, weatherState } from '$lib/weather.svelte';
@@ -40,6 +43,7 @@
 
 	onMount(() => {
 		hydrateFromCache();
+		hydrateCommute();
 		void locateUser();
 		return startAutoRefresh();
 	});
@@ -87,6 +91,9 @@
 						<MetricGrid />
 					</div>
 					<div class="xl:col-span-12">
+						<HeuteInsights />
+					</div>
+					<div class="xl:col-span-12">
 						<HourlyForecast onSelect={(hour) => (selectedHour = hour)} />
 					</div>
 				{/if}
@@ -120,3 +127,4 @@
 	onSelectHour={(hour) => (selectedHour = hour)}
 />
 <HourDetail hour={selectedHour} onClose={() => (selectedHour = null)} />
+<SettingsSheet />

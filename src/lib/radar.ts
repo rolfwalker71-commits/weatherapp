@@ -4,9 +4,15 @@ export interface RadarFrame {
 	kind: 'past' | 'nowcast';
 }
 
+export interface SatelliteFrame {
+	time: number;
+	path: string;
+}
+
 export interface RadarCatalog {
 	host: string;
 	frames: RadarFrame[];
+	infrared: SatelliteFrame[];
 }
 
 export interface WindPoint {
@@ -15,6 +21,7 @@ export interface WindPoint {
 	speed: number;
 	gusts: number;
 	direction: number;
+	cape: number | null;
 }
 
 interface RainViewerMaps {
@@ -35,6 +42,7 @@ interface OpenMeteoPoint {
 		wind_speed_10m: number;
 		wind_direction_10m: number;
 		wind_gusts_10m: number;
+		cape?: number | null;
 	};
 }
 
@@ -48,13 +56,19 @@ export async function fetchRadarCatalog(signal?: AbortSignal): Promise<RadarCata
 	const nowcast = (data.radar?.nowcast ?? []).map((frame) => ({ ...frame, kind: 'nowcast' as const }));
 	return {
 		host: data.host,
-		frames: [...past, ...nowcast]
+		frames: [...past, ...nowcast],
+		infrared: data.satellite?.infrared ?? []
 	};
 }
 
 /** Colorful Titan scheme, smoothed, snow separate. Max radar zoom is 7. */
 export function radarTileUrl(host: string, path: string): string {
 	return `${host}${path}/256/{z}/{x}/{y}/4/1_1.png`;
+}
+
+/** RainViewer infrared, greyscale. */
+export function infraredTileUrl(host: string, path: string): string {
+	return `${host}${path}/256/{z}/{x}/{y}/0/0_0.png`;
 }
 
 export interface MapBounds {
@@ -101,7 +115,7 @@ export async function fetchWindGrid(bounds: MapBounds, signal?: AbortSignal): Pr
 	const url = new URL('https://api.open-meteo.com/v1/forecast');
 	url.searchParams.set('latitude', lats.join(','));
 	url.searchParams.set('longitude', lons.join(','));
-	url.searchParams.set('current', 'wind_speed_10m,wind_direction_10m,wind_gusts_10m');
+	url.searchParams.set('current', 'wind_speed_10m,wind_direction_10m,wind_gusts_10m,cape');
 	url.searchParams.set('wind_speed_unit', 'kmh');
 	url.searchParams.set('models', 'best_match');
 
@@ -116,7 +130,8 @@ export async function fetchWindGrid(bounds: MapBounds, signal?: AbortSignal): Pr
 			longitude: point.longitude,
 			speed: point.current!.wind_speed_10m,
 			gusts: point.current!.wind_gusts_10m,
-			direction: point.current!.wind_direction_10m
+			direction: point.current!.wind_direction_10m,
+			cape: point.current!.cape ?? null
 		}));
 }
 
@@ -124,4 +139,19 @@ export function windTone(speed: number): 'calm' | 'fresh' | 'strong' {
 	if (speed >= 40) return 'strong';
 	if (speed >= 18) return 'fresh';
 	return 'calm';
+}
+
+export function capeTone(cape: number | null): 'none' | 'fair' | 'strong' {
+	if (cape == null || cape < 500) return 'none';
+	if (cape >= 1500) return 'strong';
+	return 'fair';
+}
+
+export function hailProxyLabel(cape: number | null, freezingLevel: number | null): string {
+	if (cape == null) return 'Kein Hagelproxy — CAPE nicht verfügbar.';
+	if (cape >= 1500 && (freezingLevel == null || freezingLevel <= 3500)) {
+		return 'Erhöhtes Hagelpotenzial (CAPE hoch) — kein beobachteter Hagel.';
+	}
+	if (cape >= 800) return 'Gewitterpotenzial vorhanden (CAPE), Hagel unsicher.';
+	return 'Geringes konvektives Potenzial, keine Blitzortung.';
 }

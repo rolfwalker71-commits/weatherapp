@@ -1,3 +1,7 @@
 services:
   weather:
     build: .
+  push:
+    build:
+      context: ./push-api
+      dockerfile: Dockerfile

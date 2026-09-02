@@ -1,7 +1,9 @@
 <script lang="ts">
+	import Bell from '@lucide/svelte/icons/bell';
 	import LocateFixed from '@lucide/svelte/icons/locate-fixed';
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import { chromeState } from '$lib/chrome.svelte';
+	import { settingsUi } from '$lib/commute.svelte';
 	import { formatRefreshStatus } from '$lib/format';
 	import { clockState, loadPlace, locateUser, weatherState } from '$lib/weather.svelte';
 	import CitySearch from './CitySearch.svelte';
@@ -57,6 +59,15 @@
 				>
 					<RefreshCw class="size-5 wx-icon-week {weatherState.loading ? 'animate-spin' : ''}" />
 				</button>
+				<button
+					type="button"
+					class="icon-btn"
+					onclick={() => (settingsUi.open = true)}
+					aria-label="Einstellungen und Benachrichtigungen"
+					title="Einstellungen"
+				>
+					<Bell class="size-5 wx-icon-week" />
+				</button>
 				<ThemeToggle />
 			</div>
 		</div>
@@ -85,6 +96,15 @@
 					disabled={weatherState.loading}
 				>
 					<RefreshCw class="size-5 wx-icon-week {weatherState.loading ? 'animate-spin' : ''}" />
+				</button>
+				<button
+					type="button"
+					class="icon-btn"
+					onclick={() => (settingsUi.open = true)}
+					aria-label="Einstellungen und Benachrichtigungen"
+					title="Einstellungen"
+				>
+					<Bell class="size-5 wx-icon-week" />
 				</button>
 				<ThemeToggle />
 			</div>

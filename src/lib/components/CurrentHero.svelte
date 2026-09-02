@@ -4,6 +4,7 @@
 	import Wind from '@lucide/svelte/icons/wind';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { formatKmH, formatPercent, formatRefreshStatus, formatTemp, placeLabel, windDirection } from '$lib/format';
+	import { insightLine } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
 	import { getWmo, weatherMood } from '$lib/wmo';
 	import { clockState, isFavorite, starPlace, weatherState } from '$lib/weather.svelte';
@@ -17,6 +18,7 @@
 		current ? weatherMood(current.weather_code, current.is_day === 1) : 'cloud'
 	);
 	const today = $derived(bundle?.days[0]);
+	const insight = $derived(bundle ? insightLine(bundle) : '');
 	const favored = $derived(isFavorite(weatherState.place));
 	const tile = $derived(isDesktop ? 'rounded-md ring-1 ring-border' : 'rounded-3xl');
 </script>
@@ -71,6 +73,10 @@
 					class={isDesktop ? 'size-10' : 'size-12'}
 				/>
 			</div>
+
+			{#if insight}
+				<p class="text-base font-medium leading-snug">{insight}</p>
+			{/if}
 
 			<p class="text-sm opacity-75">
 				{#if today}

@@ -11,3 +11,4 @@ vite.config.ts.timestamp-*
 .vscode
 .idea
 *.log
+push-api/data
