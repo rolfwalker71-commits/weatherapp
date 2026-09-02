@@ -4,12 +4,13 @@
 	import { placeShort } from '$lib/format';
 	import { samePlace } from '$lib/storage';
 	import { loadPlace, weatherState } from '$lib/weather.svelte';
+	import HScroll from './HScroll.svelte';
 
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
 </script>
 
 {#if weatherState.favorites.length > 0}
-	<div class="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+	<HScroll fade fadeFrom="from-background" scrollerClass="pb-1">
 		{#each weatherState.favorites as place (place.id ?? `${place.latitude}-${place.longitude}`)}
 			{@const active = samePlace(place, weatherState.place)}
 			<button
@@ -23,5 +24,5 @@
 				<span class="whitespace-nowrap">{placeShort(place)}</span>
 			</button>
 		{/each}
-	</div>
+	</HScroll>
 {/if}

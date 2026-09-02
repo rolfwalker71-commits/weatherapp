@@ -6,6 +6,10 @@ import CalendarMonth from '@material-symbols/svg-400/rounded/calendar_month.svg?
 import CalendarMonthFill from '@material-symbols/svg-400/rounded/calendar_month-fill.svg?raw';
 import Checkroom from '@material-symbols/svg-400/rounded/checkroom.svg?raw';
 import CheckroomFill from '@material-symbols/svg-400/rounded/checkroom-fill.svg?raw';
+import ChevronLeft from '@material-symbols/svg-400/rounded/chevron_left.svg?raw';
+import ChevronLeftFill from '@material-symbols/svg-400/rounded/chevron_left-fill.svg?raw';
+import ChevronRight from '@material-symbols/svg-400/rounded/chevron_right.svg?raw';
+import ChevronRightFill from '@material-symbols/svg-400/rounded/chevron_right-fill.svg?raw';
 import Close from '@material-symbols/svg-400/rounded/close.svg?raw';
 import CloseFill from '@material-symbols/svg-400/rounded/close-fill.svg?raw';
 import Commute from '@material-symbols/svg-400/rounded/commute.svg?raw';
@@ -80,6 +84,8 @@ export type AppIconName =
 	| 'pin'
 	| 'bell'
 	| 'close'
+	| 'chevronLeft'
+	| 'chevronRight'
 	| 'star'
 	| 'play'
 	| 'pause'
@@ -123,6 +129,8 @@ export const ICONS: Record<AppIconName, SymbolPair> = {
 	pin: { outline: LocationOn, fill: LocationOnFill },
 	bell: { outline: Notifications, fill: NotificationsFill },
 	close: { outline: Close, fill: CloseFill },
+	chevronLeft: { outline: ChevronLeft, fill: ChevronLeftFill },
+	chevronRight: { outline: ChevronRight, fill: ChevronRightFill },
 	star: { outline: Star, fill: StarFill },
 	play: { outline: PlayArrow, fill: PlayArrowFill },
 	pause: { outline: Pause, fill: PauseFill },

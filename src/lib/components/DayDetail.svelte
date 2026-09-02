@@ -18,6 +18,7 @@
 	import type { DayPoint, HourPoint } from '$lib/types';
 	import { getWmo, weatherMood } from '$lib/wmo';
 	import { weatherState } from '$lib/weather.svelte';
+	import HScroll from './HScroll.svelte';
 	import WeatherIcon from './WeatherIcon.svelte';
 
 	interface Props {
@@ -77,28 +78,24 @@
 						</button>
 					</div>
 
-					<div class="relative mb-4" aria-label="Tag wählen">
-						<div
-							class="flex gap-2 overflow-x-auto px-0.5 py-1 [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
-						>
-							{#each days as item, index (item.date)}
-								<button
-									type="button"
-									aria-pressed={item.date === day.date}
-									class="h-10 min-h-10 shrink-0 px-3 text-sm leading-none {isDesktop
-										? 'rounded-md'
-										: 'rounded-full'} {item.date === day.date
-										? isDesktop
-											? 'bg-primary/10 text-primary'
-											: 'bg-secondary text-primary'
-										: 'bg-muted text-muted-foreground'}"
-									onclick={() => onSelectDay(item)}
-								>
-									{dayLabel(item, index)}
-								</button>
-							{/each}
-						</div>
-					</div>
+					<HScroll class="mb-4" label="Tag wählen" scrollerClass="px-0.5 py-1">
+						{#each days as item, index (item.date)}
+							<button
+								type="button"
+								aria-pressed={item.date === day.date}
+								class="h-10 min-h-10 shrink-0 px-3 text-sm leading-none {isDesktop
+									? 'rounded-md'
+									: 'rounded-full'} {item.date === day.date
+									? isDesktop
+										? 'bg-primary/10 text-primary'
+										: 'bg-secondary text-primary'
+									: 'bg-muted text-muted-foreground'}"
+								onclick={() => onSelectDay(item)}
+							>
+								{dayLabel(item, index)}
+							</button>
+						{/each}
+					</HScroll>
 				</div>
 				<div class="wx-sheet-body px-5 pb-5">
 					<div class="mb-4 flex items-center gap-3">
@@ -141,47 +138,39 @@
 				{#if dayHours.length === 0}
 					<p class="text-sm opacity-75">Stundenverlauf nach der nächsten Aktualisierung verfügbar.</p>
 				{:else}
-					<div class="relative">
-						<div
-							class="flex gap-2 overflow-x-auto px-1 py-1 [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
-						>
-							{#each dayHours as hour (hour.time)}
-								{@const hourMood = weatherMood(hour.code, hour.isDay)}
-								<button
-									type="button"
-									aria-label="{formatHourLabel(hour.time)}, {formatTemp(hour.temperature)}{hour.precipProb != null
-										? `, Regen ${formatPercent(hour.precipProb)}`
-										: ''}"
-									class="flex w-[4.5rem] shrink-0 flex-col items-center gap-2 px-2 py-3 {moodChipClass(
-										hourMood
-									)} {isDesktop ? 'rounded-md' : 'rounded-3xl'} {isPastHour(hour) ? 'opacity-55' : ''}"
-									onclick={() => onSelectHour(hour)}
+					<HScroll fade scrollerClass="px-1 py-1">
+						{#each dayHours as hour (hour.time)}
+							{@const hourMood = weatherMood(hour.code, hour.isDay)}
+							<button
+								type="button"
+								aria-label="{formatHourLabel(hour.time)}, {formatTemp(hour.temperature)}{hour.precipProb != null
+									? `, Regen ${formatPercent(hour.precipProb)}`
+									: ''}"
+								class="flex w-[4.5rem] shrink-0 flex-col items-center gap-2 px-2 py-3 {moodChipClass(
+									hourMood
+								)} {isDesktop ? 'rounded-md' : 'rounded-3xl'} {isPastHour(hour) ? 'opacity-55' : ''}"
+								onclick={() => onSelectHour(hour)}
+							>
+								<span class="text-sm tabular-nums opacity-80">{formatHourLabel(hour.time)}</span>
+								<WeatherIcon code={hour.code} isDay={hour.isDay} class="size-8" />
+								<span class="text-base font-bold tabular-nums">{formatTemp(hour.temperature)}</span>
+								<span
+									class="flex h-8 w-1.5 items-end overflow-hidden {isDesktop
+										? 'rounded-sm'
+										: 'rounded-full'} bg-background/50"
+									aria-hidden="true"
 								>
-									<span class="text-sm tabular-nums opacity-80">{formatHourLabel(hour.time)}</span>
-									<WeatherIcon code={hour.code} isDay={hour.isDay} class="size-8" />
-									<span class="text-base font-bold tabular-nums">{formatTemp(hour.temperature)}</span>
 									<span
-										class="flex h-8 w-1.5 items-end overflow-hidden {isDesktop
-											? 'rounded-sm'
-											: 'rounded-full'} bg-background/50"
-										aria-hidden="true"
-									>
-										<span
-											class="block w-full wx-bar-rain"
-											style="height: {Math.max(8, (hour.precipMm / maxPrecip) * 100)}%;"
-										></span>
-									</span>
-									{#if hour.precipProb != null}
-										<span class="text-xs opacity-75 tabular-nums">{formatPercent(hour.precipProb)}</span>
-									{/if}
-								</button>
-							{/each}
-						</div>
-						<div
-							class="pointer-events-none absolute inset-y-1 right-0 w-6 bg-gradient-to-l from-card"
-							aria-hidden="true"
-						>						</div>
-					</div>
+										class="block w-full wx-bar-rain"
+										style="height: {Math.max(8, (hour.precipMm / maxPrecip) * 100)}%;"
+									></span>
+								</span>
+								{#if hour.precipProb != null}
+									<span class="text-xs opacity-75 tabular-nums">{formatPercent(hour.precipProb)}</span>
+								{/if}
+							</button>
+						{/each}
+					</HScroll>
 				{/if}
 				</div>
 			</div>
