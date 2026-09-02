@@ -1,6 +1,6 @@
 <script lang="ts">
-	import MoonStar from '@lucide/svelte/icons/moon-star';
 	import { chromeState } from '$lib/chrome.svelte';
+	import AppIcon from './AppIcon.svelte';
 	import { skyWatch } from '$lib/lifestyle';
 	import { panelClass } from '$lib/platform';
 	import { weatherState } from '$lib/weather.svelte';
@@ -12,7 +12,7 @@
 {#if sky}
 	<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
 		<h2 class="flex items-center gap-2 text-xl font-semibold leading-snug tracking-tight">
-			<MoonStar class="size-6 wx-icon-night" /> Himmel
+			<AppIcon name="moon" class="size-6 wx-icon-night" /> Himmel
 		</h2>
 		{#if sky.goldenLabel}
 			<p class="mt-2 font-medium leading-snug">{sky.goldenLabel}</p>

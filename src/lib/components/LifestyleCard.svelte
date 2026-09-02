@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Shirt from '@lucide/svelte/icons/shirt';
 	import { comfortAdvice } from '$lib/comfort';
+	import AppIcon from './AppIcon.svelte';
 	import { clothingLine } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
 	import { chromeState } from '$lib/chrome.svelte';
@@ -14,7 +14,7 @@
 {#if bundle && (clothing || comfort)}
 	<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
 		<h2 class="flex items-center gap-2 text-xl font-semibold leading-snug tracking-tight">
-			<Shirt class="size-6 wx-icon-thermo" /> Draußen
+			<AppIcon name="draussen" class="size-6 wx-icon-thermo" /> Draußen
 		</h2>
 		{#if clothing}
 			<p class="mt-2 text-base font-medium leading-snug">{clothing}</p>

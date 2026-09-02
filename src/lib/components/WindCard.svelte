@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Wind from '@lucide/svelte/icons/wind';
 	import { chromeState } from '$lib/chrome.svelte';
+	import AppIcon from './AppIcon.svelte';
 	import { formatKmH, formatPercent, windDirection } from '$lib/format';
 	import { panelClass } from '$lib/platform';
 	import { weatherState } from '$lib/weather.svelte';
@@ -14,7 +14,7 @@
 {#if current}
 	<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
 		<h2 class="flex items-center gap-2 text-xl font-semibold leading-snug tracking-tight">
-			<Wind class="size-6 wx-icon-wind" /> Wind
+			<AppIcon name="wind" class="size-6 wx-icon-wind" /> Wind
 		</h2>
 		<p class="mt-2 text-3xl font-semibold tabular-nums">{formatKmH(current.wind_speed_10m)}</p>
 		<p class="mt-1 text-sm text-muted-foreground">

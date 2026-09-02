@@ -1,6 +1,6 @@
 <script lang="ts">
-	import CloudLightning from '@lucide/svelte/icons/cloud-lightning';
 	import { chromeState } from '$lib/chrome.svelte';
+	import AppIcon from './AppIcon.svelte';
 	import { formatMm, formatTime } from '$lib/format';
 	import { thunderNowcast } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
@@ -22,7 +22,7 @@
 {#if minutes.length}
 	<section class="{panelClass(chromeState.chrome)} {compact ? 'p-4' : 'p-5 sm:p-6'}">
 		<h2 class="flex items-center gap-2 {compact ? 'text-base' : 'text-xl'} font-semibold leading-snug tracking-tight">
-			<CloudLightning class="size-6 wx-icon-storm" /> 90 Min.
+			<AppIcon name="nowcast" class="size-6 wx-icon-storm" /> 90 Min.
 		</h2>
 		{#if nowcast.label}
 			<p class="mb-2 text-sm leading-snug text-muted-foreground">{nowcast.label}</p>

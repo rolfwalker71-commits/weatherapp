@@ -11,9 +11,10 @@
 
 	interface Props {
 		onSelect?: (hour: HourPoint) => void;
+		embedded?: boolean;
 	}
 
-	let { onSelect }: Props = $props();
+	let { onSelect, embedded = false }: Props = $props();
 
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
 	const hours = $derived(weatherState.bundle?.hours ?? []);
@@ -25,8 +26,10 @@
 <section id="stunden" class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
 	<div class="mb-4 flex items-end justify-between gap-3">
 		<div>
-			<h2 class="text-xl font-semibold leading-snug tracking-tight">Nächste 24 Stunden</h2>
-			{#if line || frost?.snowLabel}
+			<h2 class="text-xl font-semibold leading-snug tracking-tight">
+				{embedded ? '24 Stunden' : 'Nächste 24 Stunden'}
+			</h2>
+			{#if !embedded && (line || frost?.snowLabel)}
 				<p class="text-sm text-muted-foreground">
 					{line ?? ''}{line && frost?.snowLabel ? ' · ' : ''}{frost?.snowLabel ?? ''}
 				</p>

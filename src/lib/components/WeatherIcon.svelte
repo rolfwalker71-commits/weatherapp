@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { moodIconClass } from '$lib/colors';
+	import { WEATHER_GLYPHS } from '$lib/icons/weather';
 	import { getWmo, weatherMood } from '$lib/wmo';
+	import SymbolMark from './SymbolMark.svelte';
 
 	interface Props {
 		code: number;
@@ -15,6 +17,7 @@
 	const meta = $derived(getWmo(code, isDay));
 	const mood = $derived(weatherMood(code, isDay));
 	const colorClass = $derived(moodIconClass(mood));
+	const raw = $derived(WEATHER_GLYPHS[meta.glyph]);
 </script>
 
-<meta.icon class="{className} {colorClass}" aria-hidden="true" />
+<SymbolMark {raw} class="{className} {colorClass}" />

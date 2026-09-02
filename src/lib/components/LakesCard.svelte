@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Waves from '@lucide/svelte/icons/waves';
 	import { chromeState } from '$lib/chrome.svelte';
+	import AppIcon from './AppIcon.svelte';
 	import { panelClass } from '$lib/platform';
 	import { weatherState } from '$lib/weather.svelte';
 
@@ -14,7 +14,7 @@
 {#if lakes.length}
 	<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
 		<h2 class="flex items-center gap-2 text-xl font-semibold leading-snug tracking-tight">
-			<Waves class="size-6 wx-icon-rain" /> Seen
+			<AppIcon name="seen" class="size-6 wx-icon-rain" /> Seen
 		</h2>
 		<div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
 			{#each lakes as lake (lake.id)}

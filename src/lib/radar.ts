@@ -48,17 +48,62 @@ interface OpenMeteoPoint {
 
 const RAINVIEWER = 'https://api.rainviewer.com/public/weather-maps.json';
 
+function takeFrames(
+	list: { time: number; path: string }[] | undefined,
+	kind: RadarFrame['kind']
+): RadarFrame[] {
+	const frames: RadarFrame[] = [];
+	const seen = new Set<number>();
+	for (const frame of list ?? []) {
+		if (!frame?.time || !frame.path || seen.has(frame.time)) continue;
+		seen.add(frame.time);
+		frames.push({ time: frame.time, path: frame.path, kind });
+	}
+	return frames;
+}
+
 export async function fetchRadarCatalog(signal?: AbortSignal): Promise<RadarCatalog> {
 	const response = await fetch(RAINVIEWER, { signal });
 	if (!response.ok) throw new Error('Radar-Katalog nicht verfügbar');
 	const data = (await response.json()) as RainViewerMaps;
-	const past = (data.radar?.past ?? []).map((frame) => ({ ...frame, kind: 'past' as const }));
-	const nowcast = (data.radar?.nowcast ?? []).map((frame) => ({ ...frame, kind: 'nowcast' as const }));
+	const past = takeFrames(data.radar?.past, 'past');
+	const nowcast = takeFrames(data.radar?.nowcast, 'nowcast');
+	const frames = [...past, ...nowcast].sort((a, b) => a.time - b.time);
 	return {
 		host: data.host,
-		frames: [...past, ...nowcast],
-		infrared: data.satellite?.infrared ?? []
+		frames,
+		infrared: (data.satellite?.infrared ?? []).filter((frame) => frame?.time && frame.path)
 	};
+}
+
+export function lastObservedIndex(frames: RadarFrame[]): number {
+	let last = -1;
+	for (let i = 0; i < frames.length; i++) {
+		if (frames[i].kind === 'past') last = i;
+	}
+	if (last >= 0) return last;
+	return Math.max(0, frames.length - 1);
+}
+
+export function radarTicks(frames: RadarFrame[], maxTicks = 5): { index: number; time: number }[] {
+	if (!frames.length) return [];
+	const count = Math.min(maxTicks, frames.length);
+	if (count === 1) return [{ index: 0, time: frames[0].time }];
+	const ticks: { index: number; time: number }[] = [];
+	const seen = new Set<number>();
+	for (let i = 0; i < count; i++) {
+		const index = Math.round((i * (frames.length - 1)) / (count - 1));
+		if (seen.has(index)) continue;
+		seen.add(index);
+		ticks.push({ index, time: frames[index].time });
+	}
+	return ticks;
+}
+
+export function formatRadarTime(unix: number): string {
+	return new Intl.DateTimeFormat('de-CH', { hour: '2-digit', minute: '2-digit' }).format(
+		new Date(unix * 1000)
+	);
 }
 
 /** Colorful Titan scheme, smoothed, snow separate. Max radar zoom is 7. */

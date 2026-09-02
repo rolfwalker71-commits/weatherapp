@@ -57,25 +57,29 @@
 				</button>
 			</div>
 
-			<div class="flex flex-wrap items-center justify-between gap-4">
-				<div class="flex items-end gap-3">
-					<p class="font-extrabold leading-none tracking-tight tabular-nums {isDesktop ? 'text-7xl' : 'text-7xl sm:text-8xl'}">
-						{formatTemp(current.temperature_2m)}
+			<div class="flex items-center gap-2.5 sm:gap-3">
+				<p
+					class="shrink-0 font-extrabold leading-none tracking-tight tabular-nums {isDesktop
+						? 'text-[4.375rem]'
+						: 'text-[4.375rem] sm:text-[5.875rem]'}"
+				>
+					{formatTemp(current.temperature_2m)}
+				</p>
+				<div class="min-w-0 shrink">
+					<p class="truncate whitespace-nowrap text-[1.0625rem] font-medium leading-snug">
+						{wmo.label}
 					</p>
-					<div class="mb-2 space-y-1">
-						<p class="text-lg font-medium leading-snug">{wmo.label}</p>
-						<p class="text-sm opacity-75">
-							Gefühlt {formatTemp(current.apparent_temperature)}
-						</p>
-					</div>
+					<p class="whitespace-nowrap text-[0.8125rem] opacity-75">
+						Gefühlt {formatTemp(current.apparent_temperature)}
+					</p>
 				</div>
 				<WeatherIcon
 					code={current.weather_code}
 					isDay={current.is_day === 1}
 					hero
 					class={isDesktop
-						? 'size-[4.5rem] shrink-0'
-						: 'size-[4.5rem] shrink-0 sm:size-[6rem]'}
+						? 'size-[4.25rem] flex-none'
+						: 'size-[4.25rem] flex-none sm:size-[5.5rem]'}
 				/>
 			</div>
 

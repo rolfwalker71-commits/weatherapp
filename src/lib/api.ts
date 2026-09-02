@@ -141,18 +141,28 @@ function mapMinutes(forecast: ForecastResponse): MinutePoint[] {
 
 function mapDays(forecast: ForecastResponse): DayPoint[] {
 	const { daily } = forecast;
-	return daily.time.slice(0, 7).map((date, i) => ({
-		date,
-		code: daily.weather_code[i],
-		tMax: daily.temperature_2m_max[i],
-		tMin: daily.temperature_2m_min[i],
-		precipMm: daily.precipitation_sum[i],
-		precipProb: daily.precipitation_probability_max[i] ?? null,
-		sunrise: daily.sunrise[i],
-		sunset: daily.sunset[i],
-		uvMax: daily.uv_index_max[i] ?? null,
-		windMax: daily.wind_speed_10m_max[i]
-	}));
+	const limit = Math.min(10, daily.time?.length ?? 0);
+	const days: DayPoint[] = [];
+	for (let i = 0; i < limit; i++) {
+		const date = daily.time[i];
+		const tMax = daily.temperature_2m_max?.[i];
+		const tMin = daily.temperature_2m_min?.[i];
+		const code = daily.weather_code?.[i];
+		if (!date || tMax == null || tMin == null || code == null) continue;
+		days.push({
+			date,
+			code,
+			tMax,
+			tMin,
+			precipMm: daily.precipitation_sum?.[i] ?? 0,
+			precipProb: daily.precipitation_probability_max?.[i] ?? null,
+			sunrise: daily.sunrise?.[i] ?? '',
+			sunset: daily.sunset?.[i] ?? '',
+			uvMax: daily.uv_index_max?.[i] ?? null,
+			windMax: daily.wind_speed_10m_max?.[i] ?? 0
+		});
+	}
+	return days;
 }
 
 function currentPollen(air: AirQualityResponse | null): WeatherBundle['pollen'] {
@@ -244,7 +254,7 @@ function forecastUrlFor(place: Place): URL {
 		].join(',')
 	);
 	forecastUrl.searchParams.set('timezone', 'auto');
-	forecastUrl.searchParams.set('forecast_days', '7');
+	forecastUrl.searchParams.set('forecast_days', '10');
 	forecastUrl.searchParams.set('wind_speed_unit', 'kmh');
 	forecastUrl.searchParams.set('models', 'best_match');
 	return forecastUrl;

@@ -1,24 +1,31 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import AirQuality from '$lib/components/AirQuality.svelte';
+	import AlpsCard from '$lib/components/AlpsCard.svelte';
 	import AppHeader from '$lib/components/AppHeader.svelte';
+	import CommuteCard from '$lib/components/CommuteCard.svelte';
 	import CurrentHero from '$lib/components/CurrentHero.svelte';
 	import DailyForecast from '$lib/components/DailyForecast.svelte';
 	import DayDetail from '$lib/components/DayDetail.svelte';
 	import FavoriteChips from '$lib/components/FavoriteChips.svelte';
 	import HourDetail from '$lib/components/HourDetail.svelte';
 	import HourlyForecast from '$lib/components/HourlyForecast.svelte';
-	import MehrDrawer from '$lib/components/MehrDrawer.svelte';
-	import MehrList from '$lib/components/MehrList.svelte';
+	import LakesCard from '$lib/components/LakesCard.svelte';
+	import LifestyleCard from '$lib/components/LifestyleCard.svelte';
+	import MetricGrid from '$lib/components/MetricGrid.svelte';
 	import NavBar from '$lib/components/NavBar.svelte';
 	import NavRail from '$lib/components/NavRail.svelte';
 	import NowcastCard from '$lib/components/NowcastCard.svelte';
 	import SettingsSheet from '$lib/components/SettingsSheet.svelte';
-	import TopicChips from '$lib/components/TopicChips.svelte';
+	import SkyCard from '$lib/components/SkyCard.svelte';
+	import ThemePanel from '$lib/components/ThemePanel.svelte';
 	import TopicSheet from '$lib/components/TopicSheet.svelte';
 	import WarningsCard from '$lib/components/WarningsCard.svelte';
 	import WeatherRadar from '$lib/components/WeatherRadar.svelte';
+	import WindCard from '$lib/components/WindCard.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { hydrateCommute } from '$lib/commute.svelte';
+	import { panelClass } from '$lib/platform';
 	import type { DayPoint, HourPoint } from '$lib/types';
 	import { closeTopic, initRoutes, setDrawer, uiState } from '$lib/ui.svelte';
 	import { weatherMood } from '$lib/wmo';
@@ -103,32 +110,56 @@
 				<div aria-busy="true">
 					<div class="h-64 animate-pulse bg-card [html[data-chrome=android]_&]:rounded-3xl [html[data-chrome=desktop]_&]:rounded-md"></div>
 				</div>
-			{:else}
-				{#if section === 'jetzt'}
-					<div class="grid grid-cols-1 gap-4">
-						{#if weatherState.bundle}
+			{:else if section === 'jetzt'}
+				{#if weatherState.bundle}
+					<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+						<div class="space-y-4">
 							<CurrentHero />
 							<WarningsCard />
+						</div>
+						<div class="space-y-4">
+							<HourlyForecast embedded onSelect={(hour) => (selectedHour = hour)} />
 							<NowcastCard compact />
-							<TopicChips />
-						{/if}
+							<WindCard />
+						</div>
 					</div>
-				{:else if section === 'stunden'}
-					{#if weatherState.bundle}
-						<HourlyForecast onSelect={(hour) => (selectedHour = hour)} />
-					{/if}
-				{:else if section === 'radar'}
-					<WeatherRadar />
-				{:else if section === 'woche'}
-					{#if weatherState.bundle}
+				{/if}
+			{:else if section === 'radar'}
+				<WeatherRadar />
+			{:else if section === 'woche'}
+				{#if weatherState.bundle}
+					<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
 						<DailyForecast
 							selectedDate={selectedDay?.date}
 							onSelect={(day) => (selectedDay = day)}
 						/>
-					{/if}
-				{:else if section === 'mehr'}
-					<MehrList />
+						<div class="space-y-4">
+							<AlpsCard />
+							<LakesCard />
+						</div>
+					</div>
 				{/if}
+			{:else if section === 'luft'}
+				<AirQuality page />
+			{:else if section === 'mehr'}
+				<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+					<CommuteCard />
+					<div class="space-y-4">
+						<LifestyleCard />
+						<SkyCard />
+					</div>
+					<MetricGrid />
+					<div class="space-y-4">
+						<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
+							<h2 class="mb-3 text-xl font-semibold leading-snug tracking-tight">Meldungen</h2>
+							<SettingsSheet embedded />
+						</section>
+						<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
+							<h2 class="mb-3 text-xl font-semibold leading-snug tracking-tight">Darstellung</h2>
+							<ThemePanel />
+						</section>
+					</div>
+				</div>
 			{/if}
 		</main>
 	</div>
@@ -146,5 +177,4 @@
 />
 <HourDetail hour={selectedHour} onClose={() => (selectedHour = null)} />
 <TopicSheet />
-<MehrDrawer />
 <SettingsSheet />

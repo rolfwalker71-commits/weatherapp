@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Snowflake from '@lucide/svelte/icons/snowflake';
 	import { chromeState } from '$lib/chrome.svelte';
+	import AppIcon from './AppIcon.svelte';
 	import { formatKmH, formatTemp, windDirection } from '$lib/format';
 	import { snowFrost } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
@@ -17,7 +17,7 @@
 {#if bundle && visible}
 	<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
 		<h2 class="flex items-center gap-2 text-xl font-semibold leading-snug tracking-tight">
-			<Snowflake class="size-6 wx-icon-snow" /> Höhen
+			<AppIcon name="snow" class="size-6 wx-icon-snow" /> Höhen
 		</h2>
 		{#if frost?.snowLabel}
 			<p class="mt-2 text-sm leading-snug">{frost.snowLabel}</p>

@@ -1,12 +1,8 @@
 <script lang="ts">
 	import 'leaflet/dist/leaflet.css';
-	import CloudDrizzle from '@lucide/svelte/icons/cloud-drizzle';
-	import CloudRain from '@lucide/svelte/icons/cloud-rain';
-	import CloudRainWind from '@lucide/svelte/icons/cloud-rain-wind';
-	import CloudSnow from '@lucide/svelte/icons/cloud-snow';
-	import Wind from '@lucide/svelte/icons/wind';
 	import { onMount } from 'svelte';
 	import AppIcon from './AppIcon.svelte';
+	import WeatherIcon from './WeatherIcon.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { formatHour, formatKmH, formatMm, formatPercent, windDirection } from '$lib/format';
 	import { panelClass } from '$lib/platform';
@@ -14,9 +10,12 @@
 		capeTone,
 		fetchRadarCatalog,
 		fetchWindGrid,
+		formatRadarTime,
 		infraredTileUrl,
+		lastObservedIndex,
 		lightningWmsOptions,
 		LIGHTNING_WMS,
+		radarTicks,
 		radarTileUrl,
 		windTone,
 		type MapBounds,
@@ -51,7 +50,7 @@
 	let host = $state('https://tilecache.rainviewer.com');
 	let frameIndex = $state(0);
 	let irIndex = $state(0);
-	let playing = $state(true);
+	let playing = $state(false);
 	let mapError = $state<string | null>(null);
 	let windPoints = $state<WindPoint[]>([]);
 	let mapEl = $state<HTMLDivElement | null>(null);
@@ -60,9 +59,21 @@
 	const activeFrame = $derived(frames[frameIndex] ?? null);
 	const frameLabel = $derived(
 		activeFrame
-			? `${new Intl.DateTimeFormat('de-CH', { hour: '2-digit', minute: '2-digit' }).format(new Date(activeFrame.time * 1000))}${activeFrame.kind === 'nowcast' ? ' · Prognose' : ''}`
+			? `${formatRadarTime(activeFrame.time)}${activeFrame.kind === 'nowcast' ? ' · Prognose' : ''}`
 			: '—'
 	);
+	const ticks = $derived(radarTicks(frames));
+	const rangeLabel = $derived.by(() => {
+		if (frames.length < 2) return frames.length ? formatRadarTime(frames[0].time) : '';
+		const past = frames.filter((frame) => frame.kind === 'past');
+		const nowcast = frames.filter((frame) => frame.kind === 'nowcast');
+		const start = formatRadarTime(frames[0].time);
+		const end = formatRadarTime(frames[frames.length - 1].time);
+		const bits = [`${start} – ${end}`, `${frames.length} Bilder`];
+		if (past.length) bits.push(`${past.length} Vergangenheit`);
+		if (nowcast.length) bits.push(`${nowcast.length} Prognose`);
+		return bits.join(' · ');
+	});
 
 	const chip = $derived(
 		isDesktop
@@ -295,9 +306,11 @@
 				if (cancelled) return;
 				currentHost = catalog.host;
 				host = catalog.host;
+				const previousTime = frames[frameIndex]?.time;
 				frames = catalog.frames;
 				infrared = catalog.infrared;
-				frameIndex = Math.max(0, catalog.frames.length - 1);
+				const kept = previousTime != null ? catalog.frames.findIndex((frame) => frame.time === previousTime) : -1;
+				frameIndex = kept >= 0 ? kept : lastObservedIndex(catalog.frames);
 				irIndex = Math.max(0, catalog.infrared.length - 1);
 				mapError = catalog.frames.length ? null : 'Keine Radarframes verfügbar.';
 				applyLayers();
@@ -484,25 +497,34 @@
 					ontouchstart={onScrubStart}
 					oninput={onScrubStart}
 				/>
-				<p class="mt-1 text-sm text-muted-foreground">{frameLabel} · Finger halten springt den Frame</p>
+				{#if ticks.length > 1}
+					<div class="mt-1 flex justify-between gap-1 text-[0.7rem] tabular-nums text-muted-foreground">
+						{#each ticks as tick (tick.index)}
+							<span>{formatRadarTime(tick.time)}</span>
+						{/each}
+					</div>
+				{/if}
+				<p class="mt-1 text-sm text-muted-foreground">
+					{frameLabel}{rangeLabel ? ` · ${rangeLabel}` : ''}
+				</p>
 			</div>
 		</div>
 		<div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
 			<span class="text-muted-foreground">Legende</span>
 			<span class="inline-flex items-center gap-1">
-				<CloudDrizzle class="size-6 wx-icon-rain" />
+				<WeatherIcon code={51} class="size-6" />
 				<i class="wx-leg wx-leg-1"></i> leicht
 			</span>
 			<span class="inline-flex items-center gap-1">
-				<CloudRain class="size-6 wx-icon-rain" />
+				<WeatherIcon code={63} class="size-6" />
 				<i class="wx-leg wx-leg-2"></i> mässig
 			</span>
 			<span class="inline-flex items-center gap-1">
-				<CloudRainWind class="size-6 wx-icon-storm" />
+				<WeatherIcon code={65} class="size-6" />
 				<i class="wx-leg wx-leg-3"></i> stark
 			</span>
 			<span class="inline-flex items-center gap-1">
-				<CloudSnow class="size-6 wx-icon-snow" />
+				<WeatherIcon code={73} class="size-6" />
 				<i class="wx-leg wx-leg-4"></i> Schnee
 			</span>
 		</div>
@@ -525,7 +547,7 @@
 	<div class="grid grid-cols-1 border-t border-border lg:grid-cols-2">
 		<div class="p-5 sm:p-6">
 			<h3 class="mb-3 flex items-center gap-2 font-medium">
-				<Wind class="size-4 wx-icon-wind" /> Wind vor Ort
+				<AppIcon name="wind" class="size-4 wx-icon-wind" /> Wind vor Ort
 			</h3>
 			{#if current}
 				<p class="text-3xl font-semibold tabular-nums">{formatKmH(current.wind_speed_10m)}</p>

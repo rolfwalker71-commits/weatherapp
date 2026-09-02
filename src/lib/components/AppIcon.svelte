@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ICONS, type AppIconName } from '$lib/icons/chrome';
+	import SymbolMark from './SymbolMark.svelte';
 
 	interface Props {
 		name: AppIconName;
@@ -8,8 +9,8 @@
 	}
 
 	let { name, filled = false, class: className = 'size-5' }: Props = $props();
-
-	const Icon = $derived(ICONS[name]);
+	const pair = $derived(ICONS[name]);
+	const raw = $derived(filled ? pair.fill : pair.outline);
 </script>
 
-<Icon class="{className} {filled ? 'fill-current' : ''}" aria-hidden="true" />
+<SymbolMark {raw} class={className} />

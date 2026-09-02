@@ -1,8 +1,4 @@
 <script lang="ts">
-	import Droplets from '@lucide/svelte/icons/droplets';
-	import Sun from '@lucide/svelte/icons/sun';
-	import Thermometer from '@lucide/svelte/icons/thermometer';
-	import Wind from '@lucide/svelte/icons/wind';
 	import { uvLevel } from '$lib/aqi';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { moodChipClass, scaleFillClass } from '$lib/colors';
@@ -59,19 +55,19 @@
 					<dl class="grid grid-cols-2 gap-3">
 						<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {moodChipClass('clear')} p-3">
 							<dt class="flex items-center gap-2 text-sm opacity-80">
-								<Thermometer class="size-4 wx-icon-thermo" /> Gefühlte
+								<AppIcon name="thermo" class="size-4 wx-icon-thermo" /> Gefühlte
 							</dt>
 							<dd class="font-medium tabular-nums">{formatTemp(hour.feelsLike)}</dd>
 						</div>
 						<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {moodChipClass('cloud')} p-3">
 							<dt class="flex items-center gap-2 text-sm opacity-80">
-								<Wind class="size-4 wx-icon-wind" /> Wind
+								<AppIcon name="wind" class="size-4 wx-icon-wind" /> Wind
 							</dt>
 							<dd class="font-medium tabular-nums">{formatKmH(hour.wind)}</dd>
 						</div>
 						<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {moodChipClass('rain')} p-3">
 							<dt class="flex items-center gap-2 text-sm opacity-80">
-								<Droplets class="size-4 wx-icon-drop" /> Regen
+								<AppIcon name="drop" class="size-4 wx-icon-drop" /> Regen
 							</dt>
 							<dd class="font-medium tabular-nums">
 								{#if hour.precipProb != null}{formatPercent(hour.precipProb)} · {/if}{hour.precipMm.toFixed(1)} mm
@@ -79,14 +75,14 @@
 						</div>
 						<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {moodChipClass('fog')} p-3">
 							<dt class="flex items-center gap-2 text-sm opacity-80">
-								<Droplets class="size-4 wx-icon-sun" /> Feuchte
+								<AppIcon name="drop" class="size-4 wx-icon-sun" /> Feuchte
 							</dt>
 							<dd class="font-medium tabular-nums">{formatPercent(hour.humidity)}</dd>
 						</div>
 						{#if hour.uv != null}
 							<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {uvTone} p-3">
 								<dt class="flex items-center gap-2 text-sm opacity-80">
-									<Sun class="size-4 wx-icon-sun" /> UV-Index
+									<AppIcon name="sun" class="size-4 wx-icon-sun" /> UV-Index
 								</dt>
 								<dd class="font-medium tabular-nums">{hour.uv.toFixed(1)}</dd>
 							</div>

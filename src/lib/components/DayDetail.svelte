@@ -1,8 +1,4 @@
 <script lang="ts">
-	import Droplets from '@lucide/svelte/icons/droplets';
-	import Sun from '@lucide/svelte/icons/sun';
-	import Sunrise from '@lucide/svelte/icons/sunrise';
-	import Wind from '@lucide/svelte/icons/wind';
 	import { uvLevel } from '$lib/aqi';
 	import AppIcon from './AppIcon.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
@@ -113,7 +109,7 @@
 				<dl class="mb-5 grid grid-cols-2 gap-3">
 					<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {moodChipClass('rain')} p-3">
 						<dt class="flex items-center gap-2 text-sm opacity-80">
-							<Droplets class="size-4 wx-icon-drop" /> Niederschlag
+							<AppIcon name="drop" class="size-4 wx-icon-drop" /> Niederschlag
 						</dt>
 						<dd class="font-medium tabular-nums">
 							{#if day.precipProb != null}{formatPercent(day.precipProb)} · {/if}{formatMm(day.precipMm)}
@@ -121,21 +117,21 @@
 					</div>
 					<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {moodChipClass('cloud')} p-3">
 						<dt class="flex items-center gap-2 text-sm opacity-80">
-							<Wind class="size-4 wx-icon-wind" /> Wind max
+							<AppIcon name="wind" class="size-4 wx-icon-wind" /> Wind max
 						</dt>
 						<dd class="font-medium tabular-nums">{formatKmH(day.windMax)}</dd>
 					</div>
 					{#if day.uvMax != null}
 						<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {uvTone} p-3">
 							<dt class="flex items-center gap-2 text-sm opacity-80">
-								<Sun class="size-4 wx-icon-sun" /> UV-Index
+								<AppIcon name="sun" class="size-4 wx-icon-sun" /> UV-Index
 							</dt>
 							<dd class="font-medium tabular-nums">{day.uvMax.toFixed(1)}</dd>
 						</div>
 					{/if}
 					<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {moodChipClass('clear')} p-3">
 						<dt class="flex items-center gap-2 text-sm opacity-80">
-							<Sunrise class="size-4 wx-icon-sun" /> Sonne
+							<AppIcon name="sunrise" class="size-4 wx-icon-sun" /> Sonne
 						</dt>
 						<dd class="font-medium tabular-nums">{formatTime(day.sunrise)} – {formatTime(day.sunset)}</dd>
 					</div>

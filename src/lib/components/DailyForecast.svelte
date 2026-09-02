@@ -17,6 +17,7 @@
 
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
 	const days = $derived(weatherState.bundle?.days ?? []);
+	const title = $derived(days.length ? `${days.length}-Tage-Trend` : 'Tages-Trend');
 	const min = $derived(Math.min(...days.map((d) => d.tMin)));
 	const max = $derived(Math.max(...days.map((d) => d.tMax)));
 	const span = $derived(Math.max(1, max - min));
@@ -31,9 +32,12 @@
 </script>
 
 <section id="woche" class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
-	<h2 class="text-xl font-semibold leading-snug tracking-tight">7-Tage-Trend</h2>
+	<h2 class="text-xl font-semibold leading-snug tracking-tight">{title}</h2>
 	<p class="mb-4 text-sm text-muted-foreground">Tippen für Stundenverlauf, Minima und Niederschlag</p>
 
+	{#if days.length === 0}
+		<p class="text-sm text-muted-foreground">Keine Tagesdaten verfügbar.</p>
+	{:else}
 	<ul class="space-y-2">
 		{#each days as day, index (day.date)}
 			{@const mood = weatherMood(day.code, true)}
@@ -73,4 +77,5 @@
 			</li>
 		{/each}
 	</ul>
+	{/if}
 </section>

@@ -1,6 +1,6 @@
 import type { AppIconName } from '$lib/icons/chrome';
 
-export type SectionId = 'jetzt' | 'stunden' | 'radar' | 'woche' | 'mehr';
+export type SectionId = 'jetzt' | 'radar' | 'woche' | 'luft' | 'mehr';
 export type TopicId =
 	| 'wind'
 	| 'berge'
@@ -37,14 +37,6 @@ export const NAV_ITEMS: NavItem[] = [
 		pill: 'wx-chip-clear'
 	},
 	{
-		id: 'stunden',
-		label: '24h',
-		railLabel: '24 Stunden',
-		icon: 'stunden',
-		iconClass: 'wx-icon-clock',
-		pill: 'wx-chip-rain'
-	},
-	{
 		id: 'radar',
 		label: 'Radar',
 		railLabel: 'Radar',
@@ -55,10 +47,18 @@ export const NAV_ITEMS: NavItem[] = [
 	{
 		id: 'woche',
 		label: 'Woche',
-		railLabel: '7 Tage',
+		railLabel: 'Woche',
 		icon: 'woche',
 		iconClass: 'wx-icon-week',
 		pill: 'wx-chip-storm'
+	},
+	{
+		id: 'luft',
+		label: 'Luft',
+		railLabel: 'Luft',
+		icon: 'luft',
+		iconClass: 'wx-icon-flower',
+		pill: 'wx-chip-cloud'
 	},
 	{
 		id: 'mehr',
@@ -75,7 +75,6 @@ export const TOPIC_CHIPS: TopicItem[] = [
 	{ id: 'berge', label: 'Berge', icon: 'berge', iconClass: 'wx-icon-snow' },
 	{ id: 'seen', label: 'Seen', icon: 'seen', iconClass: 'wx-icon-rain' },
 	{ id: 'draussen', label: 'Draußen', icon: 'draussen', iconClass: 'wx-icon-thermo' },
-	{ id: 'luft', label: 'Luft', icon: 'luft', iconClass: 'wx-icon-flower' },
 	{ id: 'pendeln', label: 'Pendeln', icon: 'pendeln', iconClass: 'wx-icon-week' }
 ];
 
@@ -83,11 +82,9 @@ export const MEHR_GROUPS: { title: string; items: TopicItem[] }[] = [
 	{
 		title: 'Wetter',
 		items: [
-			{ id: 'luft', label: 'Luft', icon: 'luft', iconClass: 'wx-icon-flower' },
-			{ id: 'seen', label: 'Seen', icon: 'seen', iconClass: 'wx-icon-rain' },
-			{ id: 'berge', label: 'Berge', icon: 'berge', iconClass: 'wx-icon-snow' },
+			{ id: 'pendeln', label: 'Pendeln', icon: 'pendeln', iconClass: 'wx-icon-week' },
 			{ id: 'draussen', label: 'Draußen', icon: 'draussen', iconClass: 'wx-icon-thermo' },
-			{ id: 'pendeln', label: 'Pendeln', icon: 'pendeln', iconClass: 'wx-icon-week' }
+			{ id: 'wind', label: 'Wind', icon: 'wind', iconClass: 'wx-icon-wind' }
 		]
 	},
 	{
@@ -101,9 +98,9 @@ export const MEHR_GROUPS: { title: string; items: TopicItem[] }[] = [
 
 const SECTION_HASH: Record<SectionId, string> = {
 	jetzt: 'jetzt',
-	stunden: '24h',
 	radar: 'radar',
 	woche: 'woche',
+	luft: 'luft',
 	mehr: 'mehr'
 };
 
@@ -112,10 +109,11 @@ const SECTION_ALIASES: Record<string, SectionId> = {
 	jetzt: 'jetzt',
 	aktuell: 'jetzt',
 	heute: 'jetzt',
-	stunden: 'stunden',
-	'24h': 'stunden',
+	stunden: 'jetzt',
+	'24h': 'jetzt',
 	radar: 'radar',
 	woche: 'woche',
+	luft: 'luft',
 	mehr: 'mehr'
 };
 
@@ -129,6 +127,17 @@ const TOPIC_ALIASES: Record<string, TopicId> = {
 	pendeln: 'pendeln',
 	meldungen: 'meldungen',
 	darstellung: 'darstellung'
+};
+
+const TOPIC_SECTION: Record<TopicId, SectionId> = {
+	wind: 'jetzt',
+	berge: 'woche',
+	seen: 'woche',
+	draussen: 'mehr',
+	luft: 'luft',
+	pendeln: 'mehr',
+	meldungen: 'mehr',
+	darstellung: 'mehr'
 };
 
 export function isSectionId(value: string): value is SectionId {
@@ -147,10 +156,15 @@ export function topicHash(id: TopicId): string {
 	return id;
 }
 
+export function topicSection(id: TopicId): SectionId {
+	return TOPIC_SECTION[id];
+}
+
 export function parseRouteHash(hash: string): { section: SectionId; topic: TopicId | null } {
 	const key = decodeURIComponent(hash.replace(/^#/, '')).trim().toLowerCase();
 	if (key in TOPIC_ALIASES) {
-		return { section: 'jetzt', topic: TOPIC_ALIASES[key] };
+		const topic = TOPIC_ALIASES[key];
+		return { section: TOPIC_SECTION[topic], topic: null };
 	}
 	if (key in SECTION_ALIASES) {
 		return { section: SECTION_ALIASES[key], topic: null };
