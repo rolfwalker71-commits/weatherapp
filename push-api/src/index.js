@@ -1,29 +1,24 @@
 import cors from 'cors';
 import express from 'express';
-import webpush from 'web-push';
 import { fetchMeteoalarm } from './alerts.js';
 import { fetchAvalanche } from './avalanche.js';
 import { deleteSubscription, getPreferences, listSubscriptions, openDb, upsertPreferences, upsertSubscription } from './db.js';
 import { canTriggerManualSend, sendPush } from './send.js';
+import { ensureWebPushConfigured } from './vapid.js';
 import { startPushWorker } from './worker.js';
 
 const PORT = Number(process.env.PORT || 4426);
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:weather@localhost';
-const PUSH_SEND_ENABLED = process.env.PUSH_SEND_ENABLED === 'true';
 const PUSH_TEST_TOKEN = process.env.PUSH_TEST_TOKEN || '';
 
 const db = openDb();
+const vapid = ensureWebPushConfigured(db);
+const sendingEnabled = process.env.PUSH_SEND_ENABLED !== 'false' && Boolean(vapid);
+
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', false);
 app.use(cors());
 app.use(express.json({ limit: '32kb' }));
-
-if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-	webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-}
 
 app.get('/health', (_req, res) => {
 	res.json({ ok: true });
@@ -33,16 +28,16 @@ app.get('/v1/status', (_req, res) => {
 	res.json({
 		ok: true,
 		configured: true,
-		sendingEnabled: PUSH_SEND_ENABLED,
-		hasVapid: Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY),
-		message: PUSH_SEND_ENABLED
+		sendingEnabled,
+		hasVapid: Boolean(vapid),
+		message: sendingEnabled
 			? 'Versand eingeschaltet — der Worker prüft Kategorien periodisch.'
 			: 'Versand aus. Subscriptions und Prefs werden gespeichert.'
 	});
 });
 
 app.get('/v1/vapid-public-key', (_req, res) => {
-	res.json({ publicKey: VAPID_PUBLIC_KEY || null });
+	res.json({ publicKey: vapid?.publicKey || null });
 });
 
 app.post('/v1/subscriptions', (req, res) => {
@@ -127,14 +122,16 @@ app.get('/v1/avalanche', async (req, res) => {
 });
 
 function assertSendReady(res) {
-	if (!PUSH_SEND_ENABLED) {
+	if (!sendingEnabled) {
 		res.status(403).json({
 			error: 'Versand deaktiviert',
-			hint: 'Setze PUSH_SEND_ENABLED=true und gültige VAPID-Keys.'
+			hint: vapid
+				? 'Setze PUSH_SEND_ENABLED nicht auf false.'
+				: 'VAPID-Keys fehlen — der Server erzeugt sie beim Start in SQLite.'
 		});
 		return false;
 	}
-	if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+	if (!vapid) {
 		res.status(503).json({ error: 'VAPID-Keys fehlen' });
 		return false;
 	}
@@ -204,9 +201,14 @@ function savePrefs(clientId, preferences, place) {
 }
 
 app.listen(PORT, '0.0.0.0', () => {
-	console.log(`weather push api on ${PORT} (send=${PUSH_SEND_ENABLED ? 'on' : 'off'})`);
+	if (vapid) {
+		console.log('Web-Push ist aktiv (VAPID-Schlüssel aus der Datenbank oder Umgebung).');
+	} else {
+		console.warn('Web-Push nicht bereit — VAPID-Schlüssel fehlen.');
+	}
+	console.log(`weather push api on ${PORT} (send=${sendingEnabled ? 'on' : 'off'})`);
 	startPushWorker(db, {
-		enabled: PUSH_SEND_ENABLED,
-		hasKeys: Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY)
+		enabled: sendingEnabled,
+		hasKeys: Boolean(vapid)
 	});
 });

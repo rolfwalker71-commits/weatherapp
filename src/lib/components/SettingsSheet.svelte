@@ -35,12 +35,19 @@
 		if (!embedded && event.key === 'Escape' && settingsUi.open) settingsUi.open = false;
 	}
 
-	function toggle(id: keyof NotifyPrefs) {
-		prefs = { ...prefs, [id]: !prefs[id] };
+	async function toggle(id: keyof NotifyPrefs) {
+		const nextOn = !prefs[id];
+		prefs = { ...prefs, [id]: nextOn };
 		saveNotifyPrefs(prefs);
 		void syncPreferences(prefs, currentPlace()).catch(() => {
 			/* local prefs already saved */
 		});
+		if (!nextOn) return;
+		busy = true;
+		const result = await enablePush(prefs, currentPlace());
+		message = result.message;
+		status = await fetchPushStatus();
+		busy = false;
 	}
 
 	function currentPlace() {
@@ -91,7 +98,7 @@
 						type="checkbox"
 						class="size-5 accent-primary"
 						checked={prefs[item.id]}
-						onchange={() => toggle(item.id)}
+						onchange={() => void toggle(item.id)}
 					/>
 				</label>
 			</li>
@@ -122,8 +129,8 @@
 		<p class="mt-3 text-sm leading-snug" role="status">{message}</p>
 	{/if}
 	<p class="mt-4 text-sm leading-snug text-muted-foreground">
-		Versand: VAPID-Keys, Push-Container, dann PUSH_SEND_ENABLED=true. Test lokal mit
-		POST /v1/send-test. Kategorien und der aktuelle Ort werden gespeichert.
+		Kategorie einschalten — das Gerät wird angemeldet, Ort und Prefs werden gespeichert.
+		Der Server sendet selbst, sobald Keys in der Datenbank liegen.
 	</p>
 {/snippet}
 

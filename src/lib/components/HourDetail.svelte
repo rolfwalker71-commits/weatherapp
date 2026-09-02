@@ -6,7 +6,7 @@
 	import { uvLevel } from '$lib/aqi';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { moodChipClass, scaleFillClass } from '$lib/colors';
-	import { formatHourLabel, formatKmH, formatPercent, formatTemp, formatTime } from '$lib/format';
+	import { formatKmH, formatPercent, formatTemp, formatTime } from '$lib/format';
 	import type { HourPoint } from '$lib/types';
 	import { getWmo, weatherMood } from '$lib/wmo';
 	import AppIcon from './AppIcon.svelte';
@@ -42,9 +42,8 @@
 					{/if}
 					<div class="mb-4 flex items-start justify-between gap-3">
 						<div class="min-w-0">
-							<p class="text-sm opacity-75">{formatTime(hour.time)}</p>
 							<h2 id="hour-title" class="break-words text-xl font-semibold leading-snug">
-								{formatHourLabel(hour.time)} · {wmo.label}
+								{formatTime(hour.time)} · {wmo.label}
 							</h2>
 						</div>
 						<button type="button" class="icon-btn shrink-0" onclick={onClose} aria-label="Schliessen">

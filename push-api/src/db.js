@@ -135,3 +135,20 @@ export function recordSend(db, clientId, category, fingerprint) {
 export function pruneSendLog(db) {
 	db.prepare(`DELETE FROM send_cooldowns WHERE sent_at < datetime('now', '-7 days')`).run();
 }
+
+export function getSetting(db, key) {
+	const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key);
+	return row?.value ?? null;
+}
+
+export function setSetting(db, key, value) {
+	db.prepare(
+		`
+		INSERT INTO app_settings (key, value, updated_at)
+		VALUES (?, ?, datetime('now'))
+		ON CONFLICT(key) DO UPDATE SET
+			value = excluded.value,
+			updated_at = datetime('now')
+	`
+	).run(key, value);
+}

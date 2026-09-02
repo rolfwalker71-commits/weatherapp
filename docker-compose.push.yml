@@ -4,10 +4,11 @@ services:
     ports:
       - "4426:4426"
     environment:
+      # Keys auto-create into SQLite on first start. Both env vars optional (restore only).
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:weather@localhost}
-      PUSH_SEND_ENABLED: ${PUSH_SEND_ENABLED:-false}
+      PUSH_SEND_ENABLED: ${PUSH_SEND_ENABLED:-true}
       PUSH_TEST_TOKEN: ${PUSH_TEST_TOKEN:-}
       PUSH_POLL_MS: ${PUSH_POLL_MS:-600000}
       SQLITE_PATH: /data/push.db

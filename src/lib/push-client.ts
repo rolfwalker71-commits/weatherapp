@@ -138,7 +138,7 @@ export async function enablePush(
 		ok: true,
 		message: status.sendingEnabled
 			? 'Gerät angemeldet. Der Server sendet nach den gewählten Kategorien.'
-			: 'Abonnement und Ort gespeichert. Versand bleibt aus, bis PUSH_SEND_ENABLED=true.'
+			: 'Abonnement und Ort gespeichert. Versand ist aus (PUSH_SEND_ENABLED=false).'
 	};
 }
 
