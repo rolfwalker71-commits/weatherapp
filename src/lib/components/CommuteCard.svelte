@@ -1,6 +1,6 @@
 <script lang="ts">
-	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import { searchPlaces } from '$lib/api';
+	import AppIcon from './AppIcon.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { commuteState, loadCommute, setCommuteDestination } from '$lib/commute.svelte';
 	import { formatTemp } from '$lib/format';
@@ -53,7 +53,7 @@
 
 <section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
 	<h2 class="flex items-center gap-2 text-xl font-semibold leading-snug tracking-tight">
-		<ArrowLeftRight class="size-5 wx-icon-week" /> Pendeln
+		<AppIcon name="pendeln" class="size-5 wx-icon-week" /> Pendeln
 	</h2>
 	<p class="mb-3 text-sm text-muted-foreground">Wetter am Start und am Ziel — Favoriten oder Suche</p>
 

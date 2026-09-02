@@ -1,10 +1,12 @@
 <script lang="ts">
 	import 'leaflet/dist/leaflet.css';
-	import Pause from '@lucide/svelte/icons/pause';
-	import Play from '@lucide/svelte/icons/play';
-	import Radar from '@lucide/svelte/icons/radar';
+	import CloudDrizzle from '@lucide/svelte/icons/cloud-drizzle';
+	import CloudRain from '@lucide/svelte/icons/cloud-rain';
+	import CloudRainWind from '@lucide/svelte/icons/cloud-rain-wind';
+	import CloudSnow from '@lucide/svelte/icons/cloud-snow';
 	import Wind from '@lucide/svelte/icons/wind';
 	import { onMount } from 'svelte';
+	import AppIcon from './AppIcon.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { formatHour, formatKmH, formatMm, formatPercent, windDirection } from '$lib/format';
 	import { panelClass } from '$lib/platform';
@@ -12,8 +14,9 @@
 		capeTone,
 		fetchRadarCatalog,
 		fetchWindGrid,
-		hailProxyLabel,
 		infraredTileUrl,
+		lightningWmsOptions,
+		LIGHTNING_WMS,
 		radarTileUrl,
 		windTone,
 		type MapBounds,
@@ -37,14 +40,12 @@
 	const hours = $derived((weatherState.bundle?.hours ?? []).slice(0, 12));
 	const current = $derived(weatherState.bundle?.current);
 	const maxPrecip = $derived(Math.max(0.2, ...hours.map((hour) => hour.precipMm)));
-	const hailLabel = $derived(
-		hailProxyLabel(weatherState.bundle?.hours[0]?.cape ?? null, weatherState.bundle?.hours[0]?.freezingLevel ?? null)
-	);
-
 	let showRain = $state(true);
 	let showWind = $state(true);
 	let showInfrared = $state(false);
 	let showCape = $state(false);
+	let showLightning = $state(true);
+	let lightningStatus = $state<'unknown' | 'ok' | 'down'>('unknown');
 	let frames = $state<RadarFrame[]>([]);
 	let infrared = $state<SatelliteFrame[]>([]);
 	let host = $state('https://tilecache.rainviewer.com');
@@ -74,6 +75,8 @@
 		showWind;
 		showInfrared;
 		showCape;
+		showLightning;
+		lightningStatus;
 		api?.applyLayers();
 	});
 
@@ -110,6 +113,7 @@
 		let baseLayer: import('leaflet').TileLayer | undefined;
 		let radarLayer: import('leaflet').TileLayer | undefined;
 		let infraredLayer: import('leaflet').TileLayer | undefined;
+		let lightningLayer: import('leaflet').TileLayer.WMS | undefined;
 		let windLayer: import('leaflet').LayerGroup | undefined;
 		let capeLayer: import('leaflet').LayerGroup | undefined;
 		let marker: import('leaflet').CircleMarker | undefined;
@@ -121,6 +125,8 @@
 		let windOn = true;
 		let irOn = false;
 		let capeOn = false;
+		let lightningOn = true;
+		let lightningErrors = 0;
 
 		function setBase() {
 			if (!map || !L) return;
@@ -131,7 +137,8 @@
 					: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
 				{
 					attribution:
-						'Tiles &copy; <a href="https://www.esri.com/">Esri</a> · Radar <a href="https://www.rainviewer.com/api.html">RainViewer</a>',
+						'Tiles &copy; <a href="https://www.esri.com/">Esri</a> · Radar <a href="https://www.rainviewer.com/api.html">RainViewer</a> · ' +
+						LIGHTNING_WMS.attribution,
 					maxZoom: 16
 				}
 			).addTo(map);
@@ -208,11 +215,27 @@
 			if (capeOn) capeLayer.addTo(map);
 		}
 
+		function ensureLightning() {
+			if (!map || !L) return;
+			if (!lightningLayer) {
+				lightningLayer = L.tileLayer.wms(LIGHTNING_WMS.url, lightningWmsOptions());
+				lightningLayer.on('tileerror', () => {
+					lightningErrors += 1;
+					if (lightningErrors >= 4) lightningStatus = 'down';
+				});
+				lightningLayer.on('load', () => {
+					if (lightningStatus !== 'down') lightningStatus = 'ok';
+				});
+			}
+			return lightningLayer;
+		}
+
 		function applyLayers() {
 			rainOn = showRain;
 			windOn = showWind;
 			irOn = showInfrared;
 			capeOn = showCape;
+			lightningOn = showLightning;
 			if (!map) return;
 			if (rainOn) showRadar(frames[frameIndex]);
 			else {
@@ -224,10 +247,15 @@
 				infraredLayer?.remove();
 				infraredLayer = undefined;
 			}
+			const bolts = ensureLightning();
+			if (lightningOn && lightningStatus !== 'down') bolts?.addTo(map);
+			else bolts?.remove();
 			if (windOn) windLayer?.addTo(map);
 			else windLayer?.remove();
 			if (capeOn) capeLayer?.addTo(map);
 			else capeLayer?.remove();
+			if (radarLayer) radarLayer.bringToFront();
+			if (lightningOn) bolts?.bringToFront();
 		}
 
 		function placeMarker() {
@@ -366,10 +394,13 @@
 		<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
 			<div>
 				<h2 class="flex items-center gap-2 text-xl font-semibold leading-snug tracking-tight">
-					<Radar class="size-5 wx-icon-rain" /> Wetterradar
+					<AppIcon name="radar" class="size-5 wx-icon-rain" /> Wetterradar
 				</h2>
 				<p class="text-sm text-muted-foreground">
-					Regen und Wind gleichzeitig, Infrarot und CAPE-Proxy — keine erfundene Blitzkarte
+					Regen und Wind
+					{#if lightningStatus !== 'down'}
+						, Blitz von EUMETSAT MTG Lightning Imager
+					{/if}
 				</p>
 			</div>
 			<div class="flex flex-wrap gap-2" role="group" aria-label="Kartenlayer">
@@ -405,6 +436,16 @@
 				>
 					CAPE
 				</button>
+				{#if lightningStatus !== 'down'}
+					<button
+						type="button"
+						aria-pressed={showLightning}
+						class="{chip} {showLightning ? (isDesktop ? 'bg-primary/10 text-primary' : 'wx-chip-storm') : 'bg-muted text-muted-foreground'}"
+						onclick={() => (showLightning = !showLightning)}
+					>
+						Blitz
+					</button>
+				{/if}
 			</div>
 		</div>
 
@@ -424,9 +465,9 @@
 				aria-label={playing ? 'Animation anhalten' : 'Animation abspielen'}
 			>
 				{#if playing}
-					<Pause class="size-5 wx-icon-rain" />
+					<AppIcon name="pause" class="size-5 wx-icon-rain" />
 				{:else}
-					<Play class="size-5 wx-icon-rain" />
+					<AppIcon name="play" class="size-5 wx-icon-rain" />
 				{/if}
 			</button>
 			<div class="min-w-0 flex-1">
@@ -448,12 +489,37 @@
 		</div>
 		<div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
 			<span class="text-muted-foreground">Legende</span>
-			<span class="inline-flex items-center gap-1"><i class="wx-leg wx-leg-1"></i> leicht</span>
-			<span class="inline-flex items-center gap-1"><i class="wx-leg wx-leg-2"></i> mässig</span>
-			<span class="inline-flex items-center gap-1"><i class="wx-leg wx-leg-3"></i> stark</span>
-			<span class="inline-flex items-center gap-1"><i class="wx-leg wx-leg-4"></i> Schnee</span>
+			<span class="inline-flex items-center gap-1">
+				<CloudDrizzle class="size-6 wx-icon-rain" />
+				<i class="wx-leg wx-leg-1"></i> leicht
+			</span>
+			<span class="inline-flex items-center gap-1">
+				<CloudRain class="size-6 wx-icon-rain" />
+				<i class="wx-leg wx-leg-2"></i> mässig
+			</span>
+			<span class="inline-flex items-center gap-1">
+				<CloudRainWind class="size-6 wx-icon-storm" />
+				<i class="wx-leg wx-leg-3"></i> stark
+			</span>
+			<span class="inline-flex items-center gap-1">
+				<CloudSnow class="size-6 wx-icon-snow" />
+				<i class="wx-leg wx-leg-4"></i> Schnee
+			</span>
 		</div>
-		<p class="mt-3 text-sm leading-snug text-muted-foreground">{hailLabel}</p>
+		{#if lightningStatus === 'down'}
+			<p class="mt-3 text-sm leading-snug text-muted-foreground" role="status">
+				Blitzschicht ausgeblendet — EUMETSAT-Feed nicht erreichbar.
+			</p>
+		{:else if showLightning}
+			<p class="mt-3 text-sm leading-snug text-muted-foreground">
+				Blitz: EUMETSAT MTG Lightning Imager (akkumulierte Flash-Fläche).
+			</p>
+		{/if}
+		{#if weatherState.bundle?.hours[0]?.cape != null}
+			<p class="mt-2 text-sm tabular-nums text-muted-foreground">
+				CAPE {Math.round(weatherState.bundle.hours[0].cape)} J/kg
+			</p>
+		{/if}
 	</div>
 
 	<div class="grid grid-cols-1 border-t border-border lg:grid-cols-2">
@@ -491,9 +557,10 @@
 					{/each}
 				</div>
 				<p class="mt-3 text-sm text-muted-foreground">
-					Nächste Stunde {formatMm(hours[0]?.precipMm ?? 0)} · Wahrscheinlichkeit {formatPercent(
-						hours[0]?.precipProb ?? 0
-					)}
+					Nächste Stunde {formatMm(hours[0]?.precipMm ?? 0)}
+					{#if hours[0]?.precipProb != null}
+						· Wahrscheinlichkeit {formatPercent(hours[0].precipProb)}
+					{/if}
 				</p>
 			{:else}
 				<p class="text-sm text-muted-foreground">Keine Niederschlagsdaten.</p>

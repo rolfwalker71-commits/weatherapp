@@ -1,7 +1,6 @@
 <script lang="ts">
-	import Search from '@lucide/svelte/icons/search';
-	import MapPin from '@lucide/svelte/icons/map-pin';
 	import { searchPlaces } from '$lib/api';
+	import AppIcon from './AppIcon.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { placeLabel } from '$lib/format';
 	import { loadRecent } from '$lib/storage';
@@ -114,7 +113,7 @@
 			? 'h-11 rounded-md ring-1 ring-border'
 			: 'min-h-12 rounded-full'}"
 	>
-		<Search class="size-4 shrink-0 wx-icon-week" aria-hidden="true" />
+		<AppIcon name="search" class="size-4 shrink-0 wx-icon-week" />
 		<input
 			id="city-search"
 			bind:this={inputEl}
@@ -164,7 +163,7 @@
 						onmousedown={(event) => event.preventDefault()}
 						onclick={() => choose(place)}
 					>
-						<MapPin class="mt-0.5 size-4 shrink-0 wx-icon-rain" aria-hidden="true" />
+						<AppIcon name="pin" class="mt-0.5 size-4 shrink-0 wx-icon-rain" />
 						<span class="min-w-0">
 							<span class="block break-words leading-snug">{place.name}</span>
 							<span class="block text-sm text-muted-foreground">{placeLabel(place)}</span>

@@ -1,11 +1,9 @@
 <script lang="ts">
-	import Bell from '@lucide/svelte/icons/bell';
-	import LocateFixed from '@lucide/svelte/icons/locate-fixed';
-	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import { chromeState } from '$lib/chrome.svelte';
-	import { settingsUi } from '$lib/commute.svelte';
 	import { formatRefreshStatus } from '$lib/format';
+	import { openTopic, setDrawer } from '$lib/ui.svelte';
 	import { clockState, loadPlace, locateUser, weatherState } from '$lib/weather.svelte';
+	import AppIcon from './AppIcon.svelte';
 	import CitySearch from './CitySearch.svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
 
@@ -34,9 +32,22 @@
 		style="padding-top: max(0.75rem, env(safe-area-inset-top, 0px));"
 	>
 		<div class="flex items-center justify-between gap-3">
-			<div class="min-w-0">
-				<p class="text-sm leading-snug text-muted-foreground">{updatedLabel}</p>
-				<p class="break-words text-lg font-semibold leading-snug tracking-tight">Schweiz & Welt</p>
+			<div class="flex min-w-0 items-center gap-2">
+				{#if !isDesktop}
+					<button
+						type="button"
+						class="icon-btn"
+						onclick={() => setDrawer(true)}
+						aria-label="Menü"
+						title="Mehr"
+					>
+						<AppIcon name="menu" class="size-5" />
+					</button>
+				{/if}
+				<div class="min-w-0">
+					<p class="text-sm leading-snug text-muted-foreground">{updatedLabel}</p>
+					<p class="break-words text-lg font-semibold leading-snug tracking-tight">Schweiz & Welt</p>
+				</div>
 			</div>
 			<div class="flex items-center gap-2 lg:hidden">
 				<button
@@ -47,7 +58,7 @@
 					title="Standort verwenden"
 					disabled={weatherState.locating}
 				>
-					<LocateFixed class="size-5 {weatherState.locating ? 'animate-pulse' : ''}" />
+					<AppIcon name="locate" class="size-5 {weatherState.locating ? 'animate-pulse' : ''}" />
 				</button>
 				<button
 					type="button"
@@ -57,18 +68,8 @@
 					title="Aktualisieren"
 					disabled={weatherState.loading}
 				>
-					<RefreshCw class="size-5 wx-icon-week {weatherState.loading ? 'animate-spin' : ''}" />
+					<AppIcon name="refresh" class="size-5 wx-icon-week {weatherState.loading ? 'animate-spin' : ''}" />
 				</button>
-				<button
-					type="button"
-					class="icon-btn"
-					onclick={() => (settingsUi.open = true)}
-					aria-label="Einstellungen und Benachrichtigungen"
-					title="Einstellungen"
-				>
-					<Bell class="size-5 wx-icon-week" />
-				</button>
-				<ThemeToggle />
 			</div>
 		</div>
 
@@ -84,7 +85,7 @@
 					onclick={() => void locateUser()}
 					disabled={weatherState.locating}
 				>
-					<LocateFixed class="size-4 wx-icon-wind" />
+					<AppIcon name="locate" class="size-4 wx-icon-wind" />
 					Standort
 				</button>
 				<button
@@ -95,16 +96,16 @@
 					title="Aktualisieren"
 					disabled={weatherState.loading}
 				>
-					<RefreshCw class="size-5 wx-icon-week {weatherState.loading ? 'animate-spin' : ''}" />
+					<AppIcon name="refresh" class="size-5 wx-icon-week {weatherState.loading ? 'animate-spin' : ''}" />
 				</button>
 				<button
 					type="button"
 					class="icon-btn"
-					onclick={() => (settingsUi.open = true)}
-					aria-label="Einstellungen und Benachrichtigungen"
-					title="Einstellungen"
+					onclick={() => openTopic('meldungen')}
+					aria-label="Meldungen"
+					title="Meldungen"
 				>
-					<Bell class="size-5 wx-icon-week" />
+					<AppIcon name="bell" class="size-5 wx-icon-week" />
 				</button>
 				<ThemeToggle />
 			</div>

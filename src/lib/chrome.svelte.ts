@@ -1,4 +1,5 @@
 import { resolveChrome, type Chrome, type ChromePreference } from './platform';
+import { applyTheme, themeState } from './theme.svelte';
 
 function readPreference(): ChromePreference {
 	if (typeof localStorage === 'undefined') return 'auto';
@@ -18,6 +19,9 @@ function applyChrome(): void {
 	const next = resolveChrome(chromeState.preference, window.innerWidth);
 	chromeState.chrome = next;
 	document.documentElement.dataset.chrome = next;
+	if (typeof document !== 'undefined') {
+		applyTheme(themeState.preference);
+	}
 }
 
 export function initChrome(): () => void {

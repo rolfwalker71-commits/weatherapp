@@ -1,4 +1,6 @@
 import { BERN, emptyExtras, fetchWeather, reverseGeocode } from './api';
+import { loadNotifyPrefs } from './notify-prefs';
+import { syncPreferences } from './push-client';
 import {
 	loadFavorites,
 	loadLastBundle,
@@ -20,7 +22,7 @@ export const weatherState = $state({
 	locating: false,
 	error: null as string | null,
 	stale: false,
-	section: 'aktuell' as SectionId
+	section: 'jetzt' as SectionId
 });
 
 export const clockState = $state({
@@ -50,6 +52,14 @@ export async function loadPlace(place: Place, options?: { recent?: boolean }): P
 		weatherState.bundle = bundle;
 		weatherState.stale = false;
 		saveLastBundle(bundle);
+		void syncPreferences(loadNotifyPrefs(), {
+			latitude: place.latitude,
+			longitude: place.longitude,
+			name: place.name,
+			timezone: bundle.timezone
+		}).catch(() => {
+			/* push server optional */
+		});
 	} catch (error) {
 		if ((error as Error).name === 'AbortError') return;
 		const cached = loadLastBundle();

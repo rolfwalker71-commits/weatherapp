@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { chromeState } from '$lib/chrome.svelte';
 	import { moodChipClass } from '$lib/colors';
-	import { formatHour, formatPercent, formatTemp } from '$lib/format';
+	import { formatHourLabel, formatPercent, formatTemp } from '$lib/format';
 	import { insightLine, snowFrost } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
 	import type { HourPoint } from '$lib/types';
@@ -17,7 +17,7 @@
 
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
 	const hours = $derived(weatherState.bundle?.hours ?? []);
-	const line = $derived(weatherState.bundle ? insightLine(weatherState.bundle) : '');
+	const line = $derived(weatherState.bundle ? insightLine(weatherState.bundle) : null);
 	const frost = $derived(weatherState.bundle ? snowFrost(weatherState.bundle) : null);
 	const maxPrecip = $derived(Math.max(1, ...hours.map((h) => h.precipMm)));
 </script>
@@ -26,9 +26,11 @@
 	<div class="mb-4 flex items-end justify-between gap-3">
 		<div>
 			<h2 class="text-xl font-semibold leading-snug tracking-tight">Nächste 24 Stunden</h2>
-			<p class="text-sm text-muted-foreground">
-				{line}{frost ? ` · ${frost.snowLabel}` : ''}
-			</p>
+			{#if line || frost?.snowLabel}
+				<p class="text-sm text-muted-foreground">
+					{line ?? ''}{line && frost?.snowLabel ? ' · ' : ''}{frost?.snowLabel ?? ''}
+				</p>
+			{/if}
 		</div>
 	</div>
 
@@ -45,16 +47,16 @@
 						type="button"
 						aria-label="{index === 0
 							? 'Jetzt'
-							: `${formatHour(hour.time)} Uhr`}, {formatTemp(hour.temperature)}, Regen {formatPercent(
-							hour.precipProb
-						)}"
+							: formatHourLabel(hour.time)}, {formatTemp(hour.temperature)}{hour.precipProb != null
+							? `, Regen ${formatPercent(hour.precipProb)}`
+							: ''}"
 						class="flex w-[4.75rem] shrink-0 flex-col items-center gap-2 px-2 py-3 {moodChipClass(mood)} {isDesktop
 							? 'rounded-md'
 							: 'rounded-3xl'} {index === 0 ? 'ring-2 ring-inset ring-primary' : ''}"
 						onclick={() => onSelect?.(hour)}
 					>
-						<span class="text-sm tabular-nums opacity-80">{index === 0 ? 'Jetzt' : formatHour(hour.time)}</span>
-						<WeatherIcon code={hour.code} isDay={hour.isDay} class="size-6" />
+						<span class="text-sm tabular-nums opacity-80">{index === 0 ? 'Jetzt' : formatHourLabel(hour.time)}</span>
+						<WeatherIcon code={hour.code} isDay={hour.isDay} class="size-8" />
 						<span class="text-base font-bold tabular-nums">{formatTemp(hour.temperature)}</span>
 						<span
 							class="flex h-8 w-1.5 items-end overflow-hidden {isDesktop ? 'rounded-sm' : 'rounded-full'} bg-background/50"
@@ -65,7 +67,9 @@
 								style="height: {Math.max(8, (hour.precipMm / maxPrecip) * 100)}%;"
 							></span>
 						</span>
-						<span class="text-xs opacity-75 tabular-nums">{formatPercent(hour.precipProb)}</span>
+						{#if hour.precipProb != null}
+							<span class="text-xs opacity-75 tabular-nums">{formatPercent(hour.precipProb)}</span>
+						{/if}
 					</button>
 				{/each}
 			</div>

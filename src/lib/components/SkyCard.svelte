@@ -12,10 +12,14 @@
 {#if sky}
 	<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
 		<h2 class="flex items-center gap-2 text-xl font-semibold leading-snug tracking-tight">
-			<MoonStar class="size-5 wx-icon-night" /> Himmel
+			<MoonStar class="size-6 wx-icon-night" /> Himmel
 		</h2>
-		<p class="mt-2 font-medium leading-snug">{sky.goldenLabel}</p>
-		<p class="mt-1 text-sm leading-snug text-muted-foreground">{sky.starsLabel}</p>
+		{#if sky.goldenLabel}
+			<p class="mt-2 font-medium leading-snug">{sky.goldenLabel}</p>
+		{/if}
+		{#if sky.starsLabel}
+			<p class="mt-1 text-sm leading-snug text-muted-foreground">{sky.starsLabel}</p>
+		{/if}
 		<p class="mt-1 text-sm text-muted-foreground">{sky.moonLabel}</p>
 	</section>
 {/if}

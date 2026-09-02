@@ -79,7 +79,14 @@ export function formatRefreshStatus(
 }
 
 export function formatHour(iso: string): string {
-	return new Intl.DateTimeFormat('de-CH', { hour: '2-digit' }).format(new Date(iso));
+	const raw = new Intl.DateTimeFormat('de-CH', { hour: '2-digit', hourCycle: 'h23' }).format(
+		new Date(iso)
+	);
+	return raw.replace(/\s*Uhr\.?/gi, '').trim();
+}
+
+export function formatHourLabel(iso: string): string {
+	return `${formatHour(iso)} Uhr`;
 }
 
 export function placeLabel(place: { name: string; admin1?: string; country?: string }): string {

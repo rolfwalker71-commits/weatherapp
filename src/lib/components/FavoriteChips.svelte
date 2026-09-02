@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Star from '@lucide/svelte/icons/star';
 	import { chromeState } from '$lib/chrome.svelte';
+	import AppIcon from './AppIcon.svelte';
 	import { placeShort } from '$lib/format';
 	import { samePlace } from '$lib/storage';
 	import { loadPlace, weatherState } from '$lib/weather.svelte';
@@ -19,7 +19,7 @@
 					: 'h-10 rounded-full'} {active ? 'wx-chip-clear' : 'bg-muted text-foreground'}"
 				onclick={() => void loadPlace(place, { recent: false })}
 			>
-				<Star class="size-3.5 wx-icon-star {active ? 'fill-current' : ''}" aria-hidden="true" />
+				<AppIcon name="star" filled={active} class="size-3.5 wx-icon-star" />
 				<span class="whitespace-nowrap">{placeShort(place)}</span>
 			</button>
 		{/each}

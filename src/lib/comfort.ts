@@ -28,17 +28,21 @@ function heatIndex(tempC: number, rh: number): number {
 	return ((hi - 32) * 5) / 9;
 }
 
-export function comfortAdvice(bundle: WeatherBundle): ComfortAdvice {
+export function comfortAdvice(bundle: WeatherBundle): ComfortAdvice | null {
 	const current = bundle.current;
 	const hour = bundle.hours[0];
 	const temp = current.temperature_2m;
 	const apparent = current.apparent_temperature;
 	const wind = current.wind_speed_10m;
 	const rh = current.relative_humidity_2m;
-	const uv = hour?.uv ?? bundle.days[0]?.uvMax ?? 0;
+	if (temp == null || apparent == null) return null;
+	const uv = hour?.uv ?? bundle.days[0]?.uvMax ?? null;
 	const precipNow = current.precipitation + (hour?.precipMm ?? 0);
 	const precipSoon = bundle.hours.slice(0, 3).reduce((sum, item) => sum + item.precipMm, 0);
-	const precipProb = Math.max(...bundle.hours.slice(0, 3).map((item) => item.precipProb), 0);
+	const precipProb = bundle.hours
+		.slice(0, 3)
+		.map((item) => item.precipProb)
+		.find((value) => value != null);
 
 	let indexName = 'gefühlte Temperatur';
 	let indexValue = apparent;
@@ -51,7 +55,7 @@ export function comfortAdvice(bundle: WeatherBundle): ComfortAdvice {
 	}
 
 	let recommendation = 'leichte Kleidung reicht';
-	if (precipNow >= 0.4 || (precipSoon >= 0.8 && precipProb >= 50)) {
+	if (precipNow >= 0.4 || (precipSoon >= 0.8 && precipProb != null && precipProb >= 50)) {
 		recommendation = 'Schirm';
 	} else if (uv != null && uv >= 6 && current.is_day === 1) {
 		recommendation = 'Sonnencreme';

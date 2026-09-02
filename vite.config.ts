@@ -139,6 +139,30 @@ export default defineConfig({
 								maxAgeSeconds: 60 * 60 * 24 * 7
 							}
 						}
+					},
+					{
+						urlPattern: /^https:\/\/view\.eumetsat\.int\/.*/i,
+						handler: 'NetworkFirst',
+						options: {
+							cacheName: 'eumetsat-lightning',
+							expiration: {
+								maxEntries: 80,
+								maxAgeSeconds: 5 * 60
+							},
+							networkTimeoutSeconds: 6
+						}
+					},
+					{
+						urlPattern: /^https:\/\/lindas\.admin\.ch\/.*/i,
+						handler: 'NetworkFirst',
+						options: {
+							cacheName: 'bafu-lindas',
+							expiration: {
+								maxEntries: 16,
+								maxAgeSeconds: 15 * 60
+							},
+							networkTimeoutSeconds: 5
+						}
 					}
 				]
 			},

@@ -13,7 +13,11 @@ import Moon from '@lucide/svelte/icons/moon';
 import Snowflake from '@lucide/svelte/icons/snowflake';
 import Sun from '@lucide/svelte/icons/sun';
 
-export type IconComponent = Component<{ class?: string; size?: number | string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
+export type IconComponent = Component<{
+	class?: string;
+	size?: number | string;
+	'aria-hidden'?: boolean | 'true' | 'false';
+}>;
 
 interface WmoEntry {
 	label: string;

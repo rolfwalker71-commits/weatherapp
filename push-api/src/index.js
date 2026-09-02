@@ -3,17 +3,21 @@ import express from 'express';
 import webpush from 'web-push';
 import { fetchMeteoalarm } from './alerts.js';
 import { fetchAvalanche } from './avalanche.js';
-import { deleteSubscription, listSubscriptions, openDb, upsertPreferences, upsertSubscription } from './db.js';
+import { deleteSubscription, getPreferences, listSubscriptions, openDb, upsertPreferences, upsertSubscription } from './db.js';
+import { canTriggerManualSend, sendPush } from './send.js';
+import { startPushWorker } from './worker.js';
 
 const PORT = Number(process.env.PORT || 4426);
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:weather@localhost';
 const PUSH_SEND_ENABLED = process.env.PUSH_SEND_ENABLED === 'true';
+const PUSH_TEST_TOKEN = process.env.PUSH_TEST_TOKEN || '';
 
 const db = openDb();
 const app = express();
 app.disable('x-powered-by');
+app.set('trust proxy', false);
 app.use(cors());
 app.use(express.json({ limit: '32kb' }));
 
@@ -32,7 +36,7 @@ app.get('/v1/status', (_req, res) => {
 		sendingEnabled: PUSH_SEND_ENABLED,
 		hasVapid: Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY),
 		message: PUSH_SEND_ENABLED
-			? 'Versand eingeschaltet'
+			? 'Versand eingeschaltet — der Worker prüft Kategorien periodisch.'
 			: 'Versand aus. Subscriptions und Prefs werden gespeichert.'
 	});
 });
@@ -55,8 +59,20 @@ app.post('/v1/subscriptions', (req, res) => {
 		client_id: clientId,
 		user_agent: String(req.body?.userAgent || '').slice(0, 240)
 	});
-	if (req.body?.preferences) {
-		savePrefs(clientId, req.body.preferences, req.body.place);
+	if (req.body?.preferences || req.body?.place) {
+		const previous = getPreferences(db, clientId);
+		savePrefs(
+			clientId,
+			req.body.preferences || {
+				rainSoon: previous?.rain_soon,
+				warnings: previous?.warnings,
+				frost: previous?.frost,
+				uv: previous?.uv,
+				air: previous?.air,
+				dailyBrief: previous?.daily_brief
+			},
+			req.body.place
+		);
 	}
 	res.json({ ok: true });
 });
@@ -110,39 +126,68 @@ app.get('/v1/avalanche', async (req, res) => {
 	}
 });
 
-app.post('/v1/send', async (req, res) => {
+function assertSendReady(res) {
 	if (!PUSH_SEND_ENABLED) {
-		return res.status(403).json({
+		res.status(403).json({
 			error: 'Versand deaktiviert',
-			hint: 'Setze PUSH_SEND_ENABLED=true und gültige VAPID-Keys, dann diesen Endpunkt erneut aufrufen.'
+			hint: 'Setze PUSH_SEND_ENABLED=true und gültige VAPID-Keys.'
 		});
+		return false;
 	}
 	if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-		return res.status(503).json({ error: 'VAPID-Keys fehlen' });
+		res.status(503).json({ error: 'VAPID-Keys fehlen' });
+		return false;
+	}
+	return true;
+}
+
+async function broadcast(rows, payload) {
+	const results = [];
+	for (const row of rows) {
+		results.push(await sendPush(db, row, payload));
+	}
+	return results;
+}
+
+app.post('/v1/send', async (req, res) => {
+	if (!assertSendReady(res)) return;
+	if (!canTriggerManualSend(req, PUSH_TEST_TOKEN)) {
+		return res.status(403).json({
+			error: 'Nur localhost oder X-Push-Test-Token',
+			hint: 'Der Worker sendet selbst. Manuell: curl von diesem Host oder Token setzen.'
+		});
 	}
 	const title = String(req.body?.title || 'Wetter');
 	const body = String(req.body?.body || 'Neue Wetterinfo');
 	const url = String(req.body?.url || '/');
-	const rows = listSubscriptions(db);
-	const results = [];
-	for (const row of rows) {
-		try {
-			await webpush.sendNotification(
-				{ endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } },
-				JSON.stringify({ title, body, url })
-			);
-			results.push({ endpoint: row.endpoint, ok: true });
-		} catch (error) {
-			if (error?.statusCode === 404 || error?.statusCode === 410) {
-				deleteSubscription(db, row.endpoint);
-			}
-			results.push({ endpoint: row.endpoint, ok: false, status: error?.statusCode || 0 });
-		}
+	const results = await broadcast(listSubscriptions(db), { title, body, url });
+	res.json({ sent: results.filter((item) => item.ok).length, results });
+});
+
+app.post('/v1/send-test', async (req, res) => {
+	if (!assertSendReady(res)) return;
+	if (!canTriggerManualSend(req, PUSH_TEST_TOKEN)) {
+		return res.status(403).json({
+			error: 'Nur localhost oder X-Push-Test-Token',
+			hint: 'Lokal: curl http://127.0.0.1:4426/v1/send-test -X POST. Remote: PUSH_TEST_TOKEN setzen.'
+		});
 	}
+	const clientId = req.body?.clientId ? String(req.body.clientId).slice(0, 80) : '';
+	const rows = listSubscriptions(db).filter((row) => !clientId || row.client_id === clientId);
+	if (!rows.length) {
+		return res.status(404).json({ error: 'Kein Abonnement gespeichert' });
+	}
+	const payload = {
+		title: String(req.body?.title || 'Testbenachrichtigung'),
+		body: String(req.body?.body || 'Push funktioniert — das ist eine manuelle Probe.'),
+		url: String(req.body?.url || '/')
+	};
+	const results = await broadcast(rows, payload);
 	res.json({ sent: results.filter((item) => item.ok).length, results });
 });
 
 function savePrefs(clientId, preferences, place) {
+	const previous = getPreferences(db, clientId);
 	upsertPreferences(db, {
 		client_id: clientId,
 		rain_soon: preferences.rainSoon ? 1 : 0,
@@ -151,13 +196,17 @@ function savePrefs(clientId, preferences, place) {
 		uv: preferences.uv ? 1 : 0,
 		air: preferences.air ? 1 : 0,
 		daily_brief: preferences.dailyBrief ? 1 : 0,
-		latitude: Number.isFinite(place?.latitude) ? place.latitude : null,
-		longitude: Number.isFinite(place?.longitude) ? place.longitude : null,
-		place_name: place?.name ? String(place.name).slice(0, 80) : null,
-		timezone: place?.timezone ? String(place.timezone).slice(0, 64) : null
+		latitude: Number.isFinite(place?.latitude) ? place.latitude : (previous?.latitude ?? null),
+		longitude: Number.isFinite(place?.longitude) ? place.longitude : (previous?.longitude ?? null),
+		place_name: place?.name ? String(place.name).slice(0, 80) : (previous?.place_name ?? null),
+		timezone: place?.timezone ? String(place.timezone).slice(0, 64) : (previous?.timezone ?? null)
 	});
 }
 
 app.listen(PORT, '0.0.0.0', () => {
 	console.log(`weather push api on ${PORT} (send=${PUSH_SEND_ENABLED ? 'on' : 'off'})`);
+	startPushWorker(db, {
+		enabled: PUSH_SEND_ENABLED,
+		hasKeys: Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY)
+	});
 });

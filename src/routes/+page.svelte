@@ -1,22 +1,26 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import AirQuality from '$lib/components/AirQuality.svelte';
 	import AppHeader from '$lib/components/AppHeader.svelte';
 	import CurrentHero from '$lib/components/CurrentHero.svelte';
 	import DailyForecast from '$lib/components/DailyForecast.svelte';
 	import DayDetail from '$lib/components/DayDetail.svelte';
 	import FavoriteChips from '$lib/components/FavoriteChips.svelte';
-	import HeuteInsights from '$lib/components/HeuteInsights.svelte';
 	import HourDetail from '$lib/components/HourDetail.svelte';
 	import HourlyForecast from '$lib/components/HourlyForecast.svelte';
-	import MetricGrid from '$lib/components/MetricGrid.svelte';
+	import MehrDrawer from '$lib/components/MehrDrawer.svelte';
+	import MehrList from '$lib/components/MehrList.svelte';
 	import NavBar from '$lib/components/NavBar.svelte';
 	import NavRail from '$lib/components/NavRail.svelte';
+	import NowcastCard from '$lib/components/NowcastCard.svelte';
 	import SettingsSheet from '$lib/components/SettingsSheet.svelte';
+	import TopicChips from '$lib/components/TopicChips.svelte';
+	import TopicSheet from '$lib/components/TopicSheet.svelte';
+	import WarningsCard from '$lib/components/WarningsCard.svelte';
 	import WeatherRadar from '$lib/components/WeatherRadar.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { hydrateCommute } from '$lib/commute.svelte';
 	import type { DayPoint, HourPoint } from '$lib/types';
+	import { closeTopic, initRoutes, setDrawer, uiState } from '$lib/ui.svelte';
 	import { weatherMood } from '$lib/wmo';
 	import { hydrateFromCache, locateUser, startAutoRefresh, weatherState } from '$lib/weather.svelte';
 
@@ -27,6 +31,7 @@
 			? weatherMood(weatherState.bundle.current.weather_code, weatherState.bundle.current.is_day === 1)
 			: 'cloud'
 	);
+	const section = $derived(weatherState.section);
 
 	$effect(() => {
 		weatherState.place.latitude;
@@ -37,15 +42,31 @@
 
 	function onKey(event: KeyboardEvent) {
 		if (event.key !== 'Escape') return;
-		if (selectedHour) selectedHour = null;
-		else selectedDay = null;
+		if (selectedHour) {
+			selectedHour = null;
+			return;
+		}
+		if (selectedDay) {
+			selectedDay = null;
+			return;
+		}
+		if (uiState.topic) {
+			closeTopic();
+			return;
+		}
+		if (uiState.drawer) setDrawer(false);
 	}
 
 	onMount(() => {
 		hydrateFromCache();
 		hydrateCommute();
+		const stopRoutes = initRoutes();
 		void locateUser();
-		return startAutoRefresh();
+		const stopRefresh = startAutoRefresh();
+		return () => {
+			stopRoutes();
+			stopRefresh();
+		};
 	});
 </script>
 
@@ -71,47 +92,44 @@
 
 			{#if weatherState.error}
 				<p
-					class="mb-4 px-4 py-3 text-sm leading-snug [html[data-chrome=android]_&]:rounded-3xl [html[data-chrome=android]_&]:bg-secondary [html[data-chrome=desktop]_&]:rounded-md [html[data-chrome=desktop]_&]:bg-primary/10"
+					class="mb-4 px-4 py-3 text-sm leading-snug [html[data-chrome=android]_&]:rounded-3xl [html[data-chrome=android]_&]:bg-secondary [html[data-chrome=android]_&]:text-foreground [html[data-chrome=desktop]_&]:rounded-md [html[data-chrome=desktop]_&]:bg-primary/10"
 					role="status"
 				>
 					{weatherState.error}
 				</p>
 			{/if}
 
-			<div class="grid grid-cols-1 gap-4 xl:grid-cols-12">
-				{#if !weatherState.bundle && weatherState.loading}
-					<div class="xl:col-span-12" aria-busy="true">
-						<div class="h-64 animate-pulse bg-card [html[data-chrome=android]_&]:rounded-3xl [html[data-chrome=desktop]_&]:rounded-md"></div>
-					</div>
-				{:else if weatherState.bundle}
-					<div class="xl:col-span-7">
-						<CurrentHero />
-					</div>
-					<div class="xl:col-span-5">
-						<MetricGrid />
-					</div>
-					<div class="xl:col-span-12">
-						<HeuteInsights />
-					</div>
-					<div class="xl:col-span-12">
-						<HourlyForecast onSelect={(hour) => (selectedHour = hour)} />
-					</div>
-				{/if}
-				<div class="xl:col-span-12">
-					<WeatherRadar />
+			{#if !weatherState.bundle && weatherState.loading}
+				<div aria-busy="true">
+					<div class="h-64 animate-pulse bg-card [html[data-chrome=android]_&]:rounded-3xl [html[data-chrome=desktop]_&]:rounded-md"></div>
 				</div>
-				{#if weatherState.bundle}
-					<div class="xl:col-span-7">
+			{:else}
+				{#if section === 'jetzt'}
+					<div class="grid grid-cols-1 gap-4">
+						{#if weatherState.bundle}
+							<CurrentHero />
+							<WarningsCard />
+							<NowcastCard compact />
+							<TopicChips />
+						{/if}
+					</div>
+				{:else if section === 'stunden'}
+					{#if weatherState.bundle}
+						<HourlyForecast onSelect={(hour) => (selectedHour = hour)} />
+					{/if}
+				{:else if section === 'radar'}
+					<WeatherRadar />
+				{:else if section === 'woche'}
+					{#if weatherState.bundle}
 						<DailyForecast
 							selectedDate={selectedDay?.date}
 							onSelect={(day) => (selectedDay = day)}
 						/>
-					</div>
-					<div class="xl:col-span-5">
-						<AirQuality />
-					</div>
+					{/if}
+				{:else if section === 'mehr'}
+					<MehrList />
 				{/if}
-			</div>
+			{/if}
 		</main>
 	</div>
 
@@ -127,4 +145,6 @@
 	onSelectHour={(hour) => (selectedHour = hour)}
 />
 <HourDetail hour={selectedHour} onClose={() => (selectedHour = null)} />
+<TopicSheet />
+<MehrDrawer />
 <SettingsSheet />

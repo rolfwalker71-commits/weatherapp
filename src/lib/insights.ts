@@ -1,10 +1,9 @@
 import { comfortAdvice } from './comfort';
 import { formatTime } from './format';
-import { namedWind } from './wind-situation';
 import type { MinutePoint, WeatherBundle } from './types';
 import { getWmo } from './wmo';
 
-export function insightLine(bundle: WeatherBundle): string {
+export function insightLine(bundle: WeatherBundle): string | null {
 	const now = bundle.hours[0];
 	const later = bundle.hours[2] ?? bundle.hours[1];
 	if (!now) {
@@ -12,25 +11,15 @@ export function insightLine(bundle: WeatherBundle): string {
 	}
 
 	const phrases: string[] = [];
-	const laterPrecip = later?.precipMm ?? 0;
-	const laterProb = later?.precipProb ?? 0;
+	const laterPrecip = later?.precipMm ?? null;
+	const laterProb = later?.precipProb ?? null;
 
-	if (now.precipMm >= 0.3 && laterPrecip < now.precipMm * 0.45) {
+	if (now.precipMm >= 0.3 && laterPrecip != null && laterPrecip < now.precipMm * 0.45) {
 		phrases.push('Regen lässt nach');
-	} else if (now.precipMm < 0.15 && laterPrecip >= 0.5 && laterProb >= 45) {
+	} else if (now.precipMm < 0.15 && laterPrecip != null && laterPrecip >= 0.5 && (laterProb == null || laterProb >= 45)) {
 		phrases.push(`ab ${formatTime(later.time)} Regen`);
-	} else if (now.snowfall && now.snowfall >= 0.2) {
+	} else if (now.snowfall != null && now.snowfall >= 0.2) {
 		phrases.push('Schnee im Gang');
-	}
-
-	const wind = namedWind(bundle.place, bundle);
-	if (wind.name === 'Bise' || wind.name === 'Südföhn' || wind.name === 'Nordföhn') {
-		phrases.push(wind.name);
-	} else if (later && now.windDir != null && later.windDir != null) {
-		const delta = Math.abs(((later.windDir - now.windDir + 540) % 360) - 180);
-		if (delta >= 50 && later.windDir >= 30 && later.windDir <= 90) {
-			phrases.push('Wind dreht auf Bise');
-		}
 	}
 
 	const clearHour = bundle.hours.find(
@@ -42,8 +31,8 @@ export function insightLine(bundle: WeatherBundle): string {
 		phrases.push('weiterhin klar');
 	}
 
-	if ((now.cape ?? 0) >= 800 || now.code >= 95) {
-		phrases.push('Gewitterlage');
+	if (now.code >= 95) {
+		phrases.push(getWmo(now.code, now.isDay).label);
 	}
 
 	if (later && later.temperature - now.temperature >= 3) {
@@ -57,12 +46,12 @@ export function insightLine(bundle: WeatherBundle): string {
 	return `${getWmo(now.code, now.isDay).label} bleibt vorerst ähnlich`;
 }
 
-export function clothingLine(bundle: WeatherBundle): string {
+export function clothingLine(bundle: WeatherBundle): string | null {
 	const comfort = comfortAdvice(bundle);
+	if (!comfort) return null;
 	const hours = bundle.hours.slice(0, 8);
-	const wetHour = hours.find((hour) => hour.precipMm >= 0.4 || hour.precipProb >= 60);
-	const dryUntil = hours.find((hour) => hour.precipMm < 0.2 && hour.precipProb < 40);
-	const lastDry = [...hours].reverse().find((hour) => hour.precipMm < 0.25 && hour.precipProb < 45);
+	const wetHour = hours.find((hour) => hour.precipMm >= 0.4 || (hour.precipProb != null && hour.precipProb >= 60));
+	const lastDry = [...hours].reverse().find((hour) => hour.precipMm < 0.25 && (hour.precipProb == null || hour.precipProb < 45));
 	const parts = [comfort.recommendation === 'Schirm' ? 'Schirm einpacken' : comfort.recommendation];
 
 	if (wetHour && hours[0] && hours[0].precipMm < 0.25) {
@@ -79,44 +68,39 @@ export function clothingLine(bundle: WeatherBundle): string {
 export function snowFrost(bundle: WeatherBundle): {
 	freezingLevel: number | null;
 	frost: boolean;
-	frostLabel: string;
-	snowLabel: string;
+	frostLabel: string | null;
+	snowLabel: string | null;
 } {
 	const hour = bundle.hours[0];
 	const freezingLevel = hour?.freezingLevel ?? null;
 	const tonight = bundle.days[0];
-	const frost = (tonight?.tMin ?? 99) <= 1 || bundle.current.temperature_2m <= 0.5;
-	const frostLabel = frost
-		? tonight && tonight.tMin <= -2
-			? 'Frostgefahr, glatte Wege möglich'
-			: 'leichte Frostgefahr'
-		: 'kein relevanter Frost';
-	let snowLabel = 'keine Schneegrenze';
-	if (freezingLevel != null) {
-		const meters = Math.round(freezingLevel / 50) * 50;
-		snowLabel = `Nullgradgrenze ca. ${meters} m`;
-		if (bundle.current.temperature_2m <= 1 && (hour?.snowfall ?? 0) > 0.1) {
-			snowLabel += ' · Schnee bis in Lagen';
-		}
-	}
-	return { freezingLevel, frost, frostLabel, snowLabel };
+	const frost = tonight != null && tonight.tMin <= 1;
+	return {
+		freezingLevel,
+		frost,
+		frostLabel: null,
+		snowLabel:
+			freezingLevel != null ? `Nullgradgrenze ${Math.round(freezingLevel / 50) * 50} m` : null
+	};
 }
 
 export function thunderNowcast(minutes: MinutePoint[]): {
-	risk: 'ruhe' | 'möglich' | 'nah';
-	label: string;
-	nextMm: number;
+	nextMm: number | null;
 	windowMin: number;
+	label: string | null;
 } {
-	const upcoming = minutes.slice(0, 6);
-	const nextMm = upcoming.reduce((sum, item) => sum + item.precipMm, 0);
-	const maxCape = Math.max(0, ...upcoming.map((item) => item.cape ?? 0));
-	const stormCode = upcoming.some((item) => (item.code ?? 0) >= 95);
-	if (stormCode || (maxCape >= 1200 && nextMm >= 1)) {
-		return { risk: 'nah', label: 'Gewitter in der nächsten Stunde möglich', nextMm, windowMin: 90 };
+	if (!minutes.length) {
+		return { nextMm: null, windowMin: 90, label: null };
 	}
-	if (maxCape >= 700 || nextMm >= 1.5) {
-		return { risk: 'möglich', label: 'Schauerlage, Gewitter nicht ausgeschlossen', nextMm, windowMin: 90 };
+	const values = minutes.map((item) => item.precipMm).filter((value): value is number => value != null);
+	if (!values.length) {
+		return { nextMm: null, windowMin: 90, label: null };
 	}
-	return { risk: 'ruhe', label: 'Kein Gewitter-Nowcast in den nächsten 90 Minuten', nextMm, windowMin: 90 };
+	const nextMm = values.reduce((sum, item) => sum + item, 0);
+	const storm = minutes.some((item) => item.code != null && item.code >= 95);
+	return {
+		nextMm,
+		windowMin: 90,
+		label: storm ? 'Gewitter-Wettercode in den Minutenwerten' : null
+	};
 }

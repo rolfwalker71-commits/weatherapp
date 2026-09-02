@@ -8,6 +8,8 @@ services:
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:weather@localhost}
       PUSH_SEND_ENABLED: ${PUSH_SEND_ENABLED:-false}
+      PUSH_TEST_TOKEN: ${PUSH_TEST_TOKEN:-}
+      PUSH_POLL_MS: ${PUSH_POLL_MS:-600000}
       SQLITE_PATH: /data/push.db
     volumes:
       - push-data:/data

@@ -26,7 +26,7 @@ export function applyTheme(preference = themeState.preference): void {
 		if (chrome === 'desktop') {
 			themeColor.setAttribute('content', dark ? '#202020' : '#f3f3f3');
 		} else {
-			themeColor.setAttribute('content', dark ? '#0f1415' : '#006874');
+			themeColor.setAttribute('content', dark ? '#121314' : '#006874');
 		}
 	}
 }

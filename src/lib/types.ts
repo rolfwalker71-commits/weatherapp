@@ -110,7 +110,7 @@ export interface HourPoint {
 	temperature: number;
 	feelsLike: number;
 	code: number;
-	precipProb: number;
+	precipProb: number | null;
 	precipMm: number;
 	wind: number;
 	humidity: number;
@@ -129,7 +129,7 @@ export interface HourPoint {
 export interface MinutePoint {
 	time: string;
 	temperature: number | null;
-	precipMm: number;
+	precipMm: number | null;
 	wind: number | null;
 	cape: number | null;
 	code: number | null;
@@ -142,7 +142,7 @@ export interface DayPoint {
 	tMax: number;
 	tMin: number;
 	precipMm: number;
-	precipProb: number;
+	precipProb: number | null;
 	sunrise: string;
 	sunset: string;
 	uvMax: number | null;
@@ -163,8 +163,7 @@ export interface LakeSnapshot {
 	distanceKm: number;
 	waterTemp: number | null;
 	waveHeight: number | null;
-	fogRisk: boolean;
-	fogLabel: string;
+	tempSource: string | null;
 }
 
 export interface AirTrendPoint {

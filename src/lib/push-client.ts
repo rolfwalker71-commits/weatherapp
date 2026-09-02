@@ -73,7 +73,13 @@ export async function syncPreferences(prefs: NotifyPrefs, place?: { latitude: nu
 	});
 }
 
-export async function registerSubscription(subscription: PushSubscription, prefs = loadNotifyPrefs()) {
+export type PushPlace = { latitude: number; longitude: number; name: string; timezone?: string };
+
+export async function registerSubscription(
+	subscription: PushSubscription,
+	prefs = loadNotifyPrefs(),
+	place?: PushPlace
+) {
 	const json = subscription.toJSON();
 	await request('/v1/subscriptions', {
 		method: 'POST',
@@ -82,7 +88,8 @@ export async function registerSubscription(subscription: PushSubscription, prefs
 			keys: json.keys,
 			clientId: getPushClientId(),
 			userAgent: navigator.userAgent,
-			preferences: prefs
+			preferences: prefs,
+			place
 		})
 	});
 }
@@ -102,7 +109,10 @@ function urlBase64ToUint8Array(base64: string): ArrayBuffer {
 	return output.buffer;
 }
 
-export async function enablePush(prefs: NotifyPrefs): Promise<{ ok: boolean; message: string }> {
+export async function enablePush(
+	prefs: NotifyPrefs,
+	place?: PushPlace
+): Promise<{ ok: boolean; message: string }> {
 	if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
 		return { ok: false, message: 'Dieser Browser unterstützt kein Web Push.' };
 	}
@@ -122,8 +132,14 @@ export async function enablePush(prefs: NotifyPrefs): Promise<{ ok: boolean; mes
 			userVisibleOnly: true,
 			applicationServerKey: urlBase64ToUint8Array(key)
 		}));
-	await registerSubscription(subscription, prefs);
-	return { ok: true, message: 'Abonnement gespeichert. Versand bleibt aus, bis du ihn aktivierst.' };
+	await registerSubscription(subscription, prefs, place);
+	const status = await fetchPushStatus();
+	return {
+		ok: true,
+		message: status.sendingEnabled
+			? 'Gerät angemeldet. Der Server sendet nach den gewählten Kategorien.'
+			: 'Abonnement und Ort gespeichert. Versand bleibt aus, bis PUSH_SEND_ENABLED=true.'
+	};
 }
 
 export async function disablePush(): Promise<void> {

@@ -83,6 +83,55 @@ export function upsertPreferences(db, payload) {
 	).run(payload);
 }
 
+export function getPreferences(db, clientId) {
+	return db.prepare('SELECT * FROM notification_preferences WHERE client_id = ?').get(clientId);
+}
+
 export function listSubscriptions(db) {
 	return db.prepare('SELECT * FROM subscriptions').all();
+}
+
+export function listRecipients(db) {
+	return db.prepare(
+		`
+		SELECT
+			s.endpoint, s.p256dh, s.auth, s.client_id,
+			COALESCE(p.rain_soon, 0) AS rain_soon,
+			COALESCE(p.warnings, 0) AS warnings,
+			COALESCE(p.frost, 0) AS frost,
+			COALESCE(p.uv, 0) AS uv,
+			COALESCE(p.air, 0) AS air,
+			COALESCE(p.daily_brief, 0) AS daily_brief,
+			p.latitude, p.longitude, p.place_name, p.timezone
+		FROM subscriptions s
+		LEFT JOIN notification_preferences p ON p.client_id = s.client_id
+	`
+	).all();
+}
+
+export function wasRecentlySent(db, clientId, category, fingerprint, cooldownHours) {
+	const row = db
+		.prepare(
+			`
+			SELECT sent_at FROM send_cooldowns
+			WHERE client_id = ? AND category = ? AND fingerprint = ?
+				AND sent_at > datetime('now', ?)
+		`
+		)
+		.get(clientId, category, fingerprint, `-${Number(cooldownHours)} hours`);
+	return Boolean(row);
+}
+
+export function recordSend(db, clientId, category, fingerprint) {
+	db.prepare(
+		`
+		INSERT INTO send_cooldowns (client_id, category, fingerprint, sent_at)
+		VALUES (?, ?, ?, datetime('now'))
+		ON CONFLICT(client_id, category, fingerprint) DO UPDATE SET sent_at = datetime('now')
+	`
+	).run(clientId, category, fingerprint);
+}
+
+export function pruneSendLog(db) {
+	db.prepare(`DELETE FROM send_cooldowns WHERE sent_at < datetime('now', '-7 days')`).run();
 }

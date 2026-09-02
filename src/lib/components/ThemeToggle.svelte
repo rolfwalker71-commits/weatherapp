@@ -1,8 +1,6 @@
 <script lang="ts">
-	import Monitor from '@lucide/svelte/icons/monitor';
-	import Moon from '@lucide/svelte/icons/moon';
-	import Sun from '@lucide/svelte/icons/sun';
 	import { cycleTheme, themeState } from '$lib/theme.svelte';
+	import AppIcon from './AppIcon.svelte';
 
 	const label = $derived(
 		themeState.preference === 'dark'
@@ -21,10 +19,10 @@
 	title="Darstellung: {label}"
 >
 	{#if themeState.preference === 'dark'}
-		<Moon class="size-5 wx-icon-night" />
+		<AppIcon name="themeDark" class="size-5 wx-icon-night" />
 	{:else if themeState.preference === 'light'}
-		<Sun class="size-5 wx-icon-sun" />
+		<AppIcon name="themeLight" class="size-5 wx-icon-sun" />
 	{:else}
-		<Monitor class="size-5 wx-icon-cloud" />
+		<AppIcon name="themeSystem" class="size-5 wx-icon-cloud" />
 	{/if}
 </button>

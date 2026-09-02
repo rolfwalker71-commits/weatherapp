@@ -1,4 +1,4 @@
-import { lakeFogLabel, nearestLakes, toLakeSnapshot } from './lakes';
+import { fetchBafuLakeTemps, nearestLakes, toLakeSnapshot } from './lakes';
 import type {
 	AirQualityResponse,
 	AirTrendPoint,
@@ -93,7 +93,7 @@ function mapHour(hourly: ForecastResponse['hourly'], index: number): HourPoint {
 		temperature: hourly.temperature_2m[index],
 		feelsLike: hourly.apparent_temperature[index],
 		code: hourly.weather_code[index],
-		precipProb: hourly.precipitation_probability[index] ?? 0,
+		precipProb: hourly.precipitation_probability[index] ?? null,
 		precipMm: hourly.precipitation[index] ?? 0,
 		wind: hourly.wind_speed_10m[index],
 		humidity: hourly.relative_humidity_2m[index],
@@ -128,7 +128,7 @@ function mapMinutes(forecast: ForecastResponse): MinutePoint[] {
 	const points = minutely.time.map((time, index) => ({
 		time,
 		temperature: minutely.temperature_2m?.[index] ?? null,
-		precipMm: minutely.precipitation?.[index] ?? 0,
+		precipMm: minutely.precipitation?.[index] ?? null,
 		wind: minutely.wind_speed_10m?.[index] ?? null,
 		cape: minutely.cape?.[index] ?? null,
 		code: minutely.weather_code?.[index] ?? null,
@@ -147,7 +147,7 @@ function mapDays(forecast: ForecastResponse): DayPoint[] {
 		tMax: daily.temperature_2m_max[i],
 		tMin: daily.temperature_2m_min[i],
 		precipMm: daily.precipitation_sum[i],
-		precipProb: daily.precipitation_probability_max[i] ?? 0,
+		precipProb: daily.precipitation_probability_max[i] ?? null,
 		sunrise: daily.sunrise[i],
 		sunset: daily.sunset[i],
 		uvMax: daily.uv_index_max[i] ?? null,
@@ -302,7 +302,7 @@ interface MarineCurrent {
 	};
 }
 
-async function fetchLakes(place: Place, dewPoint: number | null, humidity: number, wind: number, temp: number, isDay: boolean, signal?: AbortSignal): Promise<LakeSnapshot[]> {
+async function fetchLakes(place: Place, signal?: AbortSignal): Promise<LakeSnapshot[]> {
 	const lakes = nearestLakes(place);
 	if (!lakes.length) return [];
 	const url = new URL(MARINE_URL);
@@ -310,24 +310,27 @@ async function fetchLakes(place: Place, dewPoint: number | null, humidity: numbe
 	url.searchParams.set('longitude', lakes.map((lake) => lake.longitude).join(','));
 	url.searchParams.set('current', 'wave_height,sea_surface_temperature');
 	url.searchParams.set('timezone', 'auto');
-	try {
-		const data = await getJson<MarineCurrent | MarineCurrent[]>(url.toString(), signal);
-		const points = Array.isArray(data) ? data : [data];
-		const fog = lakeFogLabel({ humidity, wind, temp, dewPoint, isDay });
-		return lakes.map((lake, index) =>
+	const [marineResult, bafuTemps] = await Promise.all([
+		getJson<MarineCurrent | MarineCurrent[]>(url.toString(), signal)
+			.then((data) => (Array.isArray(data) ? data : [data]))
+			.catch(() => [] as MarineCurrent[]),
+		fetchBafuLakeTemps(
+			lakes.map((lake) => lake.tempStationId).filter((id): id is string => Boolean(id)),
+			signal
+		)
+	]);
+	return lakes
+		.map((lake, index) =>
 			toLakeSnapshot(
 				lake,
 				{
-					waterTemp: points[index]?.current?.sea_surface_temperature ?? null,
-					waveHeight: points[index]?.current?.wave_height ?? null
+					waterTemp: marineResult[index]?.current?.sea_surface_temperature ?? null,
+					waveHeight: marineResult[index]?.current?.wave_height ?? null
 				},
-				fog
+				lake.tempStationId ? (bafuTemps.get(lake.tempStationId) ?? null) : null
 			)
-		);
-	} catch {
-		const fog = lakeFogLabel({ humidity, wind, temp, dewPoint, isDay });
-		return lakes.map((lake) => toLakeSnapshot(lake, { waterTemp: null, waveHeight: null }, fog));
-	}
+		)
+		.filter((lake): lake is LakeSnapshot => lake != null);
 }
 
 function buildBundle(
@@ -373,18 +376,9 @@ export async function fetchWeather(place: Place, signal?: AbortSignal): Promise<
 		getJson<AirQualityResponse>(airUrl.toString(), signal).catch(() => null)
 	]);
 
-	const dewPoint = forecast.hourly.dew_point_2m?.[0] ?? null;
 	const [elevations, lakes] = await Promise.all([
 		fetchElevations(place, signal),
-		fetchLakes(
-			place,
-			dewPoint,
-			forecast.current.relative_humidity_2m,
-			forecast.current.wind_speed_10m,
-			forecast.current.temperature_2m,
-			forecast.current.is_day === 1,
-			signal
-		)
+		fetchLakes(place, signal)
 	]);
 
 	return buildBundle(place, forecast, air, elevations, lakes);
@@ -419,7 +413,12 @@ export function emptyExtras(bundle: WeatherBundle): WeatherBundle {
 		minutes: bundle.minutes ?? [],
 		airTrend: bundle.airTrend ?? [],
 		elevations: bundle.elevations ?? [],
-		lakes: bundle.lakes ?? [],
+		lakes: (bundle.lakes ?? [])
+			.filter((lake) => lake.waterTemp != null || lake.waveHeight != null)
+			.map((lake) => ({
+				...lake,
+				tempSource: lake.tempSource ?? null
+			})),
 		allHours: (bundle.allHours ?? bundle.hours ?? []).map(fillHour)
 	};
 }

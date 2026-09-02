@@ -3,13 +3,13 @@
 	import Sun from '@lucide/svelte/icons/sun';
 	import Sunrise from '@lucide/svelte/icons/sunrise';
 	import Wind from '@lucide/svelte/icons/wind';
-	import X from '@lucide/svelte/icons/x';
 	import { uvLevel } from '$lib/aqi';
+	import AppIcon from './AppIcon.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { moodChipClass, scaleFillClass } from '$lib/colors';
 	import {
 		formatDayMonth,
-		formatHour,
+		formatHourLabel,
 		formatKmH,
 		formatMm,
 		formatPercent,
@@ -55,66 +55,58 @@
 </script>
 
 {#if day && wmo}
-	<div class="fixed inset-0 z-40 flex items-end justify-center lg:items-center">
+	<div class="wx-overlay">
 		<button
 			type="button"
-			class="absolute inset-0 bg-black/40 {isDesktop ? 'lg:bg-black/20' : ''}"
+			class="wx-sheet-backdrop"
 			aria-label="Tagesdetails schliessen"
 			onclick={onClose}
 		></button>
-		<div
-			role="dialog"
-			aria-modal="true"
-			aria-labelledby="day-title"
-			class="relative z-10 flex max-h-[min(42rem,92dvh)] w-full max-w-lg flex-col overflow-hidden bg-card {isDesktop
-				? 'rounded-md ring-1 ring-border'
-				: 'rounded-t-3xl'}"
-		>
+		<div role="dialog" aria-modal="true" aria-labelledby="day-title" class="wx-sheet">
 			<div class="hero-wash" data-mood={mood} aria-hidden="true"></div>
-			<div class="hero-on-{mood} relative flex min-h-0 flex-col overflow-y-auto p-5">
-				{#if !isDesktop}
-					<div class="mx-auto mb-4 h-1.5 w-12 rounded-full bg-current/30" aria-hidden="true"></div>
-				{/if}
-				<div class="mb-4 flex items-start justify-between gap-3">
-					<div class="min-w-0">
-						<p class="text-sm opacity-75">{formatDayMonth(day.date)}</p>
-						<h2 id="day-title" class="break-words text-xl font-semibold leading-snug">
-							{day.date === todayDate ? 'Heute' : formatWeekdayLong(day.date)} · {wmo.label}
-						</h2>
+			<div class="hero-on-{mood} relative flex min-h-0 flex-1 flex-col">
+				<div class="wx-sheet-head px-5 pt-5">
+					{#if !isDesktop}
+						<div class="mx-auto mb-4 h-1.5 w-12 rounded-full bg-current/30" aria-hidden="true"></div>
+					{/if}
+					<div class="mb-4 flex items-start justify-between gap-3">
+						<div class="min-w-0">
+							<p class="text-sm opacity-75">{formatDayMonth(day.date)}</p>
+							<h2 id="day-title" class="break-words text-xl font-semibold leading-snug">
+								{day.date === todayDate ? 'Heute' : formatWeekdayLong(day.date)} · {wmo.label}
+							</h2>
+						</div>
+						<button type="button" class="icon-btn shrink-0" onclick={onClose} aria-label="Schliessen">
+							<AppIcon name="close" class="size-5" />
+						</button>
 					</div>
-					<button type="button" class="icon-btn shrink-0" onclick={onClose} aria-label="Schliessen">
-						<X class="size-5" />
-					</button>
-				</div>
 
-				<div
-					class="relative mb-4"
-					aria-label="Tag wählen"
-				>
-					<div
-						class="flex gap-2 overflow-x-auto px-0.5 py-1 [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
-					>
-						{#each days as item, index (item.date)}
-							<button
-								type="button"
-								aria-pressed={item.date === day.date}
-								class="h-10 min-h-10 shrink-0 px-3 text-sm leading-none {isDesktop
-									? 'rounded-md'
-									: 'rounded-full'} {item.date === day.date
-									? isDesktop
-										? 'bg-primary/10 text-primary'
-										: 'bg-secondary text-primary'
-									: 'bg-muted text-muted-foreground'}"
-								onclick={() => onSelectDay(item)}
-							>
-								{dayLabel(item, index)}
-							</button>
-						{/each}
+					<div class="relative mb-4" aria-label="Tag wählen">
+						<div
+							class="flex gap-2 overflow-x-auto px-0.5 py-1 [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
+						>
+							{#each days as item, index (item.date)}
+								<button
+									type="button"
+									aria-pressed={item.date === day.date}
+									class="h-10 min-h-10 shrink-0 px-3 text-sm leading-none {isDesktop
+										? 'rounded-md'
+										: 'rounded-full'} {item.date === day.date
+										? isDesktop
+											? 'bg-primary/10 text-primary'
+											: 'bg-secondary text-primary'
+										: 'bg-muted text-muted-foreground'}"
+									onclick={() => onSelectDay(item)}
+								>
+									{dayLabel(item, index)}
+								</button>
+							{/each}
+						</div>
 					</div>
 				</div>
-
-				<div class="mb-4 flex items-center gap-3">
-					<WeatherIcon code={day.code} badge class="size-8" />
+				<div class="wx-sheet-body px-5 pb-5">
+					<div class="mb-4 flex items-center gap-3">
+					<WeatherIcon code={day.code} badge class="size-14" />
 					<p class="text-4xl font-extrabold tabular-nums">{formatTemp(day.tMin)} / {formatTemp(day.tMax)}</p>
 				</div>
 
@@ -123,7 +115,9 @@
 						<dt class="flex items-center gap-2 text-sm opacity-80">
 							<Droplets class="size-4 wx-icon-drop" /> Niederschlag
 						</dt>
-						<dd class="font-medium tabular-nums">{formatPercent(day.precipProb)} · {formatMm(day.precipMm)}</dd>
+						<dd class="font-medium tabular-nums">
+							{#if day.precipProb != null}{formatPercent(day.precipProb)} · {/if}{formatMm(day.precipMm)}
+						</dd>
 					</div>
 					<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {moodChipClass('cloud')} p-3">
 						<dt class="flex items-center gap-2 text-sm opacity-80">
@@ -131,12 +125,14 @@
 						</dt>
 						<dd class="font-medium tabular-nums">{formatKmH(day.windMax)}</dd>
 					</div>
-					<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {uvTone} p-3">
-						<dt class="flex items-center gap-2 text-sm opacity-80">
-							<Sun class="size-4 wx-icon-sun" /> UV-Index
-						</dt>
-						<dd class="font-medium tabular-nums">{day.uvMax?.toFixed(1) ?? '–'}</dd>
-					</div>
+					{#if day.uvMax != null}
+						<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {uvTone} p-3">
+							<dt class="flex items-center gap-2 text-sm opacity-80">
+								<Sun class="size-4 wx-icon-sun" /> UV-Index
+							</dt>
+							<dd class="font-medium tabular-nums">{day.uvMax.toFixed(1)}</dd>
+						</div>
+					{/if}
 					<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {moodChipClass('clear')} p-3">
 						<dt class="flex items-center gap-2 text-sm opacity-80">
 							<Sunrise class="size-4 wx-icon-sun" /> Sonne
@@ -157,14 +153,16 @@
 								{@const hourMood = weatherMood(hour.code, hour.isDay)}
 								<button
 									type="button"
-									aria-label="{formatHour(hour.time)} Uhr, {formatTemp(hour.temperature)}, Regen {formatPercent(hour.precipProb)}"
+									aria-label="{formatHourLabel(hour.time)}, {formatTemp(hour.temperature)}{hour.precipProb != null
+										? `, Regen ${formatPercent(hour.precipProb)}`
+										: ''}"
 									class="flex w-[4.5rem] shrink-0 flex-col items-center gap-2 px-2 py-3 {moodChipClass(
 										hourMood
 									)} {isDesktop ? 'rounded-md' : 'rounded-3xl'} {isPastHour(hour) ? 'opacity-55' : ''}"
 									onclick={() => onSelectHour(hour)}
 								>
-									<span class="text-sm tabular-nums opacity-80">{formatHour(hour.time)}</span>
-									<WeatherIcon code={hour.code} isDay={hour.isDay} class="size-6" />
+									<span class="text-sm tabular-nums opacity-80">{formatHourLabel(hour.time)}</span>
+									<WeatherIcon code={hour.code} isDay={hour.isDay} class="size-8" />
 									<span class="text-base font-bold tabular-nums">{formatTemp(hour.temperature)}</span>
 									<span
 										class="flex h-8 w-1.5 items-end overflow-hidden {isDesktop
@@ -177,16 +175,19 @@
 											style="height: {Math.max(8, (hour.precipMm / maxPrecip) * 100)}%;"
 										></span>
 									</span>
-									<span class="text-xs opacity-75 tabular-nums">{formatPercent(hour.precipProb)}</span>
+									{#if hour.precipProb != null}
+										<span class="text-xs opacity-75 tabular-nums">{formatPercent(hour.precipProb)}</span>
+									{/if}
 								</button>
 							{/each}
 						</div>
 						<div
 							class="pointer-events-none absolute inset-y-1 right-0 w-6 bg-gradient-to-l from-card"
 							aria-hidden="true"
-						></div>
+						>						</div>
 					</div>
 				{/if}
+				</div>
 			</div>
 		</div>
 	</div>

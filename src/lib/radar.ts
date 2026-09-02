@@ -147,11 +147,22 @@ export function capeTone(cape: number | null): 'none' | 'fair' | 'strong' {
 	return 'fair';
 }
 
-export function hailProxyLabel(cape: number | null, freezingLevel: number | null): string {
-	if (cape == null) return 'Kein Hagelproxy — CAPE nicht verfügbar.';
-	if (cape >= 1500 && (freezingLevel == null || freezingLevel <= 3500)) {
-		return 'Erhöhtes Hagelpotenzial (CAPE hoch) — kein beobachteter Hagel.';
-	}
-	if (cape >= 800) return 'Gewitterpotenzial vorhanden (CAPE), Hagel unsicher.';
-	return 'Geringes konvektives Potenzial, keine Blitzortung.';
+/** EUMETSAT MTG Lightning Imager, accumulated flash area. Public WMS, CORS open. */
+export const LIGHTNING_WMS = {
+	url: 'https://view.eumetsat.int/geoserver/wms',
+	layers: 'mtg_fd:li_afa',
+	styles: 'mtg_li_afa',
+	attribution: 'Blitz <a href="https://user.eumetsat.int/">EUMETSAT MTG LI</a>'
+};
+
+export function lightningWmsOptions(): Record<string, string | boolean | number> {
+	return {
+		layers: LIGHTNING_WMS.layers,
+		styles: LIGHTNING_WMS.styles,
+		format: 'image/png',
+		transparent: true,
+		opacity: 0.62,
+		version: '1.1.1',
+		attribution: LIGHTNING_WMS.attribution
+	};
 }

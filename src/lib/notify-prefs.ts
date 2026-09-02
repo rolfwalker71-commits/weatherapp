@@ -14,7 +14,7 @@ export const DEFAULT_PREFS: NotifyPrefs = {
 
 export const PREF_META: { id: keyof NotifyPrefs; label: string; hint: string }[] = [
 	{ id: 'rainSoon', label: 'Regen bald', hint: 'Niederschlag in der nächsten Stunde' },
-	{ id: 'warnings', label: 'Warnungen', hint: 'Meteoalarm / Unwetter, sobald Versand aktiv ist' },
+	{ id: 'warnings', label: 'Warnungen', hint: 'Meteoalarm / Unwetter am gespeicherten Ort' },
 	{ id: 'frost', label: 'Frost', hint: 'Glatteis und Temperaturen um den Gefrierpunkt' },
 	{ id: 'uv', label: 'UV hoch', hint: 'Starke Sonne am Tag' },
 	{ id: 'air', label: 'Luft & Pollen', hint: 'Schlechte Luft oder starker Pollenflug' },

@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { NAV_ITEMS, type SectionId } from '$lib/nav';
+	import { goSection } from '$lib/ui.svelte';
 	import { weatherState } from '$lib/weather.svelte';
+	import AppIcon from './AppIcon.svelte';
 
 	function go(id: SectionId) {
-		weatherState.section = id;
-		document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		goSection(id);
 	}
 </script>
 
@@ -13,19 +14,19 @@
 	aria-label="Bereiche"
 >
 	{#each NAV_ITEMS as item}
-		{@const active = weatherState.section === item.id}
+		{@const current = weatherState.section === item.id}
 		<button
 			type="button"
-			class="relative flex min-h-12 items-center gap-3 rounded-md px-3 text-left {active
+			class="relative flex min-h-12 items-center gap-3 rounded-md px-3 text-left {current
 				? 'bg-primary/10 text-primary'
 				: 'text-foreground hover:bg-muted'}"
-			aria-current={active ? 'page' : undefined}
+			aria-current={current ? 'page' : undefined}
 			onclick={() => go(item.id)}
 		>
-			{#if active}
+			{#if current}
 				<span class="absolute inset-y-2 left-0 w-0.5 bg-primary" aria-hidden="true"></span>
 			{/if}
-			<item.icon class="size-4 {item.iconClass}" />
+			<AppIcon name={item.icon} filled={current} class="size-5 {item.iconClass}" />
 			<span class="leading-snug">{item.railLabel}</span>
 		</button>
 	{/each}

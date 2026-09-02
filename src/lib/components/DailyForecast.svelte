@@ -41,7 +41,7 @@
 			<li>
 				<button
 					type="button"
-					class="grid w-full grid-cols-[4.5rem_2rem_1fr_auto] items-center gap-3 px-3 py-3 text-left {moodChipClass(
+					class="grid w-full grid-cols-[4.5rem_2.5rem_1fr_auto] items-center gap-3 px-3 py-3 text-left {moodChipClass(
 						mood
 					)} {isDesktop ? 'rounded-md' : 'rounded-3xl'} {selected
 						? 'ring-2 ring-inset ring-primary'
@@ -49,14 +49,14 @@
 					aria-pressed={selectedDate === day.date}
 					aria-label="{index === 0 ? 'Heute' : formatWeekdayLong(day.date)}, {formatTemp(day.tMin)} bis {formatTemp(
 						day.tMax
-					)}, Details öffnen"
+					)}{day.precipProb != null ? `, Regen ${formatPercent(day.precipProb)}` : ''}, Details öffnen"
 					onclick={() => onSelect?.(day)}
 				>
 					<div class="min-w-0">
 						<p class="font-medium leading-snug">{index === 0 ? 'Heute' : formatWeekday(day.date)}</p>
 						<p class="text-sm opacity-75">{formatDayMonth(day.date)}</p>
 					</div>
-					<WeatherIcon code={day.code} class="size-6 justify-self-center" />
+					<WeatherIcon code={day.code} class="size-8 justify-self-center" />
 					<div class="relative h-2 bg-background/50 {isDesktop ? 'rounded-sm' : 'rounded-full'}">
 						<div
 							class="absolute top-0 h-2 wx-temp-bar {isDesktop ? 'rounded-sm' : 'rounded-full'}"
@@ -65,7 +65,9 @@
 					</div>
 					<div class="text-right tabular-nums">
 						<p class="font-medium">{formatTemp(day.tMin)} / {formatTemp(day.tMax)}</p>
-						<p class="text-sm opacity-75">{formatPercent(day.precipProb)}</p>
+						{#if day.precipProb != null}
+							<p class="text-sm opacity-75">{formatPercent(day.precipProb)}</p>
+						{/if}
 					</div>
 				</button>
 			</li>
