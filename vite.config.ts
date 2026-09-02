@@ -21,7 +21,7 @@ export default defineConfig({
 			kit: {
 				adapterFallback: '200.html'
 			},
-			includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png'],
+			includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png', 'push-sw.js'],
 			manifest: {
 				name: 'Wetter Schweiz',
 				short_name: 'Wetter',
@@ -56,6 +56,7 @@ export default defineConfig({
 			workbox: {
 				globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,webmanifest}'],
 				navigateFallback: '/200.html',
+				navigateFallbackDenylist: [/^\/api\//],
 				importScripts: ['/push-sw.js'],
 				runtimeCaching: [
 					{

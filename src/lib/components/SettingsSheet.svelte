@@ -24,6 +24,7 @@
 	let prefs = $state<NotifyPrefs>(loadNotifyPrefs());
 	let status = $state<PushStatus | null>(null);
 	let message = $state('');
+	let messageOk = $state(true);
 	let busy = $state(false);
 
 	onMount(() => {
@@ -46,6 +47,7 @@
 		busy = true;
 		const result = await enablePush(prefs, currentPlace());
 		message = result.message;
+		messageOk = result.ok;
 		status = await fetchPushStatus();
 		busy = false;
 	}
@@ -63,6 +65,7 @@
 		busy = true;
 		const result = await enablePush(prefs, currentPlace());
 		message = result.message;
+		messageOk = result.ok;
 		status = await fetchPushStatus();
 		busy = false;
 	}
@@ -71,6 +74,7 @@
 		busy = true;
 		await disablePush();
 		message = 'Abonnement entfernt.';
+		messageOk = true;
 		busy = false;
 	}
 </script>
@@ -78,7 +82,12 @@
 <svelte:window onkeydown={onWindowKey} />
 
 {#snippet form()}
-	<p class="mb-4 text-sm leading-snug {status?.configured ? '' : 'text-muted-foreground'}" role="status">
+	<p
+		class="mb-4 text-sm leading-snug {status?.blockedReason || !status?.configured
+			? 'text-destructive'
+			: ''}"
+		role={status?.blockedReason || !status?.configured ? 'alert' : 'status'}
+	>
 		{status?.message ?? 'Prüfe Push-Server…'}
 	</p>
 
@@ -112,7 +121,7 @@
 				? 'rounded-md'
 				: 'rounded-full'}"
 			onclick={() => void subscribe()}
-			disabled={busy || !status?.configured || !status.hasVapid}
+			disabled={busy}
 		>
 			<AppIcon name="bell" class="size-4" /> Gerät anmelden
 		</button>
@@ -126,11 +135,14 @@
 		</button>
 	</div>
 	{#if message}
-		<p class="mt-3 text-sm leading-snug" role="status">{message}</p>
+		<p class="mt-3 text-sm leading-snug {messageOk ? '' : 'text-destructive'}" role={messageOk ? 'status' : 'alert'}>
+			{message}
+		</p>
 	{/if}
 	<p class="mt-4 text-sm leading-snug text-muted-foreground">
-		Kategorie einschalten — das Gerät wird angemeldet, Ort und Prefs werden gespeichert.
-		Der Server sendet selbst, sobald Keys in der Datenbank liegen.
+		Kategorie einschalten oder «Gerät anmelden» — der Browser fragt nach Erlaubnis.
+		VAPID-Schlüssel erzeugt der Wetter-Container selbst in der Datenbank.
+		Auf dem Desktop braucht die Seite HTTPS (localhost ausgenommen).
 	</p>
 {/snippet}
 

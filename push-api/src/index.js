@@ -8,6 +8,7 @@ import { ensureWebPushConfigured } from './vapid.js';
 import { startPushWorker } from './worker.js';
 
 const PORT = Number(process.env.PORT || 4426);
+const HOST = process.env.HOST || '0.0.0.0';
 const PUSH_TEST_TOKEN = process.env.PUSH_TEST_TOKEN || '';
 
 const db = openDb();
@@ -166,7 +167,7 @@ app.post('/v1/send-test', async (req, res) => {
 	if (!canTriggerManualSend(req, PUSH_TEST_TOKEN)) {
 		return res.status(403).json({
 			error: 'Nur localhost oder X-Push-Test-Token',
-			hint: 'Lokal: curl http://127.0.0.1:4426/v1/send-test -X POST. Remote: PUSH_TEST_TOKEN setzen.'
+			hint: 'Lokal: curl -X POST http://127.0.0.1:4425/api/push/v1/send-test. Remote: PUSH_TEST_TOKEN setzen.'
 		});
 	}
 	const clientId = req.body?.clientId ? String(req.body.clientId).slice(0, 80) : '';
@@ -200,13 +201,13 @@ function savePrefs(clientId, preferences, place) {
 	});
 }
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, HOST, () => {
 	if (vapid) {
 		console.log('Web-Push ist aktiv (VAPID-Schlüssel aus der Datenbank oder Umgebung).');
 	} else {
 		console.warn('Web-Push nicht bereit — VAPID-Schlüssel fehlen.');
 	}
-	console.log(`weather push api on ${PORT} (send=${sendingEnabled ? 'on' : 'off'})`);
+	console.log(`weather push api on ${HOST}:${PORT} (send=${sendingEnabled ? 'on' : 'off'})`);
 	startPushWorker(db, {
 		enabled: sendingEnabled,
 		hasKeys: Boolean(vapid)

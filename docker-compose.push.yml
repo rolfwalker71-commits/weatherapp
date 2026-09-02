@@ -1,10 +1,13 @@
+# Deprecated. Push is now inside the weather image (same container, /api/push).
+# Keep this file only for old remotes that still run weatherapp-push.
+# New deploys: docker compose pull && docker compose up -d  (docker-compose.yml only).
+
 services:
   push:
     image: ghcr.io/${GHCR_IMAGE_PUSH:-rolfwalker71-commits/weatherapp-push}:${TAG:-latest}
     ports:
       - "4426:4426"
     environment:
-      # Keys auto-create into SQLite on first start. Both env vars optional (restore only).
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:weather@localhost}

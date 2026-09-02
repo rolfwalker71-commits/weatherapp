@@ -17,7 +17,10 @@ export async function sendPush(db, row, payload) {
 }
 
 export function isLocalRequest(req) {
-	const ip = String(req.socket?.remoteAddress || req.ip || '');
+	const forwarded = String(req.get('x-real-ip') || req.get('x-forwarded-for') || '')
+		.split(',')[0]
+		.trim();
+	const ip = forwarded || String(req.socket?.remoteAddress || req.ip || '');
 	return ip === '127.0.0.1' || ip === '::1' || ip === ':ffff:127.0.0.1' || ip.endsWith('127.0.0.1');
 }
 

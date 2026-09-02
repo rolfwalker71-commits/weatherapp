@@ -14,6 +14,35 @@ export interface PushStatus {
 	sendingEnabled: boolean;
 	hasVapid: boolean;
 	message: string;
+	blockedReason?: string;
+}
+
+function isLocalHost(hostname = typeof location === 'undefined' ? '' : location.hostname): boolean {
+	return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+}
+
+export function pushBlockedReason(): string | null {
+	if (typeof window === 'undefined') return null;
+	if (!window.isSecureContext && !isLocalHost()) {
+		return 'Benachrichtigungen brauchen HTTPS. Über HTTP blockiert der Browser Push (außer localhost).';
+	}
+	if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+		return 'Dieser Browser unterstützt kein Web Push.';
+	}
+	if (Notification.permission === 'denied') {
+		return 'Benachrichtigungen sind blockiert. In den Browser-Einstellungen für diese Seite erlauben.';
+	}
+	return null;
+}
+
+async function readError(response: Response): Promise<string> {
+	try {
+		const body = (await response.json()) as { error?: string; hint?: string };
+		if (body?.error) return body.hint ? `${body.error}. ${body.hint}` : body.error;
+	} catch {
+		/* ignore non-JSON */
+	}
+	return `Push-API ${response.status}`;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -26,21 +55,25 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 		}
 	});
 	if (!response.ok) {
-		throw new Error(`Push-API ${response.status}`);
+		throw new Error(await readError(response));
 	}
 	return (await response.json()) as T;
 }
 
 export async function fetchPushStatus(): Promise<PushStatus> {
+	const blocked = pushBlockedReason();
 	try {
 		const data = await request<PushStatus>('/v1/status');
 		return {
 			...data,
 			ok: true,
 			configured: true,
-			message: data.sendingEnabled
-				? 'Push-Server bereit, Versand ist eingeschaltet.'
-				: 'Push-Server bereit. Versand ist noch aus — Kategorien werden gespeichert.'
+			blockedReason: blocked ?? undefined,
+			message: blocked
+				? blocked
+				: data.sendingEnabled
+					? 'Push ist bereit. Kategorie einschalten oder Gerät anmelden.'
+					: 'Push-Server bereit. Versand ist noch aus — Kategorien werden gespeichert.'
 		};
 	} catch {
 		return {
@@ -48,18 +81,15 @@ export async function fetchPushStatus(): Promise<PushStatus> {
 			configured: false,
 			sendingEnabled: false,
 			hasVapid: false,
-			message: 'Push-Server nicht konfiguriert'
+			blockedReason: blocked ?? undefined,
+			message: blocked ?? 'Push-API nicht erreichbar. Container neu laden (docker compose pull && up -d).'
 		};
 	}
 }
 
 export async function fetchVapidPublicKey(): Promise<string | null> {
-	try {
-		const data = await request<{ publicKey: string | null }>('/v1/vapid-public-key');
-		return data.publicKey;
-	} catch {
-		return null;
-	}
+	const data = await request<{ publicKey: string | null }>('/v1/vapid-public-key');
+	return data.publicKey;
 }
 
 export async function syncPreferences(prefs: NotifyPrefs, place?: { latitude: number; longitude: number; name: string; timezone?: string }) {
@@ -109,30 +139,106 @@ function urlBase64ToUint8Array(base64: string): ArrayBuffer {
 	return output.buffer;
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+	return new Promise((resolve, reject) => {
+		const timer = setTimeout(() => reject(new Error(message)), ms);
+		promise.then(
+			(value) => {
+				clearTimeout(timer);
+				resolve(value);
+			},
+			(error) => {
+				clearTimeout(timer);
+				reject(error);
+			}
+		);
+	});
+}
+
+async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> {
+	const existing = await navigator.serviceWorker.getRegistration('/');
+	if (existing?.active) return existing;
+	try {
+		await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+	} catch {
+		await navigator.serviceWorker.register('/push-sw.js', { scope: '/' });
+	}
+	return withTimeout(
+		navigator.serviceWorker.ready,
+		8000,
+		'Service Worker startet nicht. Seite neu laden — auf HTTP (nicht localhost) blockiert der Browser Push.'
+	);
+}
+
 export async function enablePush(
 	prefs: NotifyPrefs,
 	place?: PushPlace
 ): Promise<{ ok: boolean; message: string }> {
+	const blocked = pushBlockedReason();
+	if (blocked && !blocked.includes('blockiert. In den Browser-Einstellungen')) {
+		return { ok: false, message: blocked };
+	}
 	if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
 		return { ok: false, message: 'Dieser Browser unterstützt kein Web Push.' };
 	}
-	const key = await fetchVapidPublicKey();
+
+	let key: string | null;
+	try {
+		key = await fetchVapidPublicKey();
+	} catch (error) {
+		return {
+			ok: false,
+			message: error instanceof Error ? error.message : 'VAPID-Schlüssel konnte nicht geladen werden.'
+		};
+	}
 	if (!key) {
-		return { ok: false, message: 'Push-Server nicht konfiguriert' };
+		return { ok: false, message: 'VAPID-Schlüssel fehlt. Wetter-Container neu starten.' };
+	}
+
+	if (!('Notification' in window)) {
+		return { ok: false, message: 'Dieser Browser unterstützt keine Benachrichtigungen.' };
 	}
 	const permission = await Notification.requestPermission();
+	if (permission === 'denied') {
+		return {
+			ok: false,
+			message: 'Benachrichtigungen sind blockiert. In den Browser-Einstellungen für diese Seite erlauben.'
+		};
+	}
 	if (permission !== 'granted') {
 		return { ok: false, message: 'Benachrichtigungen wurden nicht erlaubt.' };
 	}
-	const registration = await navigator.serviceWorker.ready;
-	const existing = await registration.pushManager.getSubscription();
-	const subscription =
-		existing ??
-		(await registration.pushManager.subscribe({
-			userVisibleOnly: true,
-			applicationServerKey: urlBase64ToUint8Array(key)
-		}));
-	await registerSubscription(subscription, prefs, place);
+
+	let registration: ServiceWorkerRegistration;
+	try {
+		registration = await ensureServiceWorker();
+	} catch (error) {
+		return {
+			ok: false,
+			message: error instanceof Error ? error.message : 'Service Worker konnte nicht registriert werden.'
+		};
+	}
+
+	try {
+		const existing = await registration.pushManager.getSubscription();
+		const subscription =
+			existing ??
+			(await registration.pushManager.subscribe({
+				userVisibleOnly: true,
+				applicationServerKey: urlBase64ToUint8Array(key)
+			}));
+		await registerSubscription(subscription, prefs, place);
+	} catch (error) {
+		const text = error instanceof Error ? error.message : 'Anmeldung fehlgeschlagen.';
+		if (/registration failed|push service|aborted/i.test(text)) {
+			return {
+				ok: false,
+				message: 'Push-Anmeldung fehlgeschlagen. HTTPS prüfen oder Seite neu laden.'
+			};
+		}
+		return { ok: false, message: text };
+	}
+
 	const status = await fetchPushStatus();
 	return {
 		ok: true,
@@ -144,7 +250,8 @@ export async function enablePush(
 
 export async function disablePush(): Promise<void> {
 	if (!('serviceWorker' in navigator)) return;
-	const registration = await navigator.serviceWorker.ready;
+	const registration = await navigator.serviceWorker.getRegistration('/');
+	if (!registration) return;
 	const subscription = await registration.pushManager.getSubscription();
 	if (subscription) {
 		try {

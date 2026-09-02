@@ -1,6 +1,22 @@
+# Produktion / Homelab: nur GHCR-Image, kein lokales Dockerfile.
+# Remote: docker compose pull && docker compose up -d
+# Lokal bauen: docker compose -f docker-compose.yml -f docker-compose.build.yml build
+# Push läuft im weather-Image (localhost:4426 hinter /api/push). Kein zweiter Container.
+
 services:
   weather:
     image: ghcr.io/${GHCR_IMAGE:-rolfwalker71-commits/weatherapp}:${TAG:-latest}
     ports:
       - "4425:4425"
+    environment:
+      SQLITE_PATH: /data/push.db
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:weather@localhost}
+      PUSH_SEND_ENABLED: ${PUSH_SEND_ENABLED:-true}
+      PUSH_TEST_TOKEN: ${PUSH_TEST_TOKEN:-}
+      PUSH_POLL_MS: ${PUSH_POLL_MS:-600000}
+    volumes:
+      - weather-data:/data
     restart: unless-stopped
+
+volumes:
+  weather-data:

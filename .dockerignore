@@ -10,3 +10,5 @@ build
 .env.*
 .DS_Store
 *.log
+push-api/node_modules
+push-api/data
