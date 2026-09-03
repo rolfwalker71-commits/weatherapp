@@ -93,7 +93,7 @@
 	});
 </script>
 
-<div class="relative min-w-0 max-w-full {className}">
+<div class="relative w-full min-w-0 max-w-full {className}">
 	{#if desktop}
 		<button
 			type="button"
@@ -125,7 +125,7 @@
 
 	<div
 		bind:this={scroller}
-		class="flex min-w-0 max-w-full {gap} overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden {scrollerClass}"
+		class="flex w-full min-w-0 max-w-full {gap} overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden {scrollerClass}"
 		role={label ? 'group' : undefined}
 		aria-label={label}
 	>

@@ -25,15 +25,15 @@
 		{/if}
 
 		{#if bands.length}
-			<div class="mt-4 grid grid-cols-3 gap-2">
+			<div class="mt-4 grid min-w-0 grid-cols-3 gap-2">
 				{#each bands as band (band.elevation)}
-					<div class="{shape}">
+					<div class="min-w-0 {shape}">
 						<p class="text-sm opacity-75">{band.elevation} m</p>
 						{#if band.temperature != null}
 							<p class="text-lg font-semibold tabular-nums">{formatTemp(band.temperature)}</p>
 						{/if}
 						{#if band.wind != null}
-							<p class="text-sm text-muted-foreground">
+							<p class="break-words text-sm text-muted-foreground">
 								{formatWind(band.wind, unitsState.wind)}
 								{#if band.windDir != null}
 									{windDirection(band.windDir)}

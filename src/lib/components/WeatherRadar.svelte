@@ -416,7 +416,7 @@
 	});
 </script>
 
-<section id="radar" class="{panelClass(chromeState.chrome)} overflow-hidden">
+<section id="radar" class="{panelClass(chromeState.chrome)} overflow-hidden max-lg:overflow-x-hidden">
 	<div class="p-5 sm:p-6">
 		<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
 			<div>
@@ -522,7 +522,7 @@
 					oninput={onScrubStart}
 				/>
 				{#if ticks.length > 1}
-					<div class="mt-1 flex justify-between gap-1 text-[0.7rem] tabular-nums text-muted-foreground">
+					<div class="mt-1 flex min-w-0 justify-between gap-1 overflow-hidden text-[0.7rem] tabular-nums text-muted-foreground">
 						{#each ticks as tick (tick.index)}
 							<span>{formatRadarTime(tick.time)}</span>
 						{/each}

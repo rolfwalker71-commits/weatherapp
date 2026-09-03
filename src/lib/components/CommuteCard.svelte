@@ -100,15 +100,15 @@
 	{/if}
 
 	{#if commuteState.destination && weatherState.bundle}
-		<div class="mt-4 grid grid-cols-2 gap-3">
-			<div class="{isDesktop ? 'rounded-md ring-1 ring-border p-3' : 'rounded-[1.25rem] bg-muted p-3'}">
+		<div class="mt-4 grid min-w-0 grid-cols-2 gap-3">
+			<div class="min-w-0 {isDesktop ? 'rounded-md ring-1 ring-border p-3' : 'rounded-[1.25rem] bg-muted p-3'}">
 				<p class="text-sm opacity-75">Start</p>
-				<p class="font-medium leading-snug">{weatherState.place.name}</p>
+				<p class="break-words font-medium leading-snug">{weatherState.place.name}</p>
 				<p class="tabular-nums">{formatTemp(weatherState.bundle.current.temperature_2m)}</p>
 			</div>
-			<div class="{isDesktop ? 'rounded-md ring-1 ring-border p-3' : 'rounded-[1.25rem] bg-muted p-3'}">
+			<div class="min-w-0 {isDesktop ? 'rounded-md ring-1 ring-border p-3' : 'rounded-[1.25rem] bg-muted p-3'}">
 				<p class="text-sm opacity-75">Ziel</p>
-				<p class="font-medium leading-snug">{commuteState.destination.name}</p>
+				<p class="break-words font-medium leading-snug">{commuteState.destination.name}</p>
 				<p class="tabular-nums">
 					{commuteState.bundle ? formatTemp(commuteState.bundle.current.temperature_2m) : commuteState.loading ? '…' : '–'}
 				</p>

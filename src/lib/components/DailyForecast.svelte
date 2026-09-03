@@ -31,7 +31,7 @@
 	}
 </script>
 
-<section id="woche" class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
+<section id="woche" class="{panelClass(chromeState.chrome)} max-lg:overflow-x-hidden p-5 sm:p-6">
 	<h2 class="text-xl font-semibold leading-snug tracking-tight">{title}</h2>
 	<p class="mb-4 text-sm text-muted-foreground">Tippen für Stundenverlauf, Minima und Niederschlag</p>
 
@@ -45,7 +45,7 @@
 			<li>
 				<button
 					type="button"
-					class="grid w-full grid-cols-[4.5rem_2.5rem_1fr_auto] items-center gap-3 px-3 py-3 text-left {moodChipClass(
+					class="grid w-full min-w-0 max-w-full grid-cols-[4.5rem_2.5rem_minmax(0,1fr)_auto] items-center gap-3 px-3 py-3 text-left {moodChipClass(
 						mood
 					)} {isDesktop ? 'rounded-md' : 'rounded-3xl'} {selected
 						? 'ring-2 ring-inset ring-primary'

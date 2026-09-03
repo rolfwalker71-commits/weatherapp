@@ -125,10 +125,10 @@
 					{formatTemp(current.temperature_2m)}
 				</p>
 				<div class="min-w-0 shrink">
-					<p class="truncate whitespace-nowrap text-[1.1875rem] font-medium leading-snug">
+					<p class="break-words text-[1.1875rem] font-medium leading-snug lg:truncate lg:whitespace-nowrap">
 						{wmo.label}
 					</p>
-					<p class="whitespace-nowrap text-[0.8125rem] leading-snug opacity-75">
+					<p class="break-words text-[0.8125rem] leading-snug opacity-75 lg:whitespace-nowrap">
 						Gefühlt {formatTemp(current.apparent_temperature)}
 					</p>
 				</div>
@@ -141,10 +141,10 @@
 						<p class="break-words text-sm leading-snug opacity-75">{stationLine}</p>
 					{/if}
 					{#if insight}
-						<p class="text-base font-medium leading-snug">{insight}</p>
+						<p class="break-words text-base font-medium leading-snug">{insight}</p>
 					{/if}
 					{#if clothing}
-						<p class="text-base leading-snug">{clothing}</p>
+						<p class="break-words text-base leading-snug">{clothing}</p>
 					{/if}
 				</div>
 			{/if}

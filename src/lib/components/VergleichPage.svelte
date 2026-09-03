@@ -142,7 +142,7 @@
 	<h1 id="vergleich-title" class="mb-4 text-2xl font-semibold leading-snug tracking-tight">
 		Vergleich
 	</h1>
-	<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+	<div class="grid min-w-0 max-w-full grid-cols-1 gap-4 max-lg:overflow-x-hidden lg:grid-cols-2 lg:items-start">
 		{@render column(left, 'left', 'Ort A')}
 		{@render column(right, 'right', 'Ort B')}
 	</div>

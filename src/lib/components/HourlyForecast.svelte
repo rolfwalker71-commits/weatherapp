@@ -24,7 +24,7 @@
 	const maxPrecip = $derived(Math.max(1, ...hours.map((h) => h.precipMm)));
 </script>
 
-<section id="stunden" class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
+<section id="stunden" class="{panelClass(chromeState.chrome)} max-lg:overflow-x-hidden p-5 sm:p-6">
 	<div class="mb-4 flex items-end justify-between gap-3">
 		<div>
 			<h2 class="text-xl font-semibold leading-snug tracking-tight">

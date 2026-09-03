@@ -93,7 +93,7 @@
 		{/if}
 		<main
 			id="main"
-			class="min-w-0 max-w-full flex-1 overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6 {section === 'widget'
+			class="min-w-0 max-w-full flex-1 overflow-x-hidden max-lg:overflow-x-clip px-4 py-4 sm:px-6 sm:py-6 {section === 'widget'
 				? ''
 				: chromeState.chrome === 'android'
 					? 'pb-[calc(8rem+env(safe-area-inset-bottom,0px))]'
@@ -119,7 +119,7 @@
 			{:else if section === 'einstellungen'}
 				<EinstellungenPage />
 			{:else if section === 'mehr'}
-				<section aria-labelledby="mehr-title" class="mx-auto max-w-xl">
+				<section aria-labelledby="mehr-title" class="mx-auto min-w-0 max-w-xl max-lg:overflow-x-hidden">
 					<h1 id="mehr-title" class="mb-4 text-2xl font-semibold leading-snug tracking-tight">
 						Mehr
 					</h1>
@@ -131,12 +131,12 @@
 				</div>
 			{:else if section === 'jetzt'}
 				{#if weatherState.bundle}
-					<div class="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
-						<div class="min-w-0 space-y-4">
+					<div class="grid min-w-0 max-w-full grid-cols-1 gap-4 max-lg:overflow-x-hidden lg:grid-cols-2 lg:items-start">
+						<div class="min-w-0 max-w-full space-y-4">
 							<CurrentHero />
 							<WarningsCard />
 						</div>
-						<div class="min-w-0 space-y-4">
+						<div class="min-w-0 max-w-full space-y-4">
 							<HourlyForecast embedded onSelect={(hour) => (selectedHour = hour)} />
 							<NowcastCard compact />
 							<WindCard />
@@ -149,12 +149,12 @@
 				<WeatherRadar />
 			{:else if section === 'woche'}
 				{#if weatherState.bundle}
-					<div class="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+					<div class="grid min-w-0 max-w-full grid-cols-1 gap-4 max-lg:overflow-x-hidden lg:grid-cols-2 lg:items-start">
 						<DailyForecast
 							selectedDate={selectedDay?.date}
 							onSelect={(day) => (selectedDay = day)}
 						/>
-						<div class="min-w-0 space-y-4">
+						<div class="min-w-0 max-w-full space-y-4">
 							<SnowBulletinCard />
 							<PassesCard />
 							<AlpsCard />

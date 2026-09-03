@@ -47,7 +47,7 @@
 </script>
 
 {#if visible}
-	<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6" role="status">
+	<section class="{panelClass(chromeState.chrome)} max-lg:overflow-x-hidden p-5 sm:p-6" role="status">
 		<h2 class="flex items-center gap-2 text-xl font-semibold leading-snug tracking-tight">
 			<AppIcon name="warning" class="size-6 wx-icon-storm" /> Warnungen
 		</h2>

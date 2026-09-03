@@ -30,18 +30,18 @@
 </script>
 
 {#if visible}
-	<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
+	<section class="{panelClass(chromeState.chrome)} max-lg:overflow-x-hidden p-5 sm:p-6">
 		<h2 class="text-xl font-semibold leading-snug tracking-tight">Luft & Pollen</h2>
-		<div class={split ? 'mt-4 grid grid-cols-1 gap-5 lg:grid-cols-2' : 'mt-4'}>
+		<div class={split ? 'mt-4 grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2' : 'mt-4 min-w-0'}>
 			{#if aqiValue != null || trend.length}
 				<div>
 					{#if aqiValue != null}
 						<div class="mb-5 {shape} {scaleFillClass(aqi.tone)}">
-							<div class="mb-2 flex items-center justify-between gap-3">
-								<p class="flex items-center gap-2 font-medium">
-									<AppIcon name="wind" class="size-4 {scaleIconClass(aqi.tone)}" /> Luftqualität
+							<div class="mb-2 flex min-w-0 items-center justify-between gap-3">
+								<p class="flex min-w-0 items-center gap-2 font-medium">
+									<AppIcon name="wind" class="size-4 shrink-0 {scaleIconClass(aqi.tone)}" /> Luftqualität
 								</p>
-								<p class="tabular-nums">{aqiValue} · {aqi.label}</p>
+								<p class="shrink-0 tabular-nums">{aqiValue} · {aqi.label}</p>
 							</div>
 							<div class="h-2 bg-background/40 {isDesktop ? 'rounded-sm' : 'rounded-full'}">
 								<div

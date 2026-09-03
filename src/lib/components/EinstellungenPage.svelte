@@ -45,7 +45,7 @@
 	<h1 id="einstellungen-title" class="mb-4 text-2xl font-semibold leading-snug tracking-tight">
 		Einstellungen
 	</h1>
-	<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+	<div class="grid min-w-0 max-w-full grid-cols-1 gap-4 max-lg:overflow-x-hidden lg:grid-cols-2 lg:items-start">
 		<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
 			<h2 class="mb-1 flex items-center gap-2 text-xl font-semibold leading-snug tracking-tight">
 				<AppIcon name="home" class="size-5 wx-icon-rain" /> Home-Ort

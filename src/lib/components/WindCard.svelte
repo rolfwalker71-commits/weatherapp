@@ -22,7 +22,7 @@
 </script>
 
 {#if current}
-	<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
+	<section class="{panelClass(chromeState.chrome)} max-lg:overflow-x-hidden p-5 sm:p-6">
 		<h2 class="flex items-center gap-2 text-xl font-semibold leading-snug tracking-tight">
 			<AppIcon name="wind" class="size-6 wx-icon-wind" /> Wind
 		</h2>
@@ -41,11 +41,11 @@
 
 		{#if bars.length}
 			<div
-				class="mt-4 max-w-full min-w-0 overflow-x-auto overscroll-x-contain lg:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
+				class="mt-4 w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain lg:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
 				role="region"
 				aria-label={windChartAriaLabel(bars)}
 			>
-				<div class="flex min-w-[36rem] items-end gap-1.5 lg:min-w-0">
+				<div class="flex w-max min-w-full items-end gap-1.5 lg:w-full lg:min-w-0">
 					{#each bars as bar (bar.time)}
 						{@const speedLabel = formatWindValue(bar.speed, unitsState.wind)}
 						{@const gustLabel = bar.gusts != null ? formatWindValue(bar.gusts, unitsState.wind) : null}
@@ -99,28 +99,28 @@
 			</p>
 		{/if}
 
-		<dl class="mt-4 grid grid-cols-2 gap-2">
+		<dl class="mt-4 grid min-w-0 grid-cols-2 gap-2">
 			{#if hour?.gusts != null}
-				<div class="{shape}">
-					<dt class="text-sm text-muted-foreground">Böen (Stunde)</dt>
+				<div class="min-w-0 {shape}">
+					<dt class="break-words text-sm text-muted-foreground">Böen (Stunde)</dt>
 					<dd class="font-medium tabular-nums">{formatWind(hour.gusts, unitsState.wind)}</dd>
 				</div>
 			{/if}
 			{#if current.relative_humidity_2m != null}
-				<div class="{shape}">
-					<dt class="text-sm text-muted-foreground">Luftfeuchtigkeit</dt>
+				<div class="min-w-0 {shape}">
+					<dt class="break-words text-sm text-muted-foreground">Luftfeuchtigkeit</dt>
 					<dd class="font-medium tabular-nums">{formatPercent(current.relative_humidity_2m)}</dd>
 				</div>
 			{/if}
 			{#if current.pressure_msl != null}
-				<div class="{shape}">
-					<dt class="text-sm text-muted-foreground">Luftdruck</dt>
+				<div class="min-w-0 {shape}">
+					<dt class="break-words text-sm text-muted-foreground">Luftdruck</dt>
 					<dd class="font-medium tabular-nums">{Math.round(current.pressure_msl)} hPa</dd>
 				</div>
 			{/if}
 			{#if current.cloud_cover != null}
-				<div class="{shape}">
-					<dt class="text-sm text-muted-foreground">Bewölkung</dt>
+				<div class="min-w-0 {shape}">
+					<dt class="break-words text-sm text-muted-foreground">Bewölkung</dt>
 					<dd class="font-medium tabular-nums">{Math.round(current.cloud_cover)} %</dd>
 				</div>
 			{/if}

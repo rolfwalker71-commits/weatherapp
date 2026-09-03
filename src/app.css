@@ -106,6 +106,14 @@
 		color: rgb(var(--foreground));
 	}
 
+	@media (max-width: 1023px) {
+		html,
+		body {
+			overflow-x: clip;
+			overscroll-behavior-x: none;
+		}
+	}
+
 	:focus-visible {
 		outline: 0.125rem solid rgb(var(--ring));
 		outline-offset: 0.125rem;
@@ -125,6 +133,14 @@
 	.wx-page {
 		max-width: 100%;
 		overflow-x: hidden;
+	}
+
+	@media (max-width: 1023px) {
+		.wx-page,
+		.wx-page main {
+			overflow-x: clip;
+			max-width: 100%;
+		}
 	}
 
 	.mica {
@@ -211,6 +227,8 @@
 		position: relative;
 		z-index: 1;
 		display: flex;
+		min-width: 0;
+		max-width: 100%;
 		flex-direction: column;
 	}
 

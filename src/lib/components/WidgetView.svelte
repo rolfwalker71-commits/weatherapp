@@ -21,7 +21,7 @@
 	const rain = $derived(bundle ? nextPrecipLine(bundle) : null);
 </script>
 
-<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6" aria-labelledby="widget-title">
+<section class="{panelClass(chromeState.chrome)} max-lg:overflow-x-hidden p-5 sm:p-6" aria-labelledby="widget-title">
 	<p class="text-sm text-muted-foreground">Kompakt</p>
 	<h1 id="widget-title" class="mt-0.5 break-words text-2xl font-semibold leading-snug tracking-tight">
 		{place.name}

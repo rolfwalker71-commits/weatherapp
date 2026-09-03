@@ -32,7 +32,7 @@
 	}
 </script>
 
-<section aria-labelledby="favoriten-title">
+<section aria-labelledby="favoriten-title" class="min-w-0 max-w-full max-lg:overflow-x-hidden">
 	<h1 id="favoriten-title" class="mb-4 text-2xl font-semibold leading-snug tracking-tight">
 		Favoriten
 	</h1>
