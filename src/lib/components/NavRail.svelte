@@ -11,7 +11,7 @@
 
 <nav
 	class="sticky top-[4.25rem] hidden h-[calc(100dvh-4.25rem)] w-56 shrink-0 flex-col gap-1 overflow-y-auto border-r border-border bg-card/80 p-3 lg:flex"
-	aria-label="Bereiche"
+	aria-label="Hauptnavigation"
 >
 	{#each RAIL_ITEMS as item}
 		{@const current = navItemCurrent(item.id, weatherState.section, 'rail')}

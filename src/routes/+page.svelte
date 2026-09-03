@@ -83,11 +83,15 @@
 	<title>Wetter · {weatherState.place.name}</title>
 </svelte:head>
 
-<div class="wx-page min-h-dvh max-w-full overflow-x-hidden bg-background text-foreground" data-mood={mood}>
+<div
+	class="wx-page max-w-full bg-background text-foreground"
+	data-mood={mood}
+	data-section={section}
+>
 	{#if section !== 'widget'}
 		<AppHeader />
 	{/if}
-	<div class="mx-auto flex w-full min-w-0 max-w-[90rem]">
+	<div class="wx-shell mx-auto flex w-full min-w-0 max-w-[90rem]">
 		{#if section !== 'widget'}
 			<NavRail />
 		{/if}
@@ -95,9 +99,9 @@
 			id="main"
 			class="min-w-0 max-w-full flex-1 overflow-x-hidden max-lg:overflow-x-clip px-4 py-4 sm:px-6 sm:py-6 {section === 'widget'
 				? ''
-				: chromeState.chrome === 'android'
-					? 'pb-[calc(8rem+env(safe-area-inset-bottom,0px))]'
-					: 'lg:pb-10'}"
+				: chromeState.chrome === 'desktop'
+					? 'lg:pb-10'
+					: ''}"
 		>
 			{#if weatherState.error}
 				<p
@@ -169,11 +173,11 @@
 			{/if}
 		</main>
 	</div>
-
-	{#if chromeState.chrome !== 'desktop' && section !== 'widget'}
-		<NavBar />
-	{/if}
 </div>
+
+{#if chromeState.chrome !== 'desktop' && section !== 'widget'}
+	<NavBar />
+{/if}
 
 <DayDetail
 	day={selectedDay}
