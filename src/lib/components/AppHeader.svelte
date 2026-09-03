@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { chromeState } from '$lib/chrome.svelte';
 	import { formatRefreshStatus } from '$lib/format';
-	import { openTopic } from '$lib/ui.svelte';
+	import { goSection, setDrawer } from '$lib/ui.svelte';
 	import { clockState, loadPlace, locateUser, weatherState } from '$lib/weather.svelte';
 	import AppIcon from './AppIcon.svelte';
 	import CitySearch from './CitySearch.svelte';
@@ -32,9 +32,22 @@
 		style="padding-top: max(0.75rem, env(safe-area-inset-top, 0px));"
 	>
 		<div class="flex items-center justify-between gap-3">
-			<div class="min-w-0">
-				<p class="text-sm leading-snug text-muted-foreground">{updatedLabel}</p>
-				<p class="break-words text-lg font-semibold leading-snug tracking-tight">Schweiz & Welt</p>
+			<div class="flex min-w-0 items-center gap-2">
+				{#if !isDesktop}
+					<button
+						type="button"
+						class="icon-btn shrink-0 lg:hidden"
+						onclick={() => setDrawer(true)}
+						aria-label="Menü"
+						title="Menü"
+					>
+						<AppIcon name="menu" class="size-5" />
+					</button>
+				{/if}
+				<div class="min-w-0">
+					<p class="text-sm leading-snug text-muted-foreground">{updatedLabel}</p>
+					<p class="break-words text-lg font-semibold leading-snug tracking-tight">Schweiz & Welt</p>
+				</div>
 			</div>
 			<div class="flex items-center gap-2 lg:hidden">
 				<button
@@ -88,7 +101,7 @@
 				<button
 					type="button"
 					class="icon-btn"
-					onclick={() => openTopic('meldungen')}
+					onclick={() => goSection('einstellungen')}
 					aria-label="Meldungen"
 					title="Meldungen"
 				>

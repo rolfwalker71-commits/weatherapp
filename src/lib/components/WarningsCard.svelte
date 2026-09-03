@@ -2,6 +2,7 @@
 	import { chromeState } from '$lib/chrome.svelte';
 	import AppIcon from './AppIcon.svelte';
 	import { scaleFillClass } from '$lib/colors';
+	import { formatAlertValidity } from '$lib/format';
 	import { fetchAlerts, fetchAvalanche } from '$lib/push-client';
 	import { panelClass } from '$lib/platform';
 	import type { AlertItem, AvalancheBulletin } from '$lib/types';
@@ -14,12 +15,15 @@
 	let avalanche = $state<AvalancheBulletin | null>(null);
 
 	$effect(() => {
-		const { latitude, longitude } = weatherState.place;
-		void load(latitude, longitude);
+		const place = weatherState.place;
+		void load(place);
 	});
 
-	async function load(lat: number, lon: number) {
-		const [nextAlerts, nextAvalanche] = await Promise.all([fetchAlerts(lat, lon), fetchAvalanche(lat, lon)]);
+	async function load(place: typeof weatherState.place) {
+		const [nextAlerts, nextAvalanche] = await Promise.all([
+			fetchAlerts(place.latitude, place.longitude, place),
+			fetchAvalanche(place.latitude, place.longitude)
+		]);
 		alerts = nextAlerts;
 		avalanche = nextAvalanche.available && nextAvalanche.level != null ? nextAvalanche : null;
 	}
@@ -29,6 +33,14 @@
 		if (severity === 'moderate') return 'warn';
 		if (severity === 'minor') return 'fair';
 		return 'neutral';
+	}
+
+	function validity(alert: AlertItem) {
+		return formatAlertValidity(
+			alert.onset,
+			alert.expires,
+			weatherState.bundle?.timezone || weatherState.place.timezone
+		);
 	}
 
 	const visible = $derived(alerts.length > 0 || avalanche != null);
@@ -53,11 +65,17 @@
 		{#if alerts.length}
 			<ul class="mt-3 space-y-2">
 				{#each alerts as alert (alert.id)}
+					{@const when = validity(alert)}
 					<li class="{shape} {scaleFillClass(tone(alert.severity))}">
-						<p class="font-medium leading-snug">{alert.event}</p>
-						<p class="mt-1 text-sm leading-snug opacity-80">{alert.headline}</p>
+						<p class="font-medium leading-snug break-words">{alert.event}</p>
+						{#if when}
+							<p class="mt-1 text-sm leading-snug opacity-80">{when}</p>
+						{/if}
+						{#if alert.headline && alert.headline !== alert.event}
+							<p class="mt-1 text-sm leading-snug opacity-80">{alert.headline}</p>
+						{/if}
 						{#if alert.area}
-							<p class="mt-1 text-sm opacity-75">{alert.area} · {alert.source}</p>
+							<p class="mt-1 text-sm leading-snug opacity-75">{alert.area} · {alert.source}</p>
 						{/if}
 					</li>
 				{/each}

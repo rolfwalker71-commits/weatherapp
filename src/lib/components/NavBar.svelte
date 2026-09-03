@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { NAV_ITEMS, type SectionId } from '$lib/nav';
+	import { NAV_ITEMS, navItemCurrent, type SectionId } from '$lib/nav';
 	import { dockBarClass } from '$lib/platform';
 	import { goSection } from '$lib/ui.svelte';
 	import { weatherState } from '$lib/weather.svelte';
@@ -13,7 +13,7 @@
 <nav class="{dockBarClass()} fixed inset-x-0 bottom-0 z-[1050]" aria-label="Bereiche">
 	<ul class="grid grid-cols-5" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
 		{#each NAV_ITEMS as item}
-			{@const current = weatherState.section === item.id}
+			{@const current = navItemCurrent(item.id, weatherState.section, 'dock')}
 			<li>
 				<button
 					type="button"

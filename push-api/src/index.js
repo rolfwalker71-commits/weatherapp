@@ -95,7 +95,11 @@ app.get('/v1/alerts', async (req, res) => {
 		return res.status(400).json({ error: 'lat/lon erforderlich' });
 	}
 	try {
-		const result = await fetchMeteoalarm(lat, lon);
+		const result = await fetchMeteoalarm(lat, lon, {
+			country: String(req.query.country || ''),
+			name: String(req.query.name || ''),
+			admin1: String(req.query.admin1 || '')
+		});
 		res.json({ alerts: result.alerts, coverage: result.coverage });
 	} catch {
 		res.json({ alerts: [], coverage: false, error: 'Warnungen nicht erreichbar' });

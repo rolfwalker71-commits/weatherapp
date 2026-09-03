@@ -4,11 +4,31 @@
 	import { formatRefreshStatus, formatStationLine, formatTemp, placeLabel } from '$lib/format';
 	import { clothingLine, insightLine } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
+	import type { Place, WeatherBundle } from '$lib/types';
 	import { getWmo, weatherMood } from '$lib/wmo';
 	import { clockState, isFavorite, starPlace, weatherState } from '$lib/weather.svelte';
 	import WeatherIcon from './WeatherIcon.svelte';
 
-	const bundle = $derived(weatherState.bundle);
+	interface Props {
+		place?: Place;
+		bundle?: WeatherBundle | null;
+		stale?: boolean;
+		offline?: boolean;
+		onOpen?: () => void;
+	}
+
+	let {
+		place: placeProp,
+		bundle: bundleProp,
+		stale: staleProp,
+		offline: offlineProp,
+		onOpen
+	}: Props = $props();
+
+	const place = $derived(placeProp ?? weatherState.place);
+	const bundle = $derived(bundleProp ?? weatherState.bundle);
+	const stale = $derived(staleProp ?? weatherState.stale);
+	const offline = $derived(offlineProp ?? (weatherState.error?.startsWith('Offline') ?? false));
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
 	const current = $derived(bundle?.current);
 	const wmo = $derived(current ? getWmo(current.weather_code, current.is_day === 1) : null);
@@ -18,7 +38,7 @@
 	const today = $derived(bundle?.days[0]);
 	const insight = $derived(bundle ? insightLine(bundle) : null);
 	const clothing = $derived(bundle ? clothingLine(bundle) : null);
-	const favored = $derived(isFavorite(weatherState.place));
+	const favored = $derived(isFavorite(place));
 	const station = $derived(bundle?.station ?? null);
 	const stationLine = $derived(
 		station ? formatStationLine(station, bundle?.timezone) : null
@@ -27,27 +47,33 @@
 
 {#if current && wmo && bundle}
 	<section
-		id="jetzt"
+		id={onOpen ? undefined : 'jetzt'}
 		class="{panelClass(chromeState.chrome)} hero-on-{mood} relative overflow-hidden p-5 sm:p-6"
 		data-mood={mood}
 	>
 		<div class="hero-wash" data-mood={mood} aria-hidden="true"></div>
-		<div class="hero-stack">
+		{#if onOpen}
+			<button
+				type="button"
+				class="hero-open absolute inset-0 z-[1]"
+				onclick={onOpen}
+				aria-label="Jetzt-Details für {place.name}"
+			></button>
+		{/if}
+		<div class="hero-stack" class:is-selectable={Boolean(onOpen)}>
 			<div class="flex items-start justify-between gap-3">
 				<div class="hero-place min-w-0">
 					<p class="text-sm leading-snug opacity-75">
-						{formatRefreshStatus(
-							bundle.fetchedAt,
-							weatherState.stale,
-							clockState.now,
-							weatherState.error?.startsWith('Offline') ?? false
-						)}
+						{formatRefreshStatus(bundle.fetchedAt, stale, clockState.now, offline)}
 					</p>
-					<h1 class="mt-0.5 break-words text-2xl font-semibold leading-snug tracking-tight sm:text-3xl">
-						{weatherState.place.name}
-					</h1>
+					<svelte:element
+						this={onOpen ? 'h2' : 'h1'}
+						class="mt-0.5 break-words text-2xl font-semibold leading-snug tracking-tight sm:text-3xl"
+					>
+						{place.name}
+					</svelte:element>
 					<p class="mt-0.5 break-words text-sm leading-snug opacity-75">
-						{placeLabel(weatherState.place)}
+						{placeLabel(place)}
 					</p>
 				</div>
 				<WeatherIcon
@@ -100,8 +126,11 @@
 				{/if}
 				<button
 					type="button"
-					class="hero-fav ml-auto"
-					onclick={() => starPlace(weatherState.place)}
+					class="hero-fav relative z-[2] ml-auto"
+					onclick={(event) => {
+						event.stopPropagation();
+						starPlace(place);
+					}}
 					aria-pressed={favored}
 					aria-label={favored ? 'Favorit entfernen' : 'Als Favorit speichern'}
 				>

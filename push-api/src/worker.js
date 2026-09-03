@@ -14,13 +14,13 @@ function hasAnyPref(row) {
 	return row.rain_soon || row.warnings || row.frost || row.uv || row.air || row.daily_brief;
 }
 
-async function weatherFor(lat, lon) {
+async function weatherFor(lat, lon, hints = {}) {
 	const key = locationKey(lat, lon);
 	const cached = weatherCache.get(key);
 	if (cached && Date.now() - cached.at < 8 * 60 * 1000) return cached.value;
 	const [weather, alerts] = await Promise.all([
 		fetchPlaceWeather(lat, lon),
-		fetchMeteoalarm(lat, lon).catch(() => ({ alerts: [] }))
+		fetchMeteoalarm(lat, lon, hints).catch(() => ({ alerts: [] }))
 	]);
 	const value = { weather, alerts: alerts.alerts || [] };
 	weatherCache.set(key, { at: Date.now(), value });
@@ -40,7 +40,9 @@ export async function runPushCycle(db) {
 			continue;
 		}
 		try {
-			const { weather, alerts } = await weatherFor(row.latitude, row.longitude);
+			const { weather, alerts } = await weatherFor(row.latitude, row.longitude, {
+				name: row.place_name || ''
+			});
 			const notices = evaluateNotifications(weather, row, alerts);
 			for (const notice of notices) {
 				if (wasRecentlySent(db, row.client_id, notice.category, notice.fingerprint, notice.cooldownHours)) {

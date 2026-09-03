@@ -35,6 +35,10 @@ export function goSection(id: SectionId, persist = true): void {
 }
 
 export function openTopic(id: TopicId, persist = true): void {
+	if (id === 'meldungen' || id === 'darstellung') {
+		goSection('einstellungen', persist);
+		return;
+	}
 	uiState.drawer = false;
 	uiState.topicReturn = weatherState.section;
 	uiState.topic = id;

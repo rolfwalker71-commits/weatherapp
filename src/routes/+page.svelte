@@ -3,29 +3,25 @@
 	import AirQuality from '$lib/components/AirQuality.svelte';
 	import AlpsCard from '$lib/components/AlpsCard.svelte';
 	import AppHeader from '$lib/components/AppHeader.svelte';
-	import CommuteCard from '$lib/components/CommuteCard.svelte';
 	import CurrentHero from '$lib/components/CurrentHero.svelte';
 	import DailyForecast from '$lib/components/DailyForecast.svelte';
 	import DayDetail from '$lib/components/DayDetail.svelte';
-	import FavoriteChips from '$lib/components/FavoriteChips.svelte';
+	import EinstellungenPage from '$lib/components/EinstellungenPage.svelte';
+	import FavoritesDeck from '$lib/components/FavoritesDeck.svelte';
 	import HourDetail from '$lib/components/HourDetail.svelte';
 	import HourlyForecast from '$lib/components/HourlyForecast.svelte';
 	import LakesCard from '$lib/components/LakesCard.svelte';
-	import LifestyleCard from '$lib/components/LifestyleCard.svelte';
-	import MetricGrid from '$lib/components/MetricGrid.svelte';
+	import MehrDrawer from '$lib/components/MehrDrawer.svelte';
+	import MehrList from '$lib/components/MehrList.svelte';
 	import NavBar from '$lib/components/NavBar.svelte';
 	import NavRail from '$lib/components/NavRail.svelte';
 	import NowcastCard from '$lib/components/NowcastCard.svelte';
-	import SettingsSheet from '$lib/components/SettingsSheet.svelte';
-	import SkyCard from '$lib/components/SkyCard.svelte';
-	import ThemePanel from '$lib/components/ThemePanel.svelte';
 	import TopicSheet from '$lib/components/TopicSheet.svelte';
 	import WarningsCard from '$lib/components/WarningsCard.svelte';
 	import WeatherRadar from '$lib/components/WeatherRadar.svelte';
 	import WindCard from '$lib/components/WindCard.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { hydrateCommute } from '$lib/commute.svelte';
-	import { panelClass } from '$lib/platform';
 	import type { DayPoint, HourPoint } from '$lib/types';
 	import { closeTopic, initRoutes, setDrawer, uiState } from '$lib/ui.svelte';
 	import { weatherMood } from '$lib/wmo';
@@ -93,10 +89,6 @@
 				? 'pb-[calc(8rem+env(safe-area-inset-bottom,0px))]'
 				: 'lg:pb-10'}"
 		>
-			<div class="mb-4">
-				<FavoriteChips />
-			</div>
-
 			{#if weatherState.error}
 				<p
 					class="mb-4 px-4 py-3 text-sm leading-snug [html[data-chrome=android]_&]:rounded-3xl [html[data-chrome=android]_&]:bg-secondary [html[data-chrome=android]_&]:text-foreground [html[data-chrome=desktop]_&]:rounded-md [html[data-chrome=desktop]_&]:bg-primary/10"
@@ -106,7 +98,18 @@
 				</p>
 			{/if}
 
-			{#if !weatherState.bundle && weatherState.loading}
+			{#if section === 'favoriten'}
+				<FavoritesDeck />
+			{:else if section === 'einstellungen'}
+				<EinstellungenPage />
+			{:else if section === 'mehr'}
+				<section aria-labelledby="mehr-title" class="mx-auto max-w-xl">
+					<h1 id="mehr-title" class="mb-4 text-2xl font-semibold leading-snug tracking-tight">
+						Mehr
+					</h1>
+					<MehrList />
+				</section>
+			{:else if !weatherState.bundle && weatherState.loading}
 				<div aria-busy="true">
 					<div class="h-64 animate-pulse bg-card [html[data-chrome=android]_&]:rounded-3xl [html[data-chrome=desktop]_&]:rounded-md"></div>
 				</div>
@@ -141,25 +144,6 @@
 				{/if}
 			{:else if section === 'luft'}
 				<AirQuality page />
-			{:else if section === 'mehr'}
-				<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
-					<CommuteCard />
-					<div class="space-y-4">
-						<LifestyleCard />
-						<SkyCard />
-					</div>
-					<MetricGrid />
-					<div class="space-y-4">
-						<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
-							<h2 class="mb-3 text-xl font-semibold leading-snug tracking-tight">Meldungen</h2>
-							<SettingsSheet embedded />
-						</section>
-						<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
-							<h2 class="mb-3 text-xl font-semibold leading-snug tracking-tight">Darstellung</h2>
-							<ThemePanel />
-						</section>
-					</div>
-				</div>
 			{/if}
 		</main>
 	</div>
@@ -177,4 +161,4 @@
 />
 <HourDetail hour={selectedHour} onClose={() => (selectedHour = null)} />
 <TopicSheet />
-<SettingsSheet />
+<MehrDrawer />

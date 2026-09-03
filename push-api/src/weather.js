@@ -166,7 +166,7 @@ export function evaluateNotifications(weather, prefs, alerts) {
 
 	if (prefs.warnings) {
 		const serious = (alerts || []).filter(
-			(alert) => alert?.id && alert.headline && ['moderate', 'severe', 'extreme'].includes(alert.severity)
+			(alert) => alert?.id && ['moderate', 'severe', 'extreme'].includes(alert.severity)
 		);
 		for (const alert of serious.slice(0, 2)) {
 			notices.push({
@@ -174,7 +174,7 @@ export function evaluateNotifications(weather, prefs, alerts) {
 				fingerprint: `warn-${alert.id}`,
 				cooldownHours: 6,
 				title: alert.event || 'Wetterwarnung',
-				body: alert.headline
+				body: alert.headline || alert.area || alert.event
 			});
 		}
 	}

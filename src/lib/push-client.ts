@@ -263,9 +263,17 @@ export async function disablePush(): Promise<void> {
 	}
 }
 
-export async function fetchAlerts(lat: number, lon: number): Promise<AlertItem[]> {
+export async function fetchAlerts(
+	lat: number,
+	lon: number,
+	place?: { name?: string; admin1?: string; country_code?: string }
+): Promise<AlertItem[]> {
 	try {
-		const data = await request<{ alerts: AlertItem[] }>(`/v1/alerts?lat=${lat}&lon=${lon}`);
+		const params = new URLSearchParams({ lat: String(lat), lon: String(lon) });
+		if (place?.country_code) params.set('country', place.country_code);
+		if (place?.name) params.set('name', place.name);
+		if (place?.admin1) params.set('admin1', place.admin1);
+		const data = await request<{ alerts: AlertItem[] }>(`/v1/alerts?${params}`);
 		return data.alerts ?? [];
 	} catch {
 		return [];

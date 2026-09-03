@@ -408,6 +408,19 @@ export async function fetchWeatherLite(place: Place, signal?: AbortSignal): Prom
 	return buildBundle(place, forecast, air, [], [], null);
 }
 
+/** Hauptkarte payload: forecast + station, no air/lakes/elevations. */
+export async function fetchWeatherHero(place: Place, signal?: AbortSignal): Promise<WeatherBundle> {
+	const [forecast, station] = await Promise.all([
+		getJson<ForecastResponse>(forecastUrlFor(place).toString(), signal).catch(async () => {
+			const fallback = forecastUrlFor(place);
+			fallback.searchParams.delete('minutely_15');
+			return getJson<ForecastResponse>(fallback.toString(), signal);
+		}),
+		fetchNearestStation(place, signal).catch(() => null)
+	]);
+	return buildBundle(place, forecast, null, [], [], station);
+}
+
 function fillHour(hour: HourPoint): HourPoint {
 	return {
 		...hour,

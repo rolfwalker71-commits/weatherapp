@@ -1,4 +1,4 @@
-import { BERN, emptyExtras, fetchWeather, reverseGeocode } from './api';
+import { BERN, emptyExtras, fetchWeather, fetchWeatherHero, reverseGeocode } from './api';
 import { loadNotifyPrefs } from './notify-prefs';
 import { syncPreferences } from './push-client';
 import {
@@ -28,6 +28,76 @@ export const weatherState = $state({
 export const clockState = $state({
 	now: Date.now()
 });
+
+export const favoriteWeather = $state({
+	bundles: {} as Record<string, WeatherBundle>,
+	errors: {} as Record<string, string>,
+	loading: false
+});
+
+export function favoriteKey(place: Place): string {
+	return `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}`;
+}
+
+let favoriteFlight: AbortController | null = null;
+
+export async function loadFavoriteHeroes(): Promise<void> {
+	const places = weatherState.favorites;
+	if (!places.length) {
+		favoriteFlight?.abort();
+		favoriteWeather.bundles = {};
+		favoriteWeather.errors = {};
+		favoriteWeather.loading = false;
+		return;
+	}
+
+	favoriteFlight?.abort();
+	const controller = new AbortController();
+	favoriteFlight = controller;
+	favoriteWeather.loading = true;
+
+	const current = weatherState.bundle;
+	const nextBundles = { ...favoriteWeather.bundles };
+	const nextErrors = { ...favoriteWeather.errors };
+	if (current) {
+		const match = places.find(
+			(item) => samePlace(item, current.place) || samePlace(item, weatherState.place)
+		);
+		if (match) {
+			const key = favoriteKey(match);
+			nextBundles[key] = current;
+			delete nextErrors[key];
+		}
+	}
+	favoriteWeather.bundles = nextBundles;
+	favoriteWeather.errors = nextErrors;
+
+	await Promise.all(
+		places.map(async (place) => {
+			const key = favoriteKey(place);
+			if (current && (samePlace(place, current.place) || samePlace(place, weatherState.place))) {
+				return;
+			}
+			try {
+				const bundle = await fetchWeatherHero(place, controller.signal);
+				if (controller.signal.aborted) return;
+				favoriteWeather.bundles = { ...favoriteWeather.bundles, [key]: bundle };
+				const { [key]: _removed, ...rest } = favoriteWeather.errors;
+				favoriteWeather.errors = rest;
+			} catch (error) {
+				if ((error as Error).name === 'AbortError') return;
+				favoriteWeather.errors = {
+					...favoriteWeather.errors,
+					[key]: 'Wetterdaten konnten nicht geladen werden.'
+				};
+			}
+		})
+	);
+
+	if (favoriteFlight === controller) {
+		favoriteWeather.loading = false;
+	}
+}
 
 export const AUTO_REFRESH_MS = 15 * 60 * 1000;
 const CLOCK_TICK_MS = 30_000;

@@ -6,12 +6,10 @@
 	import LakesCard from './LakesCard.svelte';
 	import LifestyleCard from './LifestyleCard.svelte';
 	import MetricGrid from './MetricGrid.svelte';
-	import SettingsSheet from './SettingsSheet.svelte';
 	import SkyCard from './SkyCard.svelte';
-	import ThemePanel from './ThemePanel.svelte';
 	import WindCard from './WindCard.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
-	import { MEHR_GROUPS, TOPIC_CHIPS, type TopicId } from '$lib/nav';
+	import { TOPIC_CHIPS, type TopicId } from '$lib/nav';
 	import { closeTopic, uiState } from '$lib/ui.svelte';
 
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
@@ -28,12 +26,7 @@
 
 	const topic = $derived(uiState.topic);
 	const title = $derived(topic ? titles[topic] : '');
-	const known = $derived(
-		Boolean(
-			topic &&
-				[...TOPIC_CHIPS, ...MEHR_GROUPS.flatMap((group) => group.items)].some((item) => item.id === topic)
-		)
-	);
+	const known = $derived(Boolean(topic && TOPIC_CHIPS.some((item) => item.id === topic)));
 </script>
 
 {#if topic && known}
@@ -79,10 +72,6 @@
 						<AirQuality />
 					{:else if topic === 'pendeln'}
 						<CommuteCard />
-					{:else if topic === 'meldungen'}
-						<SettingsSheet embedded />
-					{:else if topic === 'darstellung'}
-						<ThemePanel />
 					{/if}
 				</div>
 			</div>

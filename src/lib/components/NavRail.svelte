@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { NAV_ITEMS, type SectionId } from '$lib/nav';
+	import { RAIL_ITEMS, navItemCurrent, type SectionId } from '$lib/nav';
 	import { goSection } from '$lib/ui.svelte';
 	import { weatherState } from '$lib/weather.svelte';
 	import AppIcon from './AppIcon.svelte';
@@ -10,11 +10,11 @@
 </script>
 
 <nav
-	class="sticky top-[4.25rem] hidden h-[calc(100dvh-4.25rem)] w-56 shrink-0 flex-col gap-1 border-r border-border bg-card/80 p-3 lg:flex"
+	class="sticky top-[4.25rem] hidden h-[calc(100dvh-4.25rem)] w-56 shrink-0 flex-col gap-1 overflow-y-auto border-r border-border bg-card/80 p-3 lg:flex"
 	aria-label="Bereiche"
 >
-	{#each NAV_ITEMS as item}
-		{@const current = weatherState.section === item.id}
+	{#each RAIL_ITEMS as item}
+		{@const current = navItemCurrent(item.id, weatherState.section, 'rail')}
 		<button
 			type="button"
 			class="relative flex min-h-12 items-center gap-3 rounded-md px-3 text-left {current

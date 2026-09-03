@@ -155,3 +155,28 @@ export function isSameCalendarDay(a: string, b: string): boolean {
 export function hoursOnDay<T extends { time: string }>(hours: T[], date: string): T[] {
 	return hours.filter((hour) => isSameCalendarDay(hour.time, date));
 }
+
+function alertWhen(iso: string, timeZone?: string): string {
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return '';
+	const day = new Intl.DateTimeFormat('de-CH', {
+		day: 'numeric',
+		month: 'short',
+		timeZone
+	}).format(date);
+	const time = formatTime(iso, timeZone);
+	return `${day} ${time}`;
+}
+
+export function formatAlertValidity(
+	onset: string | null | undefined,
+	expires: string | null | undefined,
+	timeZone?: string
+): string | null {
+	const start = onset && !Number.isNaN(new Date(onset).getTime()) ? alertWhen(onset, timeZone) : '';
+	const end = expires && !Number.isNaN(new Date(expires).getTime()) ? alertWhen(expires, timeZone) : '';
+	if (start && end) return `gültig ${start} – ${end}`;
+	if (end) return `gültig bis ${end}`;
+	if (start) return `gültig ab ${start}`;
+	return null;
+}

@@ -6,6 +6,7 @@
 	interface Props {
 		class?: string;
 		scrollerClass?: string;
+		gap?: string;
 		fade?: boolean;
 		fadeFrom?: string;
 		label?: string;
@@ -15,6 +16,7 @@
 	let {
 		class: className = '',
 		scrollerClass = '',
+		gap = 'gap-2',
 		fade = false,
 		fadeFrom = 'from-card',
 		label,
@@ -90,7 +92,7 @@
 
 	<div
 		bind:this={scroller}
-		class="flex gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden {scrollerClass}"
+		class="flex {gap} overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden {scrollerClass}"
 		role={label ? 'group' : undefined}
 		aria-label={label}
 	>

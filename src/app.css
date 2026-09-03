@@ -194,15 +194,39 @@
 		gap: 0.75rem;
 	}
 
+	.hero-stack.is-selectable {
+		z-index: 1;
+		pointer-events: none;
+	}
+
+	.hero-stack.is-selectable .hero-fav {
+		pointer-events: auto;
+	}
+
 	.hero-meta {
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
 	}
 
-	#jetzt .hero-weather,
-	#jetzt .hero-fav-glyph {
+	.hero-weather,
+	button.hero-fav .hero-fav-glyph {
 		color: inherit;
+	}
+
+	button.hero-open {
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		background-color: transparent;
+		cursor: pointer;
+	}
+
+	button.hero-open:focus-visible {
+		outline: 0.125rem solid rgb(var(--ring));
+		outline-offset: -0.25rem;
+		border-radius: inherit;
 	}
 
 	button.hero-fav {
@@ -249,13 +273,13 @@
 	}
 
 	html[data-chrome='android'] .hero-fav-glyph {
-		width: 1rem;
-		height: 1rem;
+		width: 1.5rem;
+		height: 1.5rem;
 	}
 
 	html[data-chrome='desktop'] .hero-fav-glyph {
-		width: 0.75rem;
-		height: 0.75rem;
+		width: 1.125rem;
+		height: 1.125rem;
 	}
 
 	.hero-weather {

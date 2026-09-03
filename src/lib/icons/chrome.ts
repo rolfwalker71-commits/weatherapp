@@ -50,6 +50,8 @@ import Refresh from '@material-symbols/svg-400/rounded/refresh.svg?raw';
 import RefreshFill from '@material-symbols/svg-400/rounded/refresh-fill.svg?raw';
 import Search from '@material-symbols/svg-400/rounded/search.svg?raw';
 import SearchFill from '@material-symbols/svg-400/rounded/search-fill.svg?raw';
+import Settings from '@material-symbols/svg-400/rounded/settings.svg?raw';
+import SettingsFill from '@material-symbols/svg-400/rounded/settings-fill.svg?raw';
 import Speed from '@material-symbols/svg-400/rounded/speed.svg?raw';
 import SpeedFill from '@material-symbols/svg-400/rounded/speed-fill.svg?raw';
 import Star from '@material-symbols/svg-400/rounded/star.svg?raw';
@@ -98,6 +100,7 @@ export type AppIconName =
 	| 'draussen'
 	| 'pendeln'
 	| 'darstellung'
+	| 'settings'
 	| 'warning'
 	| 'drop'
 	| 'sun'
@@ -143,6 +146,7 @@ export const ICONS: Record<AppIconName, SymbolPair> = {
 	draussen: { outline: Checkroom, fill: CheckroomFill },
 	pendeln: { outline: Commute, fill: CommuteFill },
 	darstellung: { outline: Palette, fill: PaletteFill },
+	settings: { outline: Settings, fill: SettingsFill },
 	warning: { outline: Warning, fill: WarningFill },
 	drop: { outline: WaterDrop, fill: WaterDropFill },
 	sun: { outline: Sunny, fill: SunnyFill },
