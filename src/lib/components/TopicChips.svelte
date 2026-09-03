@@ -5,7 +5,7 @@
 	import HScroll from './HScroll.svelte';
 </script>
 
-<nav class="w-full min-w-0 max-w-full max-lg:overflow-x-hidden" aria-label="Themen">
+<nav class="wx-inline-scroll w-full min-w-0 max-w-full max-lg:overflow-x-clip" aria-label="Themen">
 	<HScroll fade fadeFrom="from-background" scrollerClass="pb-1">
 		{#each TOPIC_CHIPS as chip (chip.id)}
 			<button

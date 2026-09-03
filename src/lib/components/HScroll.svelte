@@ -93,7 +93,7 @@
 	});
 </script>
 
-<div class="relative w-full min-w-0 max-w-full {className}">
+<div class="wx-inline-scroll relative w-full min-w-0 max-w-full {className}">
 	{#if desktop}
 		<button
 			type="button"

@@ -25,8 +25,8 @@
 </script>
 
 <section id="stunden" class="{panelClass(chromeState.chrome)} max-lg:overflow-x-hidden p-5 sm:p-6">
-	<div class="mb-4 flex items-end justify-between gap-3">
-		<div>
+	<div class="mb-4 flex min-w-0 items-end justify-between gap-3">
+		<div class="min-w-0">
 			<h2 class="text-xl font-semibold leading-snug tracking-tight">
 				{embedded ? '24 Stunden' : 'Nächste 24 Stunden'}
 			</h2>

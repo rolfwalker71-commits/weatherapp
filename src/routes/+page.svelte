@@ -131,7 +131,9 @@
 				</div>
 			{:else if section === 'jetzt'}
 				{#if weatherState.bundle}
-					<div class="grid min-w-0 max-w-full grid-cols-1 gap-4 max-lg:overflow-x-hidden lg:grid-cols-2 lg:items-start">
+					<div
+						class="grid min-w-0 max-w-full grid-cols-1 gap-4 max-lg:overflow-x-clip max-lg:[contain:inline-size] lg:grid-cols-2 lg:items-start"
+					>
 						<div class="min-w-0 max-w-full space-y-4">
 							<CurrentHero />
 							<WarningsCard />

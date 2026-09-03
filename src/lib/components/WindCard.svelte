@@ -40,12 +40,11 @@
 		{/if}
 
 		{#if bars.length}
-			<div
-				class="mt-4 w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain lg:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
-				role="region"
-				aria-label={windChartAriaLabel(bars)}
-			>
-				<div class="flex w-max min-w-full items-end gap-1.5 lg:w-full lg:min-w-0">
+			<div class="wx-inline-scroll mt-4" role="region" aria-label={windChartAriaLabel(bars)}>
+				<div
+					class="min-w-0 max-w-full overflow-x-auto overscroll-x-contain lg:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
+				>
+					<div class="flex w-max min-w-full items-end gap-1.5 lg:w-full lg:min-w-0">
 					{#each bars as bar (bar.time)}
 						{@const speedLabel = formatWindValue(bar.speed, unitsState.wind)}
 						{@const gustLabel = bar.gusts != null ? formatWindValue(bar.gusts, unitsState.wind) : null}
@@ -91,6 +90,7 @@
 							<span class="text-[0.65rem] tabular-nums text-muted-foreground">{formatTime(bar.time)}</span>
 						</div>
 					{/each}
+					</div>
 				</div>
 			</div>
 			<p class="mt-2 text-sm text-muted-foreground">

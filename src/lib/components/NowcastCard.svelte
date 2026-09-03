@@ -30,24 +30,24 @@
 			<p class="mb-2 break-words text-sm leading-snug text-muted-foreground">{nowcast.label}</p>
 		{/if}
 
-		<div
-			class="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain lg:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
-			role="region"
-			aria-label={nowcastAriaLabel(bars)}
-		>
-			<div class="flex w-max min-w-full items-end gap-1.5 lg:w-full lg:min-w-0">
-				{#each bars as point (point.time)}
-					<div class="flex w-11 shrink-0 flex-col items-center gap-1 lg:w-auto lg:min-w-0 lg:flex-1">
-						<div class="flex {compact ? 'h-10' : 'h-14'} w-full items-end">
-							<div
-								class="w-full {tile} wx-bar-rain"
-								style="height: {Math.max(8, (point.precipMm / maxPrecip) * 100)}%;"
-								title="{formatTime(point.time)} · {formatMm(point.precipMm)}"
-							></div>
+		<div class="wx-inline-scroll" role="region" aria-label={nowcastAriaLabel(bars)}>
+			<div
+				class="min-w-0 max-w-full overflow-x-auto overscroll-x-contain lg:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
+			>
+				<div class="flex w-max min-w-full items-end gap-1.5 lg:w-full lg:min-w-0">
+					{#each bars as point (point.time)}
+						<div class="flex w-11 shrink-0 flex-col items-center gap-1 lg:w-auto lg:min-w-0 lg:flex-1">
+							<div class="flex {compact ? 'h-10' : 'h-14'} w-full items-end">
+								<div
+									class="w-full {tile} wx-bar-rain"
+									style="height: {Math.max(8, (point.precipMm / maxPrecip) * 100)}%;"
+									title="{formatTime(point.time)} · {formatMm(point.precipMm)}"
+								></div>
+							</div>
+							<span class="text-[0.65rem] tabular-nums text-muted-foreground">{formatTime(point.time)}</span>
 						</div>
-						<span class="text-[0.65rem] tabular-nums text-muted-foreground">{formatTime(point.time)}</span>
-					</div>
-				{/each}
+					{/each}
+				</div>
 			</div>
 		</div>
 		{#if nowcast.nextMm != null}

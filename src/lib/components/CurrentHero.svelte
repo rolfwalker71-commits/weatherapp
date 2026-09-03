@@ -116,9 +116,9 @@
 				/>
 			</div>
 
-			<div class="flex items-center gap-2.5 sm:gap-3">
+			<div class="flex min-w-0 items-center gap-2.5 sm:gap-3">
 				<p
-					class="shrink-0 font-extrabold leading-none tracking-tight tabular-nums {isDesktop
+					class="min-w-0 font-extrabold leading-none tracking-tight tabular-nums {isDesktop
 						? 'text-[4.375rem]'
 						: 'text-[4.375rem] sm:text-[5.875rem]'}"
 				>
@@ -151,7 +151,7 @@
 
 			<div class="flex items-end justify-between gap-3">
 				{#if today}
-					<p class="hero-range min-w-0 text-sm leading-snug opacity-75">
+					<p class="hero-range min-w-0 break-words text-sm leading-snug opacity-75">
 						Heute {formatTemp(today.tMin)} bis {formatTemp(today.tMax)}
 					</p>
 				{/if}

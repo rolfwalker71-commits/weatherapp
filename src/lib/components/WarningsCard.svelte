@@ -69,13 +69,13 @@
 					<li class="{shape} {scaleFillClass(tone(alert.severity))}">
 						<p class="font-medium leading-snug break-words">{alert.event}</p>
 						{#if when}
-							<p class="mt-1 text-sm leading-snug opacity-80">{when}</p>
+							<p class="mt-1 break-words text-sm leading-snug opacity-80">{when}</p>
 						{/if}
 						{#if alert.headline && alert.headline !== alert.event}
-							<p class="mt-1 text-sm leading-snug opacity-80">{alert.headline}</p>
+							<p class="mt-1 break-words text-sm leading-snug opacity-80">{alert.headline}</p>
 						{/if}
 						{#if alert.area}
-							<p class="mt-1 text-sm leading-snug opacity-75">{alert.area} · {alert.source}</p>
+							<p class="mt-1 break-words text-sm leading-snug opacity-75">{alert.area} · {alert.source}</p>
 						{/if}
 					</li>
 				{/each}

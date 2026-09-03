@@ -143,6 +143,14 @@
 		}
 	}
 
+	/* Horizontal strips (24h chips, 6h bars) must not widen the page. */
+	.wx-inline-scroll {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		min-width: 0;
+		max-width: 100%;
+	}
+
 	.mica {
 		background-color: rgb(var(--card) / 0.8);
 		backdrop-filter: blur(1.25rem) saturate(1.4);
