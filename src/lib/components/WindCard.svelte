@@ -17,7 +17,8 @@
 		Math.max(1, ...bars.flatMap((bar) => [bar.speed, bar.gusts ?? 0]))
 	);
 	const shape = $derived(isDesktop ? 'rounded-md p-3 ring-1 ring-border' : 'rounded-[1.25rem] p-3 bg-muted');
-	const tile = $derived(isDesktop ? 'rounded-sm' : 'rounded-full');
+	const tile = $derived(isDesktop ? 'rounded-md' : 'rounded-full');
+	const hasGusts = $derived(bars.some((bar) => bar.gusts != null));
 </script>
 
 {#if current}
@@ -47,12 +48,15 @@
 				<div class="flex min-w-[36rem] items-end gap-1.5 lg:min-w-0">
 					{#each bars as bar (bar.time)}
 						<div class="flex w-11 shrink-0 flex-col items-center gap-1 lg:w-auto lg:min-w-0 lg:flex-1">
-							<span
+							<svg
 								class="wx-wind-mini wx-icon-wind"
+								viewBox="0 0 12 16"
 								style="transform: rotate({bar.direction}deg)"
-								title="aus {windDirection(bar.direction)}"
 								aria-hidden="true"
-							></span>
+							>
+								<title>aus {windDirection(bar.direction)}</title>
+								<path d="M6 1 L10.5 15 L6 11.5 L1.5 15 Z" fill="currentColor" />
+							</svg>
 							<span class="sr-only">{windDirection(bar.direction)}</span>
 							<div
 								class="relative flex h-14 w-full items-end"
@@ -76,6 +80,9 @@
 					{/each}
 				</div>
 			</div>
+			{#if hasGusts}
+				<p class="mt-2 text-sm text-muted-foreground">Balken Wind · heller Böen</p>
+			{/if}
 		{/if}
 
 		<dl class="mt-4 grid grid-cols-2 gap-2">

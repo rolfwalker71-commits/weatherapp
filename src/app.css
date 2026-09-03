@@ -606,11 +606,11 @@
 	}
 
 	.wx-wind-mini {
-		width: 0;
-		height: 0;
-		border-left: 0.22rem solid transparent;
-		border-right: 0.22rem solid transparent;
-		border-bottom: 0.7rem solid currentColor;
+		display: block;
+		width: 0.75rem;
+		height: 0.85rem;
+		flex-shrink: 0;
+		transform-origin: center center;
 	}
 
 	.wx-scale-icon-good {
