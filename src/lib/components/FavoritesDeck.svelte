@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { panelClass } from '$lib/platform';
 	import { goSection } from '$lib/ui.svelte';
@@ -11,17 +12,18 @@
 	} from '$lib/weather.svelte';
 	import AppIcon from './AppIcon.svelte';
 	import CurrentHero from './CurrentHero.svelte';
-	import HScroll from './HScroll.svelte';
 
-	const isDesktop = $derived(chromeState.chrome === 'desktop');
 	const places = $derived(weatherState.favorites);
+	const placeSignature = $derived(places.map((place) => favoriteKey(place)).join('|'));
 
 	$effect(() => {
-		places.length;
-		weatherState.section;
-		if (weatherState.section === 'favoriten') {
+		const section = weatherState.section;
+		const signature = placeSignature;
+		if (section !== 'favoriten') return;
+		if (!signature) return;
+		untrack(() => {
 			void loadFavoriteHeroes();
-		}
+		});
 	});
 
 	function openJetzt(place: (typeof places)[number]) {
@@ -53,18 +55,17 @@
 			</div>
 		</div>
 	{:else}
-		<HScroll
-			label="Favoriten"
-			gap="gap-4"
-			fade={!isDesktop}
-			fadeFrom="from-background"
-			scrollerClass="snap-x snap-mandatory pb-1"
+		<div
+			class="favorites-grid"
+			class:is-single={places.length === 1}
+			role="list"
+			aria-label="Favoriten"
 		>
 			{#each places as place (place.id ?? `${place.latitude}-${place.longitude}`)}
 				{@const key = favoriteKey(place)}
 				{@const bundle = favoriteWeather.bundles[key] ?? null}
 				{@const error = favoriteWeather.errors[key] ?? null}
-				<div class="w-[min(100%,36rem)] shrink-0 snap-start snap-always">
+				<div class="min-w-0" role="listitem">
 					{#if bundle}
 						<CurrentHero {place} {bundle} onOpen={() => openJetzt(place)} />
 					{:else}
@@ -84,6 +85,6 @@
 					{/if}
 				</div>
 			{/each}
-		</HScroll>
+		</div>
 	{/if}
 </section>

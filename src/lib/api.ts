@@ -408,16 +408,47 @@ export async function fetchWeatherLite(place: Place, signal?: AbortSignal): Prom
 	return buildBundle(place, forecast, air, [], [], null);
 }
 
+function settleWithTimeout<T>(
+	promise: Promise<T>,
+	ms: number,
+	fallback: T,
+	signal?: AbortSignal
+): Promise<T> {
+	return new Promise((resolve) => {
+		const timer = setTimeout(() => resolve(fallback), ms);
+		const onAbort = () => {
+			clearTimeout(timer);
+			resolve(fallback);
+		};
+		signal?.addEventListener('abort', onAbort, { once: true });
+		promise.then(
+			(value) => {
+				clearTimeout(timer);
+				signal?.removeEventListener('abort', onAbort);
+				resolve(value);
+			},
+			() => {
+				clearTimeout(timer);
+				signal?.removeEventListener('abort', onAbort);
+				resolve(fallback);
+			}
+		);
+	});
+}
+
 /** Hauptkarte payload: forecast + station, no air/lakes/elevations. */
 export async function fetchWeatherHero(place: Place, signal?: AbortSignal): Promise<WeatherBundle> {
-	const [forecast, station] = await Promise.all([
-		getJson<ForecastResponse>(forecastUrlFor(place).toString(), signal).catch(async () => {
-			const fallback = forecastUrlFor(place);
-			fallback.searchParams.delete('minutely_15');
-			return getJson<ForecastResponse>(fallback.toString(), signal);
-		}),
-		fetchNearestStation(place, signal).catch(() => null)
-	]);
+	const forecastPromise = getJson<ForecastResponse>(
+		forecastUrlFor(place).toString(),
+		signal
+	).catch(async () => {
+		const fallback = forecastUrlFor(place);
+		fallback.searchParams.delete('minutely_15');
+		return getJson<ForecastResponse>(fallback.toString(), signal);
+	});
+	const stationPromise = fetchNearestStation(place, signal).catch(() => null);
+	const forecast = await forecastPromise;
+	const station = await settleWithTimeout(stationPromise, 3500, null, signal);
 	return buildBundle(place, forecast, null, [], [], station);
 }
 

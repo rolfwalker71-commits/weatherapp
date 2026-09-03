@@ -35,72 +35,131 @@ export const favoriteWeather = $state({
 	loading: false
 });
 
+export const AUTO_REFRESH_MS = 15 * 60 * 1000;
+const CLOCK_TICK_MS = 30_000;
+const FAVORITE_FETCH_MS = 12_000;
+const favoriteFlights = new Map<string, AbortController>();
+
 export function favoriteKey(place: Place): string {
-	return `${place.latitude.toFixed(3)},${place.longitude.toFixed(3)}`;
+	const lat = Number(place?.latitude);
+	const lon = Number(place?.longitude);
+	if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+		return `invalid:${place?.name ?? '?'}`;
+	}
+	return `${lat.toFixed(3)},${lon.toFixed(3)}`;
 }
 
-let favoriteFlight: AbortController | null = null;
+function isUsablePlace(place: Place | null | undefined): place is Place {
+	return (
+		!!place &&
+		typeof place.name === 'string' &&
+		Number.isFinite(place.latitude) &&
+		Number.isFinite(place.longitude)
+	);
+}
+
+function dropFavoriteKey(key: string): void {
+	if (key in favoriteWeather.bundles) {
+		const { [key]: _bundle, ...bundles } = favoriteWeather.bundles;
+		favoriteWeather.bundles = bundles;
+	}
+	if (key in favoriteWeather.errors) {
+		const { [key]: _error, ...errors } = favoriteWeather.errors;
+		favoriteWeather.errors = errors;
+	}
+}
+
+function seedFavoriteFromCurrent(places: Place[]): void {
+	const current = weatherState.bundle;
+	if (!current) return;
+	const match = places.find(
+		(item) => samePlace(item, current.place) || samePlace(item, weatherState.place)
+	);
+	if (!match) return;
+	const key = favoriteKey(match);
+	favoriteWeather.bundles = { ...favoriteWeather.bundles, [key]: current };
+	if (key in favoriteWeather.errors) {
+		const { [key]: _removed, ...rest } = favoriteWeather.errors;
+		favoriteWeather.errors = rest;
+	}
+}
+
+async function loadOneFavoriteHero(place: Place): Promise<void> {
+	const key = favoriteKey(place);
+	if (key.startsWith('invalid:')) {
+		favoriteWeather.errors = {
+			...favoriteWeather.errors,
+			[key]: 'Wetterdaten konnten nicht geladen werden.'
+		};
+		return;
+	}
+	if (favoriteFlights.has(key)) return;
+
+	const cached = favoriteWeather.bundles[key];
+	if (cached) {
+		const age = Date.now() - new Date(cached.fetchedAt).getTime();
+		if (Number.isFinite(age) && age < AUTO_REFRESH_MS) return;
+	}
+
+	const controller = new AbortController();
+	favoriteFlights.set(key, controller);
+	let timedOut = false;
+	const timer = setTimeout(() => {
+		timedOut = true;
+		controller.abort();
+	}, FAVORITE_FETCH_MS);
+
+	try {
+		const bundle = await fetchWeatherHero(place, controller.signal);
+		if (favoriteFlights.get(key) !== controller) return;
+		favoriteWeather.bundles = { ...favoriteWeather.bundles, [key]: bundle };
+		if (key in favoriteWeather.errors) {
+			const { [key]: _removed, ...rest } = favoriteWeather.errors;
+			favoriteWeather.errors = rest;
+		}
+	} catch (error) {
+		if (favoriteFlights.get(key) !== controller) return;
+		if ((error as Error).name === 'AbortError' && !timedOut) return;
+		if (favoriteWeather.bundles[key]) return;
+		favoriteWeather.errors = {
+			...favoriteWeather.errors,
+			[key]: 'Wetterdaten konnten nicht geladen werden.'
+		};
+	} finally {
+		clearTimeout(timer);
+		if (favoriteFlights.get(key) === controller) {
+			favoriteFlights.delete(key);
+		}
+	}
+}
 
 export async function loadFavoriteHeroes(): Promise<void> {
-	const places = weatherState.favorites;
+	const places = weatherState.favorites.filter(isUsablePlace);
+	const wanted = new Set(places.map(favoriteKey));
+
+	for (const key of Object.keys(favoriteWeather.bundles)) {
+		if (!wanted.has(key)) dropFavoriteKey(key);
+	}
+	for (const key of Object.keys(favoriteWeather.errors)) {
+		if (!wanted.has(key)) dropFavoriteKey(key);
+	}
+	for (const [key, controller] of favoriteFlights) {
+		if (!wanted.has(key)) {
+			controller.abort();
+			favoriteFlights.delete(key);
+		}
+	}
+
 	if (!places.length) {
-		favoriteFlight?.abort();
-		favoriteWeather.bundles = {};
-		favoriteWeather.errors = {};
 		favoriteWeather.loading = false;
 		return;
 	}
 
-	favoriteFlight?.abort();
-	const controller = new AbortController();
-	favoriteFlight = controller;
+	seedFavoriteFromCurrent(places);
 	favoriteWeather.loading = true;
-
-	const current = weatherState.bundle;
-	const nextBundles = { ...favoriteWeather.bundles };
-	const nextErrors = { ...favoriteWeather.errors };
-	if (current) {
-		const match = places.find(
-			(item) => samePlace(item, current.place) || samePlace(item, weatherState.place)
-		);
-		if (match) {
-			const key = favoriteKey(match);
-			nextBundles[key] = current;
-			delete nextErrors[key];
-		}
-	}
-	favoriteWeather.bundles = nextBundles;
-	favoriteWeather.errors = nextErrors;
-
-	await Promise.all(
-		places.map(async (place) => {
-			const key = favoriteKey(place);
-			if (current && (samePlace(place, current.place) || samePlace(place, weatherState.place))) {
-				return;
-			}
-			try {
-				const bundle = await fetchWeatherHero(place, controller.signal);
-				if (controller.signal.aborted) return;
-				favoriteWeather.bundles = { ...favoriteWeather.bundles, [key]: bundle };
-				const { [key]: _removed, ...rest } = favoriteWeather.errors;
-				favoriteWeather.errors = rest;
-			} catch (error) {
-				if ((error as Error).name === 'AbortError') return;
-				favoriteWeather.errors = {
-					...favoriteWeather.errors,
-					[key]: 'Wetterdaten konnten nicht geladen werden.'
-				};
-			}
-		})
-	);
-
-	if (favoriteFlight === controller) {
-		favoriteWeather.loading = false;
-	}
+	await Promise.all(places.map((place) => loadOneFavoriteHero(place)));
+	favoriteWeather.loading = favoriteFlights.size > 0;
 }
-
-export const AUTO_REFRESH_MS = 15 * 60 * 1000;
-const CLOCK_TICK_MS = 30_000;
 
 let inFlight: AbortController | null = null;
 
@@ -148,7 +207,8 @@ export async function loadPlace(place: Place, options?: { recent?: boolean }): P
 }
 
 export function hydrateFromCache(): void {
-	weatherState.favorites = loadFavorites();
+	const stored = loadFavorites();
+	weatherState.favorites = Array.isArray(stored) ? stored.filter(isUsablePlace) : [];
 	const last = loadLastPlace();
 	const cached = loadLastBundle();
 	if (last) weatherState.place = last;
