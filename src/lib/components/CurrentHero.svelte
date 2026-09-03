@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { chromeState } from '$lib/chrome.svelte';
 	import AppIcon from './AppIcon.svelte';
-	import { formatRefreshStatus, formatSourceLine, formatStationLine, formatTemp, placeLabel } from '$lib/format';
+	import { formatRefreshStatus, formatStationLine, formatTemp, placeLabel } from '$lib/format';
 	import { clothingLine, insightLine } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
 	import type { Place, WeatherBundle } from '$lib/types';
@@ -61,7 +61,6 @@
 	const stationLine = $derived(
 		station ? formatStationLine(station, bundle?.timezone) : null
 	);
-	const sourceLine = $derived(formatSourceLine(station, bundle?.timezone));
 </script>
 
 {#if current && wmo && bundle}
@@ -116,30 +115,31 @@
 				/>
 			</div>
 
-			<div class="flex min-w-0 items-center gap-2.5 sm:gap-3">
-				<p
-					class="min-w-0 font-extrabold leading-none tracking-tight tabular-nums {isDesktop
-						? 'text-[4.375rem]'
-						: 'text-[4.375rem] sm:text-[5.875rem]'}"
-				>
-					{formatTemp(current.temperature_2m)}
-				</p>
-				<div class="min-w-0 shrink">
-					<p class="break-words text-[1.1875rem] font-medium leading-snug lg:truncate lg:whitespace-nowrap">
-						{wmo.label}
+			<div class="hero-now">
+				<div class="flex min-w-0 items-center gap-2.5 sm:gap-3">
+					<p
+						class="min-w-0 font-extrabold leading-none tracking-tight tabular-nums {isDesktop
+							? 'text-[4.375rem]'
+							: 'text-[4.375rem] sm:text-[5.875rem]'}"
+					>
+						{formatTemp(current.temperature_2m)}
 					</p>
-					<p class="break-words text-[0.8125rem] leading-snug opacity-75 lg:whitespace-nowrap">
-						Gefühlt {formatTemp(current.apparent_temperature)}
-					</p>
+					<div class="min-w-0 shrink">
+						<p class="break-words text-[1.1875rem] font-medium leading-snug lg:truncate lg:whitespace-nowrap">
+							{wmo.label}
+						</p>
+						<p class="break-words text-[0.8125rem] leading-snug opacity-75 lg:whitespace-nowrap">
+							Gefühlt {formatTemp(current.apparent_temperature)}
+						</p>
+					</div>
 				</div>
+				{#if stationLine}
+					<p class="break-words text-sm leading-snug opacity-75">{stationLine}</p>
+				{/if}
 			</div>
 
-			{#if sourceLine || stationLine || insight || clothing}
+			{#if insight || clothing}
 				<div class="hero-meta">
-					<p class="break-words text-sm leading-snug opacity-75">{sourceLine}</p>
-					{#if stationLine}
-						<p class="break-words text-sm leading-snug opacity-75">{stationLine}</p>
-					{/if}
 					{#if insight}
 						<p class="break-words text-base font-medium leading-snug">{insight}</p>
 					{/if}
