@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { chromeState } from '$lib/chrome.svelte';
 	import AppIcon from './AppIcon.svelte';
-	import { formatPercent, formatTime, formatWind, windDirection } from '$lib/format';
+	import { formatPercent, formatTime, formatWind, formatWindValue, windDirection } from '$lib/format';
 	import { windBars, windChartAriaLabel } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
 	import { unitsState } from '$lib/units.svelte';
@@ -47,6 +47,9 @@
 			>
 				<div class="flex min-w-[36rem] items-end gap-1.5 lg:min-w-0">
 					{#each bars as bar (bar.time)}
+						{@const speedLabel = formatWindValue(bar.speed, unitsState.wind)}
+						{@const gustLabel = bar.gusts != null ? formatWindValue(bar.gusts, unitsState.wind) : null}
+						{@const showGust = gustLabel != null && gustLabel !== speedLabel}
 						<div class="flex w-11 shrink-0 flex-col items-center gap-1 lg:w-auto lg:min-w-0 lg:flex-1">
 							<svg
 								class="wx-wind-mini wx-icon-wind"
@@ -75,14 +78,25 @@
 									style="height: {Math.max(8, (bar.speed / maxWind) * 100)}%;"
 								></div>
 							</div>
+							<div
+								class="flex flex-col items-center justify-start leading-none {hasGusts
+									? 'min-h-[2.25rem]'
+									: ''}"
+							>
+								<span class="text-xs font-semibold tabular-nums">{speedLabel}</span>
+								{#if showGust}
+									<span class="mt-0.5 text-[0.65rem] tabular-nums text-muted-foreground">{gustLabel}</span>
+								{/if}
+							</div>
 							<span class="text-[0.65rem] tabular-nums text-muted-foreground">{formatTime(bar.time)}</span>
 						</div>
 					{/each}
 				</div>
 			</div>
-			{#if hasGusts}
-				<p class="mt-2 text-sm text-muted-foreground">Balken Wind · heller Böen</p>
-			{/if}
+			<p class="mt-2 text-sm text-muted-foreground">
+				Zahl Wind{hasGusts ? ' · kleiner Böen' : ''}
+				· {unitsState.wind === 'ms' ? 'm/s' : 'km/h'}
+			</p>
 		{/if}
 
 		<dl class="mt-4 grid grid-cols-2 gap-2">

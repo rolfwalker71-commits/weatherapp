@@ -17,11 +17,17 @@ export function formatKmH(value: number): string {
 	return formatWind(value, 'kmh');
 }
 
-export function formatWind(valueKmh: number, unit: 'kmh' | 'ms' = 'kmh'): string {
+/** Numeric wind only (no unit) so compact charts can show km/h or m/s consistently. */
+export function formatWindValue(valueKmh: number, unit: 'kmh' | 'ms' = 'kmh'): string {
 	if (unit === 'ms') {
-		return `${numberOne.format(valueKmh / 3.6)} m/s`;
+		return numberOne.format(valueKmh / 3.6);
 	}
-	return `${numberDe.format(Math.round(valueKmh))} km/h`;
+	return numberDe.format(Math.round(valueKmh));
+}
+
+export function formatWind(valueKmh: number, unit: 'kmh' | 'ms' = 'kmh'): string {
+	const value = formatWindValue(valueKmh, unit);
+	return unit === 'ms' ? `${value} m/s` : `${value} km/h`;
 }
 
 export function formatSourceLine(
