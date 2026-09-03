@@ -41,8 +41,28 @@ export function formatDayMonth(iso: string): string {
 	return dayMonth.format(new Date(iso));
 }
 
-export function formatTime(iso: string): string {
-	return timeFmt.format(new Date(iso));
+export function formatTime(iso: string, timeZone?: string): string {
+	if (!timeZone) return timeFmt.format(new Date(iso));
+	try {
+		return new Intl.DateTimeFormat('de-CH', {
+			hour: '2-digit',
+			minute: '2-digit',
+			timeZone
+		}).format(new Date(iso));
+	} catch {
+		return timeFmt.format(new Date(iso));
+	}
+}
+
+export function formatStationLine(
+	station: { name: string; temperature: number; observedAt: string | null },
+	timeZone?: string
+): string {
+	const parts = [`${station.name} ${formatTempExact(station.temperature)}`];
+	if (station.observedAt) {
+		parts.push(`gemessen ${formatTime(station.observedAt, timeZone)}`);
+	}
+	return parts.join(' · ');
 }
 
 export function formatUpdatedRelative(iso: string, now = Date.now()): string {

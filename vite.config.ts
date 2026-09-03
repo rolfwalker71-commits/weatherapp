@@ -10,6 +10,11 @@ export default defineConfig({
 			'/api/push': {
 				target: 'http://127.0.0.1:4426',
 				rewrite: (path) => path.replace(/^\/api\/push/, '')
+			},
+			'/api/metar': {
+				target: 'https://aviationweather.gov',
+				changeOrigin: true,
+				rewrite: (path) => path.replace(/^\/api\/metar/, '/api/data/metar')
 			}
 		}
 	},
@@ -163,6 +168,18 @@ export default defineConfig({
 								maxAgeSeconds: 15 * 60
 							},
 							networkTimeoutSeconds: 5
+						}
+					},
+					{
+						urlPattern: /^https:\/\/data\.geo\.admin\.ch\/.*/i,
+						handler: 'NetworkFirst',
+						options: {
+							cacheName: 'meteoswiss-ogd',
+							expiration: {
+								maxEntries: 8,
+								maxAgeSeconds: 60 * 60
+							},
+							networkTimeoutSeconds: 6
 						}
 					}
 				]

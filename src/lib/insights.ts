@@ -46,19 +46,40 @@ export function insightLine(bundle: WeatherBundle): string | null {
 	return `${getWmo(now.code, now.isDay).label} bleibt vorerst ähnlich`;
 }
 
+const WET_HOUR_MM = 0.4;
+const WET_MINUTE_MM = 0.1;
+const DRY_MM = 0.25;
+
+function isWetHour(hour: { precipMm: number }): boolean {
+	return hour.precipMm >= WET_HOUR_MM;
+}
+
+function isWetMinute(point: MinutePoint): boolean {
+	return point.precipMm != null && point.precipMm >= WET_MINUTE_MM;
+}
+
+function precipOnsetTime(bundle: WeatherBundle): string | null {
+	const hourOnset = bundle.hours.find(isWetHour);
+	const minuteOnset = bundle.minutes.find(isWetMinute);
+	if (!hourOnset && !minuteOnset) return null;
+	if (!minuteOnset) return hourOnset!.time;
+	if (!hourOnset) return minuteOnset.time;
+	return new Date(minuteOnset.time).getTime() <= new Date(hourOnset.time).getTime()
+		? minuteOnset.time
+		: hourOnset.time;
+}
+
 export function clothingLine(bundle: WeatherBundle): string | null {
 	const comfort = comfortAdvice(bundle);
 	if (!comfort) return null;
-	const hours = bundle.hours.slice(0, 8);
-	const wetHour = hours.find((hour) => hour.precipMm >= 0.4 || (hour.precipProb != null && hour.precipProb >= 60));
-	const lastDry = [...hours].reverse().find((hour) => hour.precipMm < 0.25 && (hour.precipProb == null || hour.precipProb < 45));
+	const nowMm = bundle.hours[0]?.precipMm ?? 0;
 	const parts = [comfort.recommendation === 'Schirm' ? 'Schirm einpacken' : comfort.recommendation];
+	const rainingNow = nowMm >= WET_HOUR_MM || (bundle.minutes[0] != null && isWetMinute(bundle.minutes[0]));
 
-	if (wetHour && hours[0] && hours[0].precipMm < 0.25) {
-		parts.push(`nass ab ${formatTime(wetHour.time)}`);
-	} else if (lastDry && (hours[0]?.precipMm ?? 0) < 0.25) {
-		parts.push(`trocken bis ${formatTime(lastDry.time)}`);
-	} else if ((hours[0]?.precipMm ?? 0) >= 0.4) {
+	if (nowMm < DRY_MM && !rainingNow) {
+		const onset = precipOnsetTime(bundle);
+		parts.push(onset ? `trocken bis ${formatTime(onset)}` : 'trocken');
+	} else if (rainingNow) {
 		parts.push('jetzt nass');
 	}
 
@@ -84,23 +105,91 @@ export function snowFrost(bundle: WeatherBundle): {
 	};
 }
 
-export function thunderNowcast(minutes: MinutePoint[]): {
+const STEP_15_MS = 15 * 60 * 1000;
+const NOWCAST_BIN_MIN = 30;
+const NOWCAST_HORIZON_MIN = 360;
+
+export interface NowcastBar {
+	time: string;
+	precipMm: number;
+	intervalMin: 30;
+	source: 'minutely_15';
+	code: number | null;
+}
+
+function higherCode(a: number | null, b: number | null): number | null {
+	if (a == null) return b;
+	if (b == null) return a;
+	return Math.max(a, b);
+}
+
+/** Pair adjacent Open-Meteo 15-min points into 30-min bars. Does not invent values. */
+export function nowcast30Bars(minutes: MinutePoint[], horizonMin = NOWCAST_HORIZON_MIN): NowcastBar[] {
+	const bars: NowcastBar[] = [];
+	let i = 0;
+	while (i + 1 < minutes.length && bars.length * NOWCAST_BIN_MIN < horizonMin) {
+		const first = minutes[i];
+		const second = minutes[i + 1];
+		if (first.precipMm == null || second.precipMm == null) {
+			i += 1;
+			continue;
+		}
+		const dt = new Date(second.time).getTime() - new Date(first.time).getTime();
+		if (dt !== STEP_15_MS) {
+			i += 1;
+			continue;
+		}
+		bars.push({
+			time: first.time,
+			precipMm: first.precipMm + second.precipMm,
+			intervalMin: NOWCAST_BIN_MIN,
+			source: 'minutely_15',
+			code: higherCode(first.code, second.code)
+		});
+		i += 2;
+	}
+	return bars;
+}
+
+export function nowcastTitle(bars: NowcastBar[]): string {
+	const spanMin = bars.reduce((sum, bar) => sum + bar.intervalMin, 0);
+	if (spanMin <= 0) return '';
+	if (spanMin % 60 === 0) return `${spanMin / 60} Std.`;
+	if (spanMin > 60) {
+		const hours = spanMin / 60;
+		const formatted = Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace('.', ',');
+		return `${formatted} Std.`;
+	}
+	return `${spanMin} Min.`;
+}
+
+export function nowcastAriaLabel(bars: NowcastBar[]): string {
+	const spanMin = bars.reduce((sum, bar) => sum + bar.intervalMin, 0);
+	const window =
+		spanMin >= 60 && spanMin % 60 === 0
+			? `nächste ${spanMin / 60} Stunden`
+			: `nächste ${spanMin} Minuten`;
+	return `Niederschlag ${window}, 30-Minuten-Stufen aus 15-Minuten-Werten`;
+}
+
+export function thunderNowcast(points: Array<Pick<MinutePoint, 'precipMm' | 'code'> & { intervalMin?: number }>): {
 	nextMm: number | null;
 	windowMin: number;
 	label: string | null;
 } {
-	if (!minutes.length) {
-		return { nextMm: null, windowMin: 90, label: null };
+	const windowMin = points.reduce((sum, item) => sum + (item.intervalMin ?? 15), 0);
+	if (!points.length) {
+		return { nextMm: null, windowMin: 0, label: null };
 	}
-	const values = minutes.map((item) => item.precipMm).filter((value): value is number => value != null);
+	const values = points.map((item) => item.precipMm).filter((value): value is number => value != null);
 	if (!values.length) {
-		return { nextMm: null, windowMin: 90, label: null };
+		return { nextMm: null, windowMin, label: null };
 	}
 	const nextMm = values.reduce((sum, item) => sum + item, 0);
-	const storm = minutes.some((item) => item.code != null && item.code >= 95);
+	const storm = points.some((item) => item.code != null && item.code >= 95);
 	return {
 		nextMm,
-		windowMin: 90,
+		windowMin,
 		label: storm ? 'Gewitter-Wettercode in den Minutenwerten' : null
 	};
 }

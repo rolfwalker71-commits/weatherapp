@@ -179,6 +179,89 @@
 		background-color: rgb(var(--primary) / 0.1);
 	}
 
+	.hero-stack {
+		position: relative;
+		z-index: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	html[data-chrome='android'] .hero-stack {
+		gap: 1rem;
+	}
+
+	html[data-chrome='desktop'] .hero-stack {
+		gap: 0.75rem;
+	}
+
+	.hero-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	#jetzt .hero-weather,
+	#jetzt .hero-fav-glyph {
+		color: inherit;
+	}
+
+	button.hero-fav {
+		display: inline-flex;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		background-color: transparent;
+		color: inherit;
+		cursor: pointer;
+	}
+
+	button.hero-fav:hover,
+	button.hero-fav:active,
+	button.hero-fav[aria-pressed='true'] {
+		background: transparent;
+		background-color: transparent;
+	}
+
+	button.hero-fav:focus-visible {
+		outline: 0.125rem solid rgb(var(--ring));
+		outline-offset: 0.125rem;
+		border-radius: 0.5rem;
+	}
+
+	html[data-chrome='android'] button.hero-fav {
+		width: 3rem;
+		height: 3rem;
+		min-width: 3rem;
+		min-height: 3rem;
+		margin-right: -0.5rem;
+		margin-bottom: -0.75rem;
+	}
+
+	html[data-chrome='desktop'] button.hero-fav {
+		width: 2.5rem;
+		height: 2.5rem;
+		min-width: 2.5rem;
+		min-height: 2.5rem;
+	}
+
+	html[data-chrome='android'] .hero-fav-glyph {
+		width: 1rem;
+		height: 1rem;
+	}
+
+	html[data-chrome='desktop'] .hero-fav-glyph {
+		width: 0.75rem;
+		height: 0.75rem;
+	}
+
+	.hero-weather {
+		filter: drop-shadow(0 0.0625rem 0.125rem rgb(0 0 0 / 0.22));
+	}
+
 	.wx-icon-clear,
 	.wx-icon-sun {
 		color: #e6a100;

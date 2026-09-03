@@ -172,6 +172,15 @@ export interface AirTrendPoint {
 	pm25: number | null;
 }
 
+export interface StationObservation {
+	id: string;
+	name: string;
+	temperature: number;
+	observedAt: string | null;
+	distanceKm: number;
+	source: 'meteoswiss' | 'metar';
+}
+
 export interface WeatherBundle {
 	place: Place;
 	timezone: string;
@@ -189,6 +198,7 @@ export interface WeatherBundle {
 	airTrend: AirTrendPoint[];
 	elevations: ElevationSnapshot[];
 	lakes: LakeSnapshot[];
+	station: StationObservation | null;
 	fetchedAt: string;
 }
 

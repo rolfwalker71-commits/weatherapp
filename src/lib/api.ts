@@ -1,4 +1,5 @@
 import { fetchBafuLakeTemps, nearestLakes, toLakeSnapshot } from './lakes';
+import { fetchNearestStation } from './station';
 import type {
 	AirQualityResponse,
 	AirTrendPoint,
@@ -10,6 +11,7 @@ import type {
 	LakeSnapshot,
 	MinutePoint,
 	Place,
+	StationObservation,
 	WeatherBundle
 } from './types';
 
@@ -136,7 +138,8 @@ function mapMinutes(forecast: ForecastResponse): MinutePoint[] {
 	}));
 	let start = points.findIndex((point) => new Date(point.time).getTime() >= now);
 	if (start < 0) start = 0;
-	return points.slice(start, start + 8);
+	// 6h of delivered 15-min steps — NowcastCard pairs these into 30-min bars.
+	return points.slice(start, start + 24);
 }
 
 function mapDays(forecast: ForecastResponse): DayPoint[] {
@@ -348,7 +351,8 @@ function buildBundle(
 	forecast: ForecastResponse,
 	air: AirQualityResponse | null,
 	elevations: ElevationSnapshot[],
-	lakes: LakeSnapshot[]
+	lakes: LakeSnapshot[],
+	station: StationObservation | null
 ): WeatherBundle {
 	const allHours = mapAllHours(forecast);
 	return {
@@ -364,6 +368,7 @@ function buildBundle(
 		airTrend: mapAirTrend(air),
 		elevations,
 		lakes,
+		station,
 		fetchedAt: new Date().toISOString()
 	};
 }
@@ -386,12 +391,13 @@ export async function fetchWeather(place: Place, signal?: AbortSignal): Promise<
 		getJson<AirQualityResponse>(airUrl.toString(), signal).catch(() => null)
 	]);
 
-	const [elevations, lakes] = await Promise.all([
+	const [elevations, lakes, station] = await Promise.all([
 		fetchElevations(place, signal),
-		fetchLakes(place, signal)
+		fetchLakes(place, signal),
+		fetchNearestStation(place, signal).catch(() => null)
 	]);
 
-	return buildBundle(place, forecast, air, elevations, lakes);
+	return buildBundle(place, forecast, air, elevations, lakes, station);
 }
 
 export async function fetchWeatherLite(place: Place, signal?: AbortSignal): Promise<WeatherBundle> {
@@ -399,7 +405,7 @@ export async function fetchWeatherLite(place: Place, signal?: AbortSignal): Prom
 		getJson<ForecastResponse>(forecastUrlFor(place).toString(), signal),
 		Promise.resolve(null)
 	]);
-	return buildBundle(place, forecast, air, [], []);
+	return buildBundle(place, forecast, air, [], [], null);
 }
 
 function fillHour(hour: HourPoint): HourPoint {
@@ -429,6 +435,8 @@ export function emptyExtras(bundle: WeatherBundle): WeatherBundle {
 				...lake,
 				tempSource: lake.tempSource ?? null
 			})),
-		allHours: (bundle.allHours ?? bundle.hours ?? []).map(fillHour)
+		allHours: (bundle.allHours ?? bundle.hours ?? []).map(fillHour),
+		station:
+			bundle.station != null && Number.isFinite(bundle.station.temperature) ? bundle.station : null
 	};
 }
