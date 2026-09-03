@@ -132,6 +132,8 @@ function mapMinutes(forecast: ForecastResponse): MinutePoint[] {
 		temperature: minutely.temperature_2m?.[index] ?? null,
 		precipMm: minutely.precipitation?.[index] ?? null,
 		wind: minutely.wind_speed_10m?.[index] ?? null,
+		windDir: minutely.wind_direction_10m?.[index] ?? null,
+		gusts: minutely.wind_gusts_10m?.[index] ?? null,
 		cape: minutely.cape?.[index] ?? null,
 		code: minutely.weather_code?.[index] ?? null,
 		snowfall: minutely.snowfall?.[index] ?? null
@@ -240,7 +242,7 @@ function forecastUrlFor(place: Place): URL {
 	);
 	forecastUrl.searchParams.set(
 		'minutely_15',
-		'temperature_2m,precipitation,weather_code,wind_speed_10m,cape,snowfall'
+		'temperature_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cape,snowfall'
 	);
 	forecastUrl.searchParams.set(
 		'daily',
@@ -470,7 +472,12 @@ export function emptyExtras(bundle: WeatherBundle): WeatherBundle {
 	return {
 		...bundle,
 		hours: (bundle.hours ?? []).map(fillHour),
-		minutes: bundle.minutes ?? [],
+		minutes: (bundle.minutes ?? []).map((point) => ({
+			...point,
+			wind: point.wind ?? null,
+			windDir: point.windDir ?? null,
+			gusts: point.gusts ?? null
+		})),
 		airTrend: bundle.airTrend ?? [],
 		elevations: bundle.elevations ?? [],
 		lakes: (bundle.lakes ?? [])

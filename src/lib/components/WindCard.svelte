@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { chromeState } from '$lib/chrome.svelte';
 	import AppIcon from './AppIcon.svelte';
-	import { formatPercent, formatWind, windDirection } from '$lib/format';
+	import { formatPercent, formatTime, formatWind, windDirection } from '$lib/format';
+	import { windBars, windChartAriaLabel } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
 	import { unitsState } from '$lib/units.svelte';
 	import { weatherState } from '$lib/weather.svelte';
@@ -9,7 +10,14 @@
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
 	const current = $derived(weatherState.bundle?.current);
 	const hour = $derived(weatherState.bundle?.hours[0]);
+	const bars = $derived(
+		windBars(weatherState.bundle?.minutes ?? [], weatherState.bundle?.hours ?? [])
+	);
+	const maxWind = $derived(
+		Math.max(1, ...bars.flatMap((bar) => [bar.speed, bar.gusts ?? 0]))
+	);
 	const shape = $derived(isDesktop ? 'rounded-md p-3 ring-1 ring-border' : 'rounded-[1.25rem] p-3 bg-muted');
+	const tile = $derived(isDesktop ? 'rounded-sm' : 'rounded-full');
 </script>
 
 {#if current}
@@ -29,6 +37,47 @@
 				CAPE {Math.round(hour.cape)} J/kg · Modell
 			</p>
 		{/if}
+
+		{#if bars.length}
+			<div
+				class="mt-4 overflow-x-auto lg:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
+				role="region"
+				aria-label={windChartAriaLabel(bars)}
+			>
+				<div class="flex min-w-[36rem] items-end gap-1.5 lg:min-w-0">
+					{#each bars as bar (bar.time)}
+						<div class="flex w-11 shrink-0 flex-col items-center gap-1 lg:w-auto lg:min-w-0 lg:flex-1">
+							<span
+								class="wx-wind-mini wx-icon-wind"
+								style="transform: rotate({bar.direction}deg)"
+								title="aus {windDirection(bar.direction)}"
+								aria-hidden="true"
+							></span>
+							<span class="sr-only">{windDirection(bar.direction)}</span>
+							<div
+								class="relative flex h-14 w-full items-end"
+								title="{formatTime(bar.time)} · {formatWind(bar.speed, unitsState.wind)} aus {windDirection(
+									bar.direction
+								)}{bar.gusts != null ? ` · Böen ${formatWind(bar.gusts, unitsState.wind)}` : ''}"
+							>
+								{#if bar.gusts != null}
+									<div
+										class="absolute bottom-0 w-full {tile} wx-bar-gust"
+										style="height: {Math.max(8, (bar.gusts / maxWind) * 100)}%;"
+									></div>
+								{/if}
+								<div
+									class="relative w-full {tile} wx-bar-wind"
+									style="height: {Math.max(8, (bar.speed / maxWind) * 100)}%;"
+								></div>
+							</div>
+							<span class="text-[0.65rem] tabular-nums text-muted-foreground">{formatTime(bar.time)}</span>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
 		<dl class="mt-4 grid grid-cols-2 gap-2">
 			{#if hour?.gusts != null}
 				<div class="{shape}">

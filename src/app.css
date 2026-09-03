@@ -589,6 +589,30 @@
 		background: #1a73e8;
 	}
 
+	.wx-bar-wind {
+		background: #00897b;
+	}
+
+	.wx-bar-gust {
+		background: #80cbc4;
+	}
+
+	html.dark .wx-bar-wind {
+		background: #4db6ac;
+	}
+
+	html.dark .wx-bar-gust {
+		background: #1b5e58;
+	}
+
+	.wx-wind-mini {
+		width: 0;
+		height: 0;
+		border-left: 0.22rem solid transparent;
+		border-right: 0.22rem solid transparent;
+		border-bottom: 0.7rem solid currentColor;
+	}
+
 	.wx-scale-icon-good {
 		color: #2e7d32;
 	}

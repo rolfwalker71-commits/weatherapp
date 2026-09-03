@@ -1,6 +1,6 @@
 import { comfortAdvice } from './comfort';
 import { formatTime } from './format';
-import type { MinutePoint, WeatherBundle } from './types';
+import type { HourPoint, MinutePoint, WeatherBundle } from './types';
 import { getWmo } from './wmo';
 
 export function nextPrecipLine(bundle: WeatherBundle): string | null {
@@ -202,4 +202,96 @@ export function thunderNowcast(points: Array<Pick<MinutePoint, 'precipMm' | 'cod
 		windowMin,
 		label: storm ? 'Gewitter-Wettercode in den Minutenwerten' : null
 	};
+}
+
+export interface WindBar {
+	time: string;
+	speed: number;
+	direction: number;
+	gusts: number | null;
+	intervalMin: 30 | 60;
+	source: 'minutely_15' | 'hourly';
+}
+
+function meanDirection(a: number, b: number): number {
+	const radA = (a * Math.PI) / 180;
+	const radB = (b * Math.PI) / 180;
+	const deg = (Math.atan2(Math.sin(radA) + Math.sin(radB), Math.cos(radA) + Math.cos(radB)) * 180) / Math.PI;
+	return (deg + 360) % 360;
+}
+
+function higherGust(a: number | null, b: number | null): number | null {
+	if (a == null) return b;
+	if (b == null) return a;
+	return Math.max(a, b);
+}
+
+/** Pair adjacent 15-min points that already have speed and direction. Does not invent values. */
+function wind30Bars(minutes: MinutePoint[], horizonMin = NOWCAST_HORIZON_MIN): WindBar[] {
+	const bars: WindBar[] = [];
+	let i = 0;
+	while (i + 1 < minutes.length && bars.length * NOWCAST_BIN_MIN < horizonMin) {
+		const first = minutes[i];
+		const second = minutes[i + 1];
+		if (
+			first.wind == null ||
+			second.wind == null ||
+			first.windDir == null ||
+			second.windDir == null
+		) {
+			i += 1;
+			continue;
+		}
+		const dt = new Date(second.time).getTime() - new Date(first.time).getTime();
+		if (dt !== STEP_15_MS) {
+			i += 1;
+			continue;
+		}
+		bars.push({
+			time: first.time,
+			speed: (first.wind + second.wind) / 2,
+			direction: meanDirection(first.windDir, second.windDir),
+			gusts: higherGust(first.gusts, second.gusts),
+			intervalMin: 30,
+			source: 'minutely_15'
+		});
+		i += 2;
+	}
+	return bars;
+}
+
+function windHourBars(hours: HourPoint[], count = 6): WindBar[] {
+	const bars: WindBar[] = [];
+	for (const hour of hours) {
+		if (bars.length >= count) break;
+		if (!Number.isFinite(hour.wind) || hour.windDir == null) continue;
+		bars.push({
+			time: hour.time,
+			speed: hour.wind,
+			direction: hour.windDir,
+			gusts: hour.gusts,
+			intervalMin: 60,
+			source: 'hourly'
+		});
+	}
+	return bars;
+}
+
+export function windBars(minutes: MinutePoint[], hours: HourPoint[]): WindBar[] {
+	const fromMinutes = wind30Bars(minutes);
+	if (fromMinutes.length) return fromMinutes;
+	return windHourBars(hours);
+}
+
+export function windChartAriaLabel(bars: WindBar[]): string {
+	if (!bars.length) return 'Windverlauf';
+	const spanMin = bars.reduce((sum, bar) => sum + bar.intervalMin, 0);
+	const window =
+		spanMin >= 60 && spanMin % 60 === 0
+			? `nächste ${spanMin / 60} Stunden`
+			: `nächste ${spanMin} Minuten`;
+	if (bars[0].source === 'minutely_15') {
+		return `Wind ${window}, 30-Minuten-Stufen aus 15-Minuten-Werten`;
+	}
+	return `Wind ${window}, stündlich`;
 }

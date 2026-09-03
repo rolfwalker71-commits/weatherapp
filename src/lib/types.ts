@@ -51,6 +51,8 @@ export interface ForecastMinutely {
 	precipitation?: (number | null)[];
 	weather_code?: (number | null)[];
 	wind_speed_10m?: (number | null)[];
+	wind_direction_10m?: (number | null)[];
+	wind_gusts_10m?: (number | null)[];
 	cape?: (number | null)[];
 	snowfall?: (number | null)[];
 }
@@ -131,6 +133,8 @@ export interface MinutePoint {
 	temperature: number | null;
 	precipMm: number | null;
 	wind: number | null;
+	windDir: number | null;
+	gusts: number | null;
 	cape: number | null;
 	code: number | null;
 	snowfall: number | null;
