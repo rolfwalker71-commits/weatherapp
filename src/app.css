@@ -198,7 +198,7 @@
 
 	.hero-stack {
 		position: relative;
-		z-index: 0;
+		z-index: 1;
 		display: flex;
 		flex-direction: column;
 	}
@@ -686,6 +686,329 @@
 		pointer-events: none;
 		position: absolute;
 		inset: 0;
+		z-index: 0;
+	}
+
+	.hero-atmosphere {
+		pointer-events: none;
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		overflow: hidden;
+		border-radius: inherit;
+		content-visibility: auto;
+		contain-intrinsic-size: 20rem 16rem;
+	}
+
+	.hero-fx {
+		position: absolute;
+		inset: 0;
+		display: none;
+		pointer-events: none;
+	}
+
+	.hero-atmosphere[data-fx='clear'] .hero-fx-a,
+	.hero-atmosphere[data-fx='night'] .hero-fx-a,
+	.hero-atmosphere[data-fx='cloud'] .hero-fx-a,
+	.hero-atmosphere[data-fx='cloud'] .hero-fx-b,
+	.hero-atmosphere[data-fx='rain'] .hero-fx-a,
+	.hero-atmosphere[data-fx='rain'] .hero-fx-b,
+	.hero-atmosphere[data-fx='storm'] .hero-fx-a,
+	.hero-atmosphere[data-fx='storm'] .hero-fx-b,
+	.hero-atmosphere[data-fx='storm'] .hero-fx-c,
+	.hero-atmosphere[data-fx='hail'] .hero-fx-a,
+	.hero-atmosphere[data-fx='hail'] .hero-fx-b,
+	.hero-atmosphere[data-fx='hail'] .hero-fx-c,
+	.hero-atmosphere[data-fx='snow'] .hero-fx-a,
+	.hero-atmosphere[data-fx='snow'] .hero-fx-b,
+	.hero-atmosphere[data-fx='fog'] .hero-fx-a,
+	.hero-atmosphere[data-fx='fog'] .hero-fx-b {
+		display: block;
+	}
+
+	.hero-atmosphere[data-fx='clear'] .hero-fx-a {
+		top: -38%;
+		right: -16%;
+		left: auto;
+		width: 78%;
+		height: 78%;
+		border-radius: 50%;
+		background: radial-gradient(
+			circle,
+			rgb(255 224 79 / 0.55) 0%,
+			rgb(255 193 7 / 0.22) 38%,
+			transparent 70%
+		);
+		animation: hero-sun 7s ease-in-out infinite;
+	}
+
+	html.dark .hero-atmosphere[data-fx='clear'] .hero-fx-a {
+		background: radial-gradient(
+			circle,
+			rgb(255 213 79 / 0.32) 0%,
+			rgb(255 179 0 / 0.14) 40%,
+			transparent 70%
+		);
+	}
+
+	.hero-atmosphere[data-fx='night'] .hero-fx-a {
+		top: -32%;
+		right: -14%;
+		left: auto;
+		width: 70%;
+		height: 70%;
+		border-radius: 50%;
+		background: radial-gradient(
+			circle,
+			rgb(159 176 255 / 0.28) 0%,
+			rgb(63 81 181 / 0.16) 42%,
+			transparent 70%
+		);
+		animation: hero-moon 9s ease-in-out infinite;
+	}
+
+	html.dark .hero-atmosphere[data-fx='night'] .hero-fx-a {
+		background: radial-gradient(
+			circle,
+			rgb(144 164 255 / 0.2) 0%,
+			rgb(49 66 140 / 0.14) 45%,
+			transparent 70%
+		);
+	}
+
+	.hero-atmosphere[data-fx='cloud'] .hero-fx-a {
+		background: radial-gradient(ellipse 72% 48% at 18% 8%, rgb(255 255 255 / 0.28), transparent 70%);
+		animation: hero-cloud 24s ease-in-out infinite;
+	}
+
+	.hero-atmosphere[data-fx='cloud'] .hero-fx-b {
+		background: radial-gradient(ellipse 64% 42% at 82% 28%, rgb(255 255 255 / 0.16), transparent 68%);
+		animation: hero-cloud 30s ease-in-out infinite reverse;
+	}
+
+	html.dark .hero-atmosphere[data-fx='cloud'] .hero-fx-a {
+		background: radial-gradient(ellipse 72% 48% at 18% 8%, rgb(255 255 255 / 0.08), transparent 70%);
+	}
+
+	html.dark .hero-atmosphere[data-fx='cloud'] .hero-fx-b {
+		background: radial-gradient(ellipse 64% 42% at 82% 28%, rgb(180 190 200 / 0.1), transparent 68%);
+	}
+
+	.hero-atmosphere[data-fx='rain'] .hero-fx-a,
+	.hero-atmosphere[data-fx='storm'] .hero-fx-a,
+	.hero-atmosphere[data-fx='hail'] .hero-fx-a {
+		background-image: linear-gradient(
+			165deg,
+			transparent 0%,
+			transparent 40%,
+			rgb(255 255 255 / 0.32) 40%,
+			rgb(255 255 255 / 0.32) 42%,
+			transparent 42%
+		);
+		background-size: 1.15rem 1.75rem;
+		opacity: 0.5;
+		animation: hero-rain 0.55s linear infinite;
+	}
+
+	.hero-atmosphere[data-fx='rain'] .hero-fx-b,
+	.hero-atmosphere[data-fx='storm'] .hero-fx-b {
+		background-image: linear-gradient(
+			168deg,
+			transparent 0%,
+			transparent 52%,
+			rgb(255 255 255 / 0.2) 52%,
+			rgb(255 255 255 / 0.2) 53.5%,
+			transparent 53.5%
+		);
+		background-size: 1.65rem 2.35rem;
+		opacity: 0.38;
+		animation: hero-rain-b 0.85s linear infinite;
+	}
+
+	html.dark .hero-atmosphere[data-fx='rain'] .hero-fx-a,
+	html.dark .hero-atmosphere[data-fx='storm'] .hero-fx-a,
+	html.dark .hero-atmosphere[data-fx='hail'] .hero-fx-a {
+		opacity: 0.42;
+	}
+
+	.hero-atmosphere[data-fx='storm'] .hero-fx-c,
+	.hero-atmosphere[data-fx='hail'] .hero-fx-c {
+		background: rgb(255 255 255 / 0.38);
+		opacity: 0;
+		animation: hero-flash 8s ease-in-out infinite;
+	}
+
+	.hero-atmosphere[data-fx='hail'] .hero-fx-b {
+		background-image:
+			radial-gradient(circle at 18% 22%, rgb(255 255 255 / 0.82) 0 0.14rem, transparent 0.16rem),
+			radial-gradient(circle at 62% 8%, rgb(255 255 255 / 0.7) 0 0.11rem, transparent 0.13rem),
+			radial-gradient(circle at 84% 46%, rgb(255 255 255 / 0.78) 0 0.13rem, transparent 0.15rem),
+			radial-gradient(circle at 36% 68%, rgb(255 255 255 / 0.66) 0 0.1rem, transparent 0.12rem),
+			radial-gradient(circle at 72% 86%, rgb(255 255 255 / 0.74) 0 0.12rem, transparent 0.14rem);
+		background-size: 100% 100%;
+		opacity: 0.7;
+		animation: hero-hail 1.55s linear infinite;
+	}
+
+	.hero-atmosphere[data-fx='snow'] .hero-fx-a {
+		background-image:
+			radial-gradient(circle at 14% 18%, rgb(255 255 255 / 0.86) 0 0.13rem, transparent 0.15rem),
+			radial-gradient(circle at 42% 8%, rgb(255 255 255 / 0.7) 0 0.09rem, transparent 0.11rem),
+			radial-gradient(circle at 76% 26%, rgb(255 255 255 / 0.8) 0 0.12rem, transparent 0.14rem),
+			radial-gradient(circle at 28% 58%, rgb(255 255 255 / 0.64) 0 0.08rem, transparent 0.1rem),
+			radial-gradient(circle at 88% 72%, rgb(255 255 255 / 0.76) 0 0.11rem, transparent 0.13rem);
+		background-size: 120% 140%;
+		opacity: 0.72;
+		animation: hero-snow 11s linear infinite;
+	}
+
+	.hero-atmosphere[data-fx='snow'] .hero-fx-b {
+		background-image:
+			radial-gradient(circle at 22% 36%, rgb(255 255 255 / 0.55) 0 0.07rem, transparent 0.09rem),
+			radial-gradient(circle at 58% 14%, rgb(255 255 255 / 0.5) 0 0.06rem, transparent 0.08rem),
+			radial-gradient(circle at 90% 48%, rgb(255 255 255 / 0.58) 0 0.08rem, transparent 0.1rem),
+			radial-gradient(circle at 8% 82%, rgb(255 255 255 / 0.48) 0 0.06rem, transparent 0.08rem);
+		background-size: 130% 160%;
+		opacity: 0.55;
+		animation: hero-snow-b 16s linear infinite;
+	}
+
+	.hero-atmosphere[data-fx='fog'] .hero-fx-a {
+		top: 12%;
+		height: 44%;
+		background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.36), transparent);
+		filter: blur(1.5rem);
+		animation: hero-fog 16s ease-in-out infinite;
+	}
+
+	.hero-atmosphere[data-fx='fog'] .hero-fx-b {
+		top: 46%;
+		height: 40%;
+		background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.24), transparent);
+		filter: blur(1.75rem);
+		animation: hero-fog 22s ease-in-out infinite reverse;
+	}
+
+	html.dark .hero-atmosphere[data-fx='fog'] .hero-fx-a {
+		background: linear-gradient(90deg, transparent, rgb(220 228 236 / 0.18), transparent);
+	}
+
+	html.dark .hero-atmosphere[data-fx='fog'] .hero-fx-b {
+		background: linear-gradient(90deg, transparent, rgb(200 210 220 / 0.12), transparent);
+	}
+
+	.hero-atmosphere[data-active='false'] .hero-fx {
+		animation-play-state: paused;
+	}
+
+	@keyframes hero-sun {
+		0%,
+		100% {
+			transform: scale(1);
+			opacity: 0.82;
+		}
+		50% {
+			transform: scale(1.08);
+			opacity: 1;
+		}
+	}
+
+	@keyframes hero-moon {
+		0%,
+		100% {
+			transform: scale(1);
+			opacity: 0.7;
+		}
+		50% {
+			transform: scale(1.06);
+			opacity: 0.95;
+		}
+	}
+
+	@keyframes hero-cloud {
+		0%,
+		100% {
+			transform: translateX(-6%);
+		}
+		50% {
+			transform: translateX(8%);
+		}
+	}
+
+	@keyframes hero-rain {
+		to {
+			background-position: 0.35rem 1.75rem;
+		}
+	}
+
+	@keyframes hero-rain-b {
+		to {
+			background-position: -0.4rem 2.35rem;
+		}
+	}
+
+	@keyframes hero-flash {
+		0%,
+		88%,
+		91%,
+		93.4%,
+		100% {
+			opacity: 0;
+		}
+		89.2% {
+			opacity: 0.32;
+		}
+		90% {
+			opacity: 0.06;
+		}
+		92.2% {
+			opacity: 0.16;
+		}
+	}
+
+	@keyframes hero-hail {
+		from {
+			background-position: 0 0;
+		}
+		to {
+			background-position: 6% 100%;
+		}
+	}
+
+	@keyframes hero-snow {
+		from {
+			background-position: 0 0;
+		}
+		to {
+			background-position: 8% 140%;
+		}
+	}
+
+	@keyframes hero-snow-b {
+		from {
+			background-position: 0 0;
+		}
+		to {
+			background-position: -6% 160%;
+		}
+	}
+
+	@keyframes hero-fog {
+		0%,
+		100% {
+			transform: translateX(-12%);
+			opacity: 0.42;
+		}
+		50% {
+			transform: translateX(12%);
+			opacity: 0.72;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.hero-atmosphere {
+			display: none;
+		}
 	}
 
 	html[data-chrome='android'] .hero-wash[data-mood='clear'] {

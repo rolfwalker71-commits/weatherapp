@@ -5,7 +5,7 @@
 	import { clothingLine, insightLine } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
 	import type { Place, WeatherBundle } from '$lib/types';
-	import { getWmo, weatherMood } from '$lib/wmo';
+	import { getWmo, heroAtmosphere, weatherMood } from '$lib/wmo';
 	import { clockState, isFavorite, starPlace, weatherState } from '$lib/weather.svelte';
 	import WeatherIcon from './WeatherIcon.svelte';
 
@@ -35,6 +35,24 @@
 	const mood = $derived(
 		current ? weatherMood(current.weather_code, current.is_day === 1) : 'cloud'
 	);
+	const atmosphere = $derived(
+		current ? heroAtmosphere(current.weather_code, current.is_day === 1) : 'cloud'
+	);
+	let heroRoot: HTMLElement | undefined = $state();
+	let atmosphereOn = $state(true);
+
+	$effect(() => {
+		const el = heroRoot;
+		if (!el || typeof IntersectionObserver === 'undefined') return;
+		const io = new IntersectionObserver(
+			([entry]) => {
+				atmosphereOn = entry.isIntersecting;
+			},
+			{ rootMargin: '64px', threshold: 0 }
+		);
+		io.observe(el);
+		return () => io.disconnect();
+	});
 	const today = $derived(bundle?.days[0]);
 	const insight = $derived(bundle ? insightLine(bundle) : null);
 	const clothing = $derived(bundle ? clothingLine(bundle) : null);
@@ -47,11 +65,22 @@
 
 {#if current && wmo && bundle}
 	<section
+		bind:this={heroRoot}
 		id={onOpen ? undefined : 'jetzt'}
-		class="{panelClass(chromeState.chrome)} hero-on-{mood} relative overflow-hidden p-5 sm:p-6"
+		class="{panelClass(chromeState.chrome)} hero-on-{mood} relative isolate overflow-hidden p-5 sm:p-6"
 		data-mood={mood}
 	>
 		<div class="hero-wash" data-mood={mood} aria-hidden="true"></div>
+		<div
+			class="hero-atmosphere"
+			data-fx={atmosphere}
+			data-active={atmosphereOn}
+			aria-hidden="true"
+		>
+			<span class="hero-fx hero-fx-a"></span>
+			<span class="hero-fx hero-fx-b"></span>
+			<span class="hero-fx hero-fx-c"></span>
+		</div>
 		{#if onOpen}
 			<button
 				type="button"

@@ -63,6 +63,9 @@ export function getWmo(code: number, isDay = true): { label: string; glyph: Weat
 
 export type { WeatherMood };
 
+/** Hero-only atmosphere. Hail is WMO 96 / 99; other moods follow `weatherMood`. */
+export type HeroAtmosphere = WeatherMood | 'hail';
+
 export function weatherMood(code: number, isDay: boolean): WeatherMood {
 	if (!isDay && code <= 2) return 'night';
 	if (code <= 1) return 'clear';
@@ -74,4 +77,10 @@ export function weatherMood(code: number, isDay: boolean): WeatherMood {
 	}
 	if (code >= 51) return 'rain';
 	return 'cloud';
+}
+
+export function heroAtmosphere(code: number, isDay: boolean): HeroAtmosphere {
+	const safe = Number.isFinite(code) ? Math.round(code) : 0;
+	if (safe === 96 || safe === 99) return 'hail';
+	return weatherMood(safe, isDay);
 }
