@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { chromeState } from '$lib/chrome.svelte';
 	import AppIcon from './AppIcon.svelte';
-	import { formatKmH, formatPercent, windDirection } from '$lib/format';
+	import { formatPercent, formatWind, windDirection } from '$lib/format';
 	import { panelClass } from '$lib/platform';
+	import { unitsState } from '$lib/units.svelte';
 	import { weatherState } from '$lib/weather.svelte';
 
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
@@ -16,18 +17,23 @@
 		<h2 class="flex items-center gap-2 text-xl font-semibold leading-snug tracking-tight">
 			<AppIcon name="wind" class="size-6 wx-icon-wind" /> Wind
 		</h2>
-		<p class="mt-2 text-3xl font-semibold tabular-nums">{formatKmH(current.wind_speed_10m)}</p>
+		<p class="mt-2 text-3xl font-semibold tabular-nums">{formatWind(current.wind_speed_10m, unitsState.wind)}</p>
 		<p class="mt-1 text-sm text-muted-foreground">
 			aus {windDirection(current.wind_direction_10m)}
 			{#if current.wind_gusts_10m != null}
-				· Böen {formatKmH(current.wind_gusts_10m)}
+				· Böen {formatWind(current.wind_gusts_10m, unitsState.wind)}
 			{/if}
 		</p>
+		{#if hour?.cape != null}
+			<p class="mt-2 text-sm leading-snug">
+				CAPE {Math.round(hour.cape)} J/kg · Modell
+			</p>
+		{/if}
 		<dl class="mt-4 grid grid-cols-2 gap-2">
 			{#if hour?.gusts != null}
 				<div class="{shape}">
 					<dt class="text-sm text-muted-foreground">Böen (Stunde)</dt>
-					<dd class="font-medium tabular-nums">{formatKmH(hour.gusts)}</dd>
+					<dd class="font-medium tabular-nums">{formatWind(hour.gusts, unitsState.wind)}</dd>
 				</div>
 			{/if}
 			{#if current.relative_humidity_2m != null}

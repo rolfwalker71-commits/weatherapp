@@ -8,6 +8,10 @@
 	import DayDetail from '$lib/components/DayDetail.svelte';
 	import EinstellungenPage from '$lib/components/EinstellungenPage.svelte';
 	import FavoritesDeck from '$lib/components/FavoritesDeck.svelte';
+	import PassesCard from '$lib/components/PassesCard.svelte';
+	import SnowBulletinCard from '$lib/components/SnowBulletinCard.svelte';
+	import VergleichPage from '$lib/components/VergleichPage.svelte';
+	import WidgetView from '$lib/components/WidgetView.svelte';
 	import HourDetail from '$lib/components/HourDetail.svelte';
 	import HourlyForecast from '$lib/components/HourlyForecast.svelte';
 	import LakesCard from '$lib/components/LakesCard.svelte';
@@ -80,14 +84,20 @@
 </svelte:head>
 
 <div class="wx-page min-h-dvh bg-background text-foreground" data-mood={mood}>
-	<AppHeader />
+	{#if section !== 'widget'}
+		<AppHeader />
+	{/if}
 	<div class="mx-auto flex w-full max-w-[90rem]">
-		<NavRail />
+		{#if section !== 'widget'}
+			<NavRail />
+		{/if}
 		<main
 			id="main"
-			class="min-w-0 flex-1 px-4 py-4 sm:px-6 sm:py-6 {chromeState.chrome === 'android'
-				? 'pb-[calc(8rem+env(safe-area-inset-bottom,0px))]'
-				: 'lg:pb-10'}"
+			class="min-w-0 flex-1 px-4 py-4 sm:px-6 sm:py-6 {section === 'widget'
+				? ''
+				: chromeState.chrome === 'android'
+					? 'pb-[calc(8rem+env(safe-area-inset-bottom,0px))]'
+					: 'lg:pb-10'}"
 		>
 			{#if weatherState.error}
 				<p
@@ -98,8 +108,14 @@
 				</p>
 			{/if}
 
-			{#if section === 'favoriten'}
+			{#if section === 'widget'}
+				<div class="mx-auto max-w-md">
+					<WidgetView />
+				</div>
+			{:else if section === 'favoriten'}
 				<FavoritesDeck />
+			{:else if section === 'vergleich'}
+				<VergleichPage />
 			{:else if section === 'einstellungen'}
 				<EinstellungenPage />
 			{:else if section === 'mehr'}
@@ -137,6 +153,8 @@
 							onSelect={(day) => (selectedDay = day)}
 						/>
 						<div class="space-y-4">
+							<SnowBulletinCard />
+							<PassesCard />
 							<AlpsCard />
 							<LakesCard />
 						</div>
@@ -148,7 +166,7 @@
 		</main>
 	</div>
 
-	{#if chromeState.chrome !== 'desktop'}
+	{#if chromeState.chrome !== 'desktop' && section !== 'widget'}
 		<NavBar />
 	{/if}
 </div>

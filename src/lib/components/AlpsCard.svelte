@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { chromeState } from '$lib/chrome.svelte';
 	import AppIcon from './AppIcon.svelte';
-	import { formatKmH, formatTemp, windDirection } from '$lib/format';
+	import { formatTemp, formatWind, windDirection } from '$lib/format';
 	import { snowFrost } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
+	import { unitsState } from '$lib/units.svelte';
 	import { weatherState } from '$lib/weather.svelte';
 
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
@@ -33,7 +34,7 @@
 						{/if}
 						{#if band.wind != null}
 							<p class="text-sm text-muted-foreground">
-								{formatKmH(band.wind)}
+								{formatWind(band.wind, unitsState.wind)}
 								{#if band.windDir != null}
 									{windDirection(band.windDir)}
 								{/if}

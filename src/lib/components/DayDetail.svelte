@@ -6,7 +6,7 @@
 	import {
 		formatDayMonth,
 		formatHourLabel,
-		formatKmH,
+		formatWind,
 		formatMm,
 		formatPercent,
 		formatTemp,
@@ -17,6 +17,7 @@
 	} from '$lib/format';
 	import type { DayPoint, HourPoint } from '$lib/types';
 	import { getWmo, weatherMood } from '$lib/wmo';
+	import { unitsState } from '$lib/units.svelte';
 	import { weatherState } from '$lib/weather.svelte';
 	import HScroll from './HScroll.svelte';
 	import WeatherIcon from './WeatherIcon.svelte';
@@ -116,7 +117,7 @@
 						<dt class="flex items-center gap-2 text-sm opacity-80">
 							<AppIcon name="wind" class="size-4 wx-icon-wind" /> Wind max
 						</dt>
-						<dd class="font-medium tabular-nums">{formatKmH(day.windMax)}</dd>
+						<dd class="font-medium tabular-nums">{formatWind(day.windMax, unitsState.wind)}</dd>
 					</div>
 					{#if day.uvMax != null}
 						<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {uvTone} p-3">

@@ -1157,6 +1157,29 @@
 		color: rgb(var(--muted-foreground));
 	}
 
+	.wx-place-label {
+		background: rgb(var(--card)) !important;
+		border: none !important;
+		color: rgb(var(--foreground)) !important;
+		box-shadow: none !important;
+		font-size: 0.75rem;
+		line-height: 1.25;
+		padding: 0.2rem 0.5rem !important;
+		white-space: nowrap;
+	}
+
+	html[data-chrome='android'] .wx-place-label {
+		border-radius: 999px !important;
+	}
+
+	html[data-chrome='desktop'] .wx-place-label {
+		border-radius: 0.25rem !important;
+	}
+
+	.wx-place-label::before {
+		display: none !important;
+	}
+
 	.wx-wind-marker {
 		background: transparent !important;
 		border: none !important;

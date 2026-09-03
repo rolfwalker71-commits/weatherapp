@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { chromeState } from '$lib/chrome.svelte';
 	import AppIcon from './AppIcon.svelte';
-	import { formatRefreshStatus, formatStationLine, formatTemp, placeLabel } from '$lib/format';
+	import { formatRefreshStatus, formatSourceLine, formatStationLine, formatTemp, placeLabel } from '$lib/format';
 	import { clothingLine, insightLine } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
 	import type { Place, WeatherBundle } from '$lib/types';
@@ -61,6 +61,7 @@
 	const stationLine = $derived(
 		station ? formatStationLine(station, bundle?.timezone) : null
 	);
+	const sourceLine = $derived(formatSourceLine(station, bundle?.timezone));
 </script>
 
 {#if current && wmo && bundle}
@@ -133,8 +134,9 @@
 				</div>
 			</div>
 
-			{#if stationLine || insight || clothing}
+			{#if sourceLine || stationLine || insight || clothing}
 				<div class="hero-meta">
+					<p class="break-words text-sm leading-snug opacity-75">{sourceLine}</p>
 					{#if stationLine}
 						<p class="break-words text-sm leading-snug opacity-75">{stationLine}</p>
 					{/if}

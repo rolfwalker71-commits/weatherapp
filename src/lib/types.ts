@@ -204,6 +204,17 @@ export interface WeatherBundle {
 
 export type ThemePreference = 'light' | 'dark' | 'system';
 
+export type WindUnit = 'kmh' | 'ms';
+
+export interface PassObservation {
+	id: string;
+	name: string;
+	temperature: number | null;
+	windKmh: number | null;
+	windDir: number | null;
+	observedAt: string | null;
+}
+
 export interface NotifyPrefs {
 	rainSoon: boolean;
 	warnings: boolean;

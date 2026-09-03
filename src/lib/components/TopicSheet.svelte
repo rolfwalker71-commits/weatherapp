@@ -2,6 +2,8 @@
 	import AirQuality from './AirQuality.svelte';
 	import AppIcon from './AppIcon.svelte';
 	import AlpsCard from './AlpsCard.svelte';
+	import PassesCard from './PassesCard.svelte';
+	import SnowBulletinCard from './SnowBulletinCard.svelte';
 	import CommuteCard from './CommuteCard.svelte';
 	import LakesCard from './LakesCard.svelte';
 	import LifestyleCard from './LifestyleCard.svelte';
@@ -61,6 +63,8 @@
 					{#if topic === 'wind'}
 						<WindCard />
 					{:else if topic === 'berge'}
+						<SnowBulletinCard />
+						<PassesCard />
 						<AlpsCard />
 					{:else if topic === 'seen'}
 						<LakesCard />

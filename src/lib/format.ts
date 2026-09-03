@@ -14,7 +14,25 @@ export function formatTempExact(value: number): string {
 }
 
 export function formatKmH(value: number): string {
-	return `${numberDe.format(Math.round(value))} km/h`;
+	return formatWind(value, 'kmh');
+}
+
+export function formatWind(valueKmh: number, unit: 'kmh' | 'ms' = 'kmh'): string {
+	if (unit === 'ms') {
+		return `${numberOne.format(valueKmh / 3.6)} m/s`;
+	}
+	return `${numberDe.format(Math.round(valueKmh))} km/h`;
+}
+
+export function formatSourceLine(
+	station: { id: string; observedAt: string | null } | null,
+	timeZone?: string
+): string {
+	if (!station) return 'Modell Open-Meteo';
+	const time = station.observedAt ? formatTime(station.observedAt, timeZone) : null;
+	return time
+		? `Modell Open-Meteo · Station ${station.id} ${time}`
+		: `Modell Open-Meteo · Station ${station.id}`;
 }
 
 export function formatMm(value: number): string {

@@ -39,6 +39,22 @@ export default defineConfig({
 				scope: '/',
 				start_url: '/',
 				categories: ['weather', 'utilities'],
+				shortcuts: [
+					{
+						name: 'Jetzt',
+						short_name: 'Jetzt',
+						description: 'Aktuelles Wetter',
+						url: '/#jetzt',
+						icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }]
+					},
+					{
+						name: 'Kompakt',
+						short_name: 'Kompakt',
+						description: 'Ort, Temperatur, nächster Regen',
+						url: '/widget',
+						icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }]
+					}
+				],
 				icons: [
 					{
 						src: 'pwa-192x192.png',

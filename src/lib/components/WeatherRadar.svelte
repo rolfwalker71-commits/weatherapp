@@ -4,7 +4,8 @@
 	import AppIcon from './AppIcon.svelte';
 	import WeatherIcon from './WeatherIcon.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
-	import { formatHour, formatKmH, formatMm, formatPercent, windDirection } from '$lib/format';
+	import { formatHour, formatMm, formatPercent, formatWind, windDirection } from '$lib/format';
+	import { unitsState } from '$lib/units.svelte';
 	import { panelClass } from '$lib/platform';
 	import {
 		capeTone,
@@ -118,6 +119,12 @@
 		playing = false;
 	}
 
+	function jumpToNow() {
+		playing = false;
+		if (!frames.length) return;
+		frameIndex = lastObservedIndex(frames);
+	}
+
 	onMount(() => {
 		let cancelled = false;
 		let map: import('leaflet').Map | undefined;
@@ -199,7 +206,7 @@
 				const tone = windTone(point.speed);
 				const icon = L.divIcon({
 					className: 'wx-wind-marker',
-					html: `<div class="wx-wind-arrow wx-wind-${tone}" style="transform:rotate(${point.direction}deg)" title="${Math.round(point.speed)} km/h aus ${windDirection(point.direction)}"></div>`,
+					html: `<div class="wx-wind-arrow wx-wind-${tone}" style="transform:rotate(${point.direction}deg)" title="${formatWind(point.speed, unitsState.wind)} aus ${windDirection(point.direction)}"></div>`,
 					iconSize: [22, 28],
 					iconAnchor: [11, 14]
 				});
@@ -271,7 +278,7 @@
 
 		function placeMarker() {
 			if (!map || !L) return;
-			const { latitude, longitude } = weatherState.place;
+			const { latitude, longitude, name } = weatherState.place;
 			marker?.remove();
 			marker = L.circleMarker([latitude, longitude], {
 				radius: 8,
@@ -280,6 +287,13 @@
 				fillColor: themeState.dark ? '#60cdff' : '#005fb8',
 				fillOpacity: 0.85
 			}).addTo(map);
+			marker.bindTooltip(name, {
+				permanent: true,
+				direction: 'top',
+				offset: [0, -10],
+				className: 'wx-place-label',
+				opacity: 1
+			});
 		}
 
 		function flyToPlace() {
@@ -483,6 +497,16 @@
 					<AppIcon name="play" class="size-5 wx-icon-rain" />
 				{/if}
 			</button>
+			<button
+				type="button"
+				class="min-h-12 px-4 text-sm {isDesktop
+					? 'rounded-md bg-primary/10 text-primary'
+					: 'rounded-full bg-secondary text-primary'}"
+				onclick={jumpToNow}
+				disabled={!frames.length}
+			>
+				Jetzt
+			</button>
 			<div class="min-w-0 flex-1">
 				<label class="sr-only" for="radar-time">Radarzeit, halten und ziehen</label>
 				<input
@@ -539,7 +563,7 @@
 		{/if}
 		{#if weatherState.bundle?.hours[0]?.cape != null}
 			<p class="mt-2 text-sm tabular-nums text-muted-foreground">
-				CAPE {Math.round(weatherState.bundle.hours[0].cape)} J/kg
+				CAPE {Math.round(weatherState.bundle.hours[0].cape)} J/kg · Modell
 			</p>
 		{/if}
 	</div>
@@ -550,9 +574,9 @@
 				<AppIcon name="wind" class="size-4 wx-icon-wind" /> Wind vor Ort
 			</h3>
 			{#if current}
-				<p class="text-3xl font-semibold tabular-nums">{formatKmH(current.wind_speed_10m)}</p>
+				<p class="text-3xl font-semibold tabular-nums">{formatWind(current.wind_speed_10m, unitsState.wind)}</p>
 				<p class="mt-1 text-sm text-muted-foreground">
-					aus {windDirection(current.wind_direction_10m)} · Böen {formatKmH(current.wind_gusts_10m)}
+					aus {windDirection(current.wind_direction_10m)} · Böen {formatWind(current.wind_gusts_10m, unitsState.wind)}
 				</p>
 				<p class="mt-2 text-sm text-muted-foreground">
 					{windPoints.length} Windpfeile im sichtbaren Ausschnitt

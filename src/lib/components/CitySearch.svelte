@@ -7,6 +7,15 @@
 	import type { Place } from '$lib/types';
 	import { loadPlace } from '$lib/weather.svelte';
 
+	interface Props {
+		id?: string;
+		placeholder?: string;
+		hotkey?: boolean;
+		onSelect?: (place: Place) => void;
+	}
+
+	let { id = 'city', placeholder, hotkey = true, onSelect }: Props = $props();
+
 	let query = $state('');
 	let results = $state<Place[]>([]);
 	let recent = $state<Place[]>([]);
@@ -15,7 +24,8 @@
 	let loading = $state(false);
 	let inputEl = $state<HTMLInputElement | null>(null);
 
-	const listId = 'city-listbox';
+	const listId = $derived(`${id}-listbox`);
+	const inputId = $derived(`${id}-search`);
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
 	const shown = $derived(query.trim().length >= 2 ? results : recent);
 
@@ -62,7 +72,8 @@
 		results = [];
 		open = false;
 		active = -1;
-		void loadPlace(place);
+		if (onSelect) onSelect(place);
+		else void loadPlace(place);
 		inputEl?.blur();
 	}
 
@@ -97,6 +108,7 @@
 	}
 
 	function onWindowKey(event: KeyboardEvent) {
+		if (!hotkey) return;
 		if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
 			event.preventDefault();
 			focusSearch();
@@ -107,7 +119,7 @@
 <svelte:window onkeydown={onWindowKey} />
 
 <div class="relative w-full {isDesktop ? 'max-w-xl' : ''}">
-	<label class="sr-only" for="city-search">Stadt suchen</label>
+	<label class="sr-only" for={inputId}>Stadt suchen</label>
 	<div
 		class="flex items-center gap-2 bg-muted px-4 {isDesktop
 			? 'h-11 rounded-md ring-1 ring-border'
@@ -115,7 +127,7 @@
 	>
 		<AppIcon name="search" class="size-4 shrink-0 wx-icon-week" />
 		<input
-			id="city-search"
+			id={inputId}
 			bind:this={inputEl}
 			value={query}
 			type="search"
@@ -126,8 +138,8 @@
 			aria-expanded={open}
 			aria-controls={listId}
 			aria-autocomplete="list"
-			aria-activedescendant={active >= 0 ? `city-opt-${active}` : undefined}
-			placeholder={isDesktop ? 'Stadt suchen  ·  Ctrl K' : 'Stadt weltweit suchen'}
+			aria-activedescendant={active >= 0 ? `${id}-opt-${active}` : undefined}
+			placeholder={placeholder ?? (isDesktop ? 'Stadt suchen  ·  Ctrl K' : 'Stadt weltweit suchen')}
 			class="h-11 min-h-0 w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
 			oninput={onInput}
 			onfocus={onFocus}
@@ -152,7 +164,7 @@
 				<li class="px-4 py-2 text-sm text-muted-foreground">Zuletzt gesucht</li>
 			{/if}
 			{#each shown as place, index (place.id ?? `${place.latitude}-${place.longitude}`)}
-				<li role="option" id="city-opt-{index}" aria-selected={active === index}>
+				<li role="option" id="{id}-opt-{index}" aria-selected={active === index}>
 					<button
 						type="button"
 						class="flex w-full items-start gap-3 px-4 py-3 text-left {active === index

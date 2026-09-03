@@ -23,7 +23,8 @@
 	const trend = $derived((weatherState.bundle?.airTrend ?? []).filter((point) => point.pm25 != null));
 	const maxPm = $derived(Math.max(8, ...trend.map((point) => point.pm25 ?? 0)));
 	const hasPollen = $derived(alder != null || birch != null || grass != null);
-	const visible = $derived(aqiValue != null || hasPollen || trend.length > 0);
+	const cape = $derived(weatherState.bundle?.hours[0]?.cape ?? null);
+	const visible = $derived(aqiValue != null || hasPollen || trend.length > 0 || cape != null);
 	const shape = $derived(isDesktop ? 'rounded-md p-3' : 'rounded-[1.25rem] p-3');
 	const split = $derived(page && (aqiValue != null || trend.length > 0) && hasPollen);
 </script>
@@ -114,6 +115,11 @@
 				</div>
 			{/if}
 		</div>
+		{#if cape != null}
+			<p class="mt-4 text-sm leading-snug">
+				CAPE {Math.round(cape)} J/kg · Modell Open-Meteo
+			</p>
+		{/if}
 	</section>
 {:else if page}
 	<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">

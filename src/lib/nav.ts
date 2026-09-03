@@ -1,6 +1,15 @@
 import type { AppIconName } from '$lib/icons/chrome';
 
-export type SectionId = 'jetzt' | 'radar' | 'woche' | 'luft' | 'mehr' | 'favoriten' | 'einstellungen';
+export type SectionId =
+	| 'jetzt'
+	| 'radar'
+	| 'woche'
+	| 'luft'
+	| 'mehr'
+	| 'favoriten'
+	| 'einstellungen'
+	| 'vergleich'
+	| 'widget';
 export type TopicId =
 	| 'wind'
 	| 'berge'
@@ -10,7 +19,7 @@ export type TopicId =
 	| 'pendeln'
 	| 'meldungen'
 	| 'darstellung';
-export type MehrId = TopicId | 'favoriten' | 'einstellungen';
+export type MehrId = TopicId | 'favoriten' | 'einstellungen' | 'vergleich';
 
 export interface NavItem {
 	id: SectionId;
@@ -106,7 +115,10 @@ export const TOPIC_CHIPS: TopicItem[] = [
 export const MEHR_GROUPS: { title: string; items: MehrItem[] }[] = [
 	{
 		title: 'Orte',
-		items: [{ id: 'favoriten', label: 'Favoriten', icon: 'star', iconClass: 'wx-icon-star' }]
+		items: [
+			{ id: 'favoriten', label: 'Favoriten', icon: 'star', iconClass: 'wx-icon-star' },
+			{ id: 'vergleich', label: 'Vergleich', icon: 'vergleich', iconClass: 'wx-icon-week' }
+		]
 	},
 	{
 		title: 'Wetter',
@@ -133,7 +145,9 @@ const SECTION_HASH: Record<SectionId, string> = {
 	luft: 'luft',
 	mehr: 'mehr',
 	favoriten: 'favoriten',
-	einstellungen: 'einstellungen'
+	einstellungen: 'einstellungen',
+	vergleich: 'vergleich',
+	widget: 'widget'
 };
 
 const SECTION_ALIASES: Record<string, SectionId> = {
@@ -149,7 +163,10 @@ const SECTION_ALIASES: Record<string, SectionId> = {
 	mehr: 'mehr',
 	favoriten: 'favoriten',
 	einstellungen: 'einstellungen',
-	settings: 'einstellungen'
+	settings: 'einstellungen',
+	vergleich: 'vergleich',
+	vergleichen: 'vergleich',
+	widget: 'widget'
 };
 
 const TOPIC_ALIASES: Record<string, TopicId> = {
@@ -175,8 +192,8 @@ const TOPIC_SECTION: Record<TopicId, SectionId> = {
 	darstellung: 'einstellungen'
 };
 
-export function isMehrSection(id: MehrId): id is 'favoriten' | 'einstellungen' {
-	return id === 'favoriten' || id === 'einstellungen';
+export function isMehrSection(id: MehrId): id is 'favoriten' | 'einstellungen' | 'vergleich' {
+	return id === 'favoriten' || id === 'einstellungen' || id === 'vergleich';
 }
 
 export function navItemCurrent(
@@ -186,7 +203,7 @@ export function navItemCurrent(
 ): boolean {
 	if (itemId === section) return true;
 	if (itemId !== 'mehr') return false;
-	if (section === 'einstellungen') return true;
+	if (section === 'einstellungen' || section === 'vergleich') return true;
 	return section === 'favoriten' && surface === 'dock';
 }
 

@@ -3,6 +3,7 @@ import { loadNotifyPrefs } from './notify-prefs';
 import { syncPreferences } from './push-client';
 import {
 	loadFavorites,
+	loadHomePlace,
 	loadLastBundle,
 	loadLastPlace,
 	pushRecent,
@@ -222,11 +223,23 @@ export function hydrateFromCache(): void {
 	}
 }
 
+async function loadFallbackPlace(reason: string): Promise<void> {
+	const home = loadHomePlace();
+	const last = loadLastPlace();
+	const fallback = home ?? last ?? BERN;
+	await loadPlace(fallback, { recent: false });
+	if (home && samePlace(fallback, home)) {
+		weatherState.error = `${reason} Home-Ort ${home.name}.`;
+	} else if (!home && !last) {
+		weatherState.error = `${reason} Fallback Bern.`;
+	}
+}
+
 export async function locateUser(): Promise<void> {
 	weatherState.locating = true;
 	try {
 		if (!('geolocation' in navigator)) {
-			await loadPlace(BERN, { recent: false });
+			await loadFallbackPlace('Standort nicht verfügbar.');
 			return;
 		}
 
@@ -241,12 +254,7 @@ export async function locateUser(): Promise<void> {
 		const place = await reverseGeocode(position.coords.latitude, position.coords.longitude);
 		await loadPlace(place, { recent: false });
 	} catch {
-		const hadLast = Boolean(loadLastPlace());
-		const fallback = loadLastPlace() ?? BERN;
-		await loadPlace(fallback, { recent: false });
-		if (!hadLast) {
-			weatherState.error = 'Standort nicht verfügbar — Fallback Bern.';
-		}
+		await loadFallbackPlace('Standort nicht verfügbar.');
 	} finally {
 		weatherState.locating = false;
 	}

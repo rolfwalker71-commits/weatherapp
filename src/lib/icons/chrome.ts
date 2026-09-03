@@ -12,6 +12,8 @@ import ChevronRight from '@material-symbols/svg-400/rounded/chevron_right.svg?ra
 import ChevronRightFill from '@material-symbols/svg-400/rounded/chevron_right-fill.svg?raw';
 import Close from '@material-symbols/svg-400/rounded/close.svg?raw';
 import CloseFill from '@material-symbols/svg-400/rounded/close-fill.svg?raw';
+import CompareArrows from '@material-symbols/svg-400/rounded/compare_arrows.svg?raw';
+import CompareArrowsFill from '@material-symbols/svg-400/rounded/compare_arrows-fill.svg?raw';
 import Commute from '@material-symbols/svg-400/rounded/commute.svg?raw';
 import CommuteFill from '@material-symbols/svg-400/rounded/commute-fill.svg?raw';
 import DarkMode from '@material-symbols/svg-400/rounded/dark_mode.svg?raw';
@@ -24,6 +26,8 @@ import LightMode from '@material-symbols/svg-400/rounded/light_mode.svg?raw';
 import LightModeFill from '@material-symbols/svg-400/rounded/light_mode-fill.svg?raw';
 import LocalFlorist from '@material-symbols/svg-400/rounded/local_florist.svg?raw';
 import LocalFloristFill from '@material-symbols/svg-400/rounded/local_florist-fill.svg?raw';
+import HomePin from '@material-symbols/svg-400/rounded/home_pin.svg?raw';
+import HomePinFill from '@material-symbols/svg-400/rounded/home_pin-fill.svg?raw';
 import LocationOn from '@material-symbols/svg-400/rounded/location_on.svg?raw';
 import LocationOnFill from '@material-symbols/svg-400/rounded/location_on-fill.svg?raw';
 import Menu from '@material-symbols/svg-400/rounded/menu.svg?raw';
@@ -112,7 +116,9 @@ export type AppIconName =
 	| 'flower'
 	| 'snow'
 	| 'moon'
-	| 'nowcast';
+	| 'nowcast'
+	| 'vergleich'
+	| 'home';
 
 export interface SymbolPair {
 	outline: string;
@@ -158,5 +164,7 @@ export const ICONS: Record<AppIconName, SymbolPair> = {
 	flower: { outline: LocalFlorist, fill: LocalFloristFill },
 	snow: { outline: WeatherSnowy, fill: WeatherSnowyFill },
 	moon: { outline: Nightlight, fill: NightlightFill },
-	nowcast: { outline: Thunderstorm, fill: ThunderstormFill }
+	nowcast: { outline: Thunderstorm, fill: ThunderstormFill },
+	vergleich: { outline: CompareArrows, fill: CompareArrowsFill },
+	home: { outline: HomePin, fill: HomePinFill }
 };

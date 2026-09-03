@@ -2,7 +2,8 @@
 	import { uvLevel } from '$lib/aqi';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { moodChipClass, scaleFillClass } from '$lib/colors';
-	import { formatKmH, formatPercent, formatTemp, formatTime } from '$lib/format';
+	import { formatPercent, formatTemp, formatTime, formatWind } from '$lib/format';
+	import { unitsState } from '$lib/units.svelte';
 	import type { HourPoint } from '$lib/types';
 	import { getWmo, weatherMood } from '$lib/wmo';
 	import AppIcon from './AppIcon.svelte';
@@ -63,7 +64,7 @@
 							<dt class="flex items-center gap-2 text-sm opacity-80">
 								<AppIcon name="wind" class="size-4 wx-icon-wind" /> Wind
 							</dt>
-							<dd class="font-medium tabular-nums">{formatKmH(hour.wind)}</dd>
+							<dd class="font-medium tabular-nums">{formatWind(hour.wind, unitsState.wind)}</dd>
 						</div>
 						<div class="{isDesktop ? 'rounded-md' : 'rounded-3xl'} {moodChipClass('rain')} p-3">
 							<dt class="flex items-center gap-2 text-sm opacity-80">

@@ -1,5 +1,5 @@
 import { haversineKm, isSwitzerland } from './geo';
-import type { Place, StationObservation } from './types';
+import type { PassObservation, Place, StationObservation } from './types';
 
 const SMN_META_URL = 'https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ogd-smn_meta_stations.csv';
 const SMN_VQHA80_URL = 'https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell/VQHA80.csv';
@@ -27,6 +27,16 @@ interface Candidate {
 	observedAt: string | null;
 	source: StationObservation['source'];
 }
+
+interface VqhaObs {
+	temperature: number | null;
+	windKmh: number | null;
+	windDir: number | null;
+	observedAt: string | null;
+}
+
+/** Major CH pass / pass-area stations that exist in SwissMetNet. Klausen has no SMN station. */
+const PASS_STATION_IDS = ['GUE', 'GRH', 'SIM', 'GSB', 'BEH'] as const;
 
 let memoryMeta: { at: number; stations: SmnStation[] } | null = null;
 
@@ -144,23 +154,30 @@ async function loadSmnStations(signal?: AbortSignal): Promise<SmnStation[]> {
 	return stations;
 }
 
-function parseVqha80(text: string): Map<string, { temperature: number; observedAt: string | null }> {
+function parseVqha80(text: string): Map<string, VqhaObs> {
 	const lines = text.split('\n').filter((line) => line.trim());
-	const map = new Map<string, { temperature: number; observedAt: string | null }>();
+	const map = new Map<string, VqhaObs>();
 	if (lines.length < 2) return map;
 	const header = splitCsvLine(lines[0]).map((cell) => cell.trim());
 	const idIdx = header.indexOf('Station/Location');
 	const dateIdx = header.indexOf('Date');
 	const tempIdx = header.indexOf('tre200s0');
-	if (idIdx < 0 || dateIdx < 0 || tempIdx < 0) return map;
+	const windIdx = header.indexOf('fu3010z0');
+	const dirIdx = header.indexOf('dkl010z0');
+	if (idIdx < 0 || dateIdx < 0) return map;
 
 	for (const line of lines.slice(1)) {
 		const cells = splitCsvLine(line);
 		const id = cells[idIdx]?.trim();
-		const temperature = parseNumber(cells[tempIdx]);
-		if (!id || temperature == null) continue;
+		if (!id) continue;
+		const temperature = tempIdx >= 0 ? parseNumber(cells[tempIdx]) : null;
+		const windMs = windIdx >= 0 ? parseNumber(cells[windIdx]) : null;
+		const windDir = dirIdx >= 0 ? parseNumber(cells[dirIdx]) : null;
+		if (temperature == null && windMs == null) continue;
 		map.set(id, {
 			temperature,
+			windKmh: windMs != null ? windMs * 3.6 : null,
+			windDir,
 			observedAt: parseVqhaDate(cells[dateIdx]?.trim() ?? '')
 		});
 	}
@@ -177,7 +194,7 @@ async function fetchSwissMetNet(place: Place, signal?: AbortSignal): Promise<Sta
 	const rows: Candidate[] = [];
 	for (const station of stations) {
 		const obs = observations.get(station.id);
-		if (!obs) continue;
+		if (!obs || obs.temperature == null) continue;
 		rows.push({
 			id: station.id,
 			name: station.name,
@@ -249,6 +266,36 @@ async function fetchMetar(place: Place, signal?: AbortSignal): Promise<StationOb
 		});
 	}
 	return pickNearest(place, candidates);
+}
+
+export async function fetchPassObservations(signal?: AbortSignal): Promise<PassObservation[]> {
+	try {
+		const [stations, vqhaBytes] = await Promise.all([
+			loadSmnStations(signal),
+			fetchBytes(SMN_VQHA80_URL, signal)
+		]);
+		if (!stations.length) return [];
+		const observations = parseVqha80(new TextDecoder('utf-8').decode(vqhaBytes));
+		const byId = new Map(stations.map((station) => [station.id, station]));
+		const rows: PassObservation[] = [];
+		for (const id of PASS_STATION_IDS) {
+			const meta = byId.get(id);
+			const obs = observations.get(id);
+			if (!meta || !obs || !isFresh(obs.observedAt)) continue;
+			if (obs.temperature == null && obs.windKmh == null) continue;
+			rows.push({
+				id,
+				name: meta.name,
+				temperature: obs.temperature,
+				windKmh: obs.windKmh,
+				windDir: obs.windDir,
+				observedAt: obs.observedAt
+			});
+		}
+		return rows;
+	} catch {
+		return [];
+	}
 }
 
 export async function fetchNearestStation(

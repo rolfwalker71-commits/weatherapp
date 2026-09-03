@@ -4,6 +4,7 @@ const FAVORITES_KEY = 'weather.favorites';
 const LAST_PLACE_KEY = 'weather.lastPlace';
 const LAST_BUNDLE_KEY = 'weather.lastBundle';
 const RECENT_KEY = 'weather.recent';
+const HOME_KEY = 'weather.homePlace';
 
 function readJson<T>(key: string, fallback: T): T {
 	if (typeof localStorage === 'undefined') return fallback;
@@ -67,4 +68,26 @@ export function pushRecent(place: Place): Place[] {
 	const next = [{ ...place }, ...current].slice(0, 6);
 	writeJson(RECENT_KEY, next);
 	return next;
+}
+
+export function loadHomePlace(): Place | null {
+	const place = readJson<Place | null>(HOME_KEY, null);
+	if (
+		!place ||
+		typeof place.name !== 'string' ||
+		!Number.isFinite(place.latitude) ||
+		!Number.isFinite(place.longitude)
+	) {
+		return null;
+	}
+	return place;
+}
+
+export function saveHomePlace(place: Place): void {
+	writeJson(HOME_KEY, place);
+}
+
+export function clearHomePlace(): void {
+	if (typeof localStorage === 'undefined') return;
+	localStorage.removeItem(HOME_KEY);
 }

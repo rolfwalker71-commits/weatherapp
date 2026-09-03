@@ -3,6 +3,16 @@ import { formatTime } from './format';
 import type { MinutePoint, WeatherBundle } from './types';
 import { getWmo } from './wmo';
 
+export function nextPrecipLine(bundle: WeatherBundle): string | null {
+	const wet = bundle.hours.find((hour) => hour.precipMm >= 0.3);
+	if (!wet) return null;
+	const now = bundle.hours[0];
+	if (now && now.precipMm >= 0.3) {
+		return `Niederschlag jetzt`;
+	}
+	return `Niederschlag ab ${formatTime(wet.time)}`;
+}
+
 export function insightLine(bundle: WeatherBundle): string | null {
 	const now = bundle.hours[0];
 	const later = bundle.hours[2] ?? bundle.hours[1];
