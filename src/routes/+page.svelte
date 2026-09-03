@@ -126,7 +126,7 @@
 					<MehrList />
 				</section>
 			{:else if !weatherState.bundle && weatherState.loading}
-				<div aria-busy="true">
+				<div id={section === 'jetzt' ? 'jetzt' : undefined} aria-busy="true">
 					<div class="h-64 animate-pulse bg-card [html[data-chrome=android]_&]:rounded-3xl [html[data-chrome=desktop]_&]:rounded-md"></div>
 				</div>
 			{:else if section === 'jetzt'}
@@ -142,6 +142,8 @@
 							<WindCard />
 						</div>
 					</div>
+				{:else}
+					<section id="jetzt" hidden></section>
 				{/if}
 			{:else if section === 'radar'}
 				<WeatherRadar />
