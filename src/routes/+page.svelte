@@ -83,17 +83,17 @@
 	<title>Wetter · {weatherState.place.name}</title>
 </svelte:head>
 
-<div class="wx-page min-h-dvh bg-background text-foreground" data-mood={mood}>
+<div class="wx-page min-h-dvh max-w-full overflow-x-hidden bg-background text-foreground" data-mood={mood}>
 	{#if section !== 'widget'}
 		<AppHeader />
 	{/if}
-	<div class="mx-auto flex w-full max-w-[90rem]">
+	<div class="mx-auto flex w-full min-w-0 max-w-[90rem]">
 		{#if section !== 'widget'}
 			<NavRail />
 		{/if}
 		<main
 			id="main"
-			class="min-w-0 flex-1 px-4 py-4 sm:px-6 sm:py-6 {section === 'widget'
+			class="min-w-0 max-w-full flex-1 overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6 {section === 'widget'
 				? ''
 				: chromeState.chrome === 'android'
 					? 'pb-[calc(8rem+env(safe-area-inset-bottom,0px))]'
@@ -131,12 +131,12 @@
 				</div>
 			{:else if section === 'jetzt'}
 				{#if weatherState.bundle}
-					<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
-						<div class="space-y-4">
+					<div class="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+						<div class="min-w-0 space-y-4">
 							<CurrentHero />
 							<WarningsCard />
 						</div>
-						<div class="space-y-4">
+						<div class="min-w-0 space-y-4">
 							<HourlyForecast embedded onSelect={(hour) => (selectedHour = hour)} />
 							<NowcastCard compact />
 							<WindCard />
@@ -149,12 +149,12 @@
 				<WeatherRadar />
 			{:else if section === 'woche'}
 				{#if weatherState.bundle}
-					<div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
+					<div class="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
 						<DailyForecast
 							selectedDate={selectedDay?.date}
 							onSelect={(day) => (selectedDay = day)}
 						/>
-						<div class="space-y-4">
+						<div class="min-w-0 space-y-4">
 							<SnowBulletinCard />
 							<PassesCard />
 							<AlpsCard />

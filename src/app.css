@@ -87,6 +87,9 @@
 	}
 
 	html {
+		max-width: 100%;
+		overflow-x: hidden;
+		overscroll-behavior-x: none;
 		background-color: rgb(var(--background));
 		color: rgb(var(--foreground));
 		font-family: var(--font-sans);
@@ -95,7 +98,10 @@
 
 	body {
 		margin: 0;
+		max-width: 100%;
 		min-height: 100dvh;
+		overflow-x: hidden;
+		overscroll-behavior-x: none;
 		background-color: rgb(var(--background));
 		color: rgb(var(--foreground));
 	}
@@ -116,6 +122,11 @@
 }
 
 @layer components {
+	.wx-page {
+		max-width: 100%;
+		overflow-x: hidden;
+	}
+
 	.mica {
 		background-color: rgb(var(--card) / 0.8);
 		backdrop-filter: blur(1.25rem) saturate(1.4);

@@ -59,7 +59,7 @@
 				</div>
 			</div>
 			<div class="wx-sheet-body px-5 pb-5">
-				<div class="space-y-4">
+				<div class="min-w-0 space-y-4">
 					{#if topic === 'wind'}
 						<WindCard />
 					{:else if topic === 'berge'}

@@ -16,10 +16,10 @@
 	<title>Wetter · {weatherState.place.name}</title>
 </svelte:head>
 
-<div class="wx-page min-h-dvh bg-background text-foreground">
+<div class="wx-page min-h-dvh max-w-full overflow-x-hidden bg-background text-foreground">
 	<main
 		id="main"
-		class="mx-auto w-full max-w-md px-4 py-6"
+		class="mx-auto w-full min-w-0 max-w-md overflow-x-hidden px-4 py-6"
 		style="padding-top: max(1.5rem, env(safe-area-inset-top, 0px));"
 	>
 		<WidgetView standalone />

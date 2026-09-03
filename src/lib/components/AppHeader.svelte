@@ -26,7 +26,7 @@
 		: 'sticky top-0 z-20 bg-card'}
 >
 	<div
-		class="mx-auto flex w-full max-w-[90rem] flex-col gap-3 px-4 py-3 sm:px-6 {isDesktop
+		class="mx-auto flex w-full min-w-0 max-w-[90rem] flex-col gap-3 px-4 py-3 sm:px-6 {isDesktop
 			? 'lg:flex-row lg:items-center lg:gap-6 lg:py-2'
 			: ''}"
 		style="padding-top: max(0.75rem, env(safe-area-inset-top, 0px));"

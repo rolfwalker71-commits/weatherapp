@@ -41,7 +41,7 @@
 
 		{#if bars.length}
 			<div
-				class="mt-4 overflow-x-auto lg:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
+				class="mt-4 max-w-full min-w-0 overflow-x-auto overscroll-x-contain lg:overflow-visible [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
 				role="region"
 				aria-label={windChartAriaLabel(bars)}
 			>

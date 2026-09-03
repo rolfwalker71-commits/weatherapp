@@ -10,9 +10,9 @@ export function resolveChrome(preference: ChromePreference, width: number): Chro
 
 export function panelClass(chrome: Chrome): string {
 	if (chrome === 'desktop') {
-		return 'rounded-md bg-card ring-1 ring-border';
+		return 'w-full min-w-0 max-w-full rounded-md bg-card ring-1 ring-border';
 	}
-	return 'rounded-3xl bg-card';
+	return 'w-full min-w-0 max-w-full rounded-3xl bg-card';
 }
 
 export function listTileClass(chrome: Chrome, selected = false): string {
