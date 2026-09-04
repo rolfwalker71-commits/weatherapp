@@ -140,7 +140,7 @@ function mapMinutes(forecast: ForecastResponse): MinutePoint[] {
 	}));
 	let start = points.findIndex((point) => new Date(point.time).getTime() >= now);
 	if (start < 0) start = 0;
-	// 6h of delivered 15-min steps — NowcastCard pairs these into 30-min bars.
+	// 6h of delivered 15-min steps (Radar / insights may pair into 30-min bins).
 	return points.slice(start, start + 24);
 }
 

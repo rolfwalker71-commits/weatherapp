@@ -19,11 +19,10 @@
 	import MehrList from '$lib/components/MehrList.svelte';
 	import NavBar from '$lib/components/NavBar.svelte';
 	import NavRail from '$lib/components/NavRail.svelte';
-	import NowcastCard from '$lib/components/NowcastCard.svelte';
 	import TopicSheet from '$lib/components/TopicSheet.svelte';
+	import VerlaufCharts from '$lib/components/VerlaufCharts.svelte';
 	import WarningsCard from '$lib/components/WarningsCard.svelte';
 	import WeatherRadar from '$lib/components/WeatherRadar.svelte';
-	import WindCard from '$lib/components/WindCard.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { hydrateCommute } from '$lib/commute.svelte';
 	import type { DayPoint, HourPoint } from '$lib/types';
@@ -87,6 +86,7 @@
 	class="wx-page max-w-full bg-background text-foreground"
 	data-mood={mood}
 	data-section={section}
+	data-dock={chromeState.chrome !== 'desktop' && section !== 'widget' ? '1' : undefined}
 >
 	{#if section !== 'widget'}
 		<AppHeader />
@@ -97,7 +97,7 @@
 		{/if}
 		<main
 			id="main"
-			class="min-w-0 max-w-full flex-1 overflow-x-hidden max-lg:overflow-x-clip px-4 py-4 sm:px-6 sm:py-6 {section === 'widget'
+			class="min-w-0 max-w-full flex-1 px-4 py-4 sm:px-6 sm:py-6 {section === 'widget'
 				? ''
 				: chromeState.chrome === 'desktop'
 					? 'lg:pb-10'
@@ -135,21 +135,20 @@
 				</div>
 			{:else if section === 'jetzt'}
 				{#if weatherState.bundle}
-					<div
-						class="grid min-w-0 max-w-full grid-cols-1 gap-4 max-lg:overflow-x-clip max-lg:[contain:inline-size] lg:grid-cols-2 lg:items-start"
-					>
-						<div class="min-w-0 max-w-full space-y-4">
-							<CurrentHero />
-							<WarningsCard />
-						</div>
-						<div class="min-w-0 max-w-full space-y-4">
-							<HourlyForecast embedded onSelect={(hour) => (selectedHour = hour)} />
-							<NowcastCard compact />
-							<WindCard />
-						</div>
+					<div class="mx-auto min-w-0 max-w-full space-y-4 max-lg:overflow-x-clip max-lg:[contain:inline-size] lg:max-w-2xl">
+						<CurrentHero />
+						<HourlyForecast limit={4} onSelect={(hour) => (selectedHour = hour)} />
+						<WarningsCard />
 					</div>
 				{:else}
 					<section id="jetzt" hidden></section>
+				{/if}
+			{:else if section === 'verlauf'}
+				{#if weatherState.bundle}
+					<div id="verlauf" class="min-w-0 max-w-full space-y-4 max-lg:overflow-x-clip">
+						<HourlyForecast embedded onSelect={(hour) => (selectedHour = hour)} />
+						<VerlaufCharts />
+					</div>
 				{/if}
 			{:else if section === 'radar'}
 				<WeatherRadar />

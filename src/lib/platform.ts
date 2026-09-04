@@ -37,7 +37,7 @@ export function fabClass(chrome: Chrome): string {
 
 export function fabClearance(chrome: Chrome): string {
 	if (chrome === 'desktop') return 'bottom-6 right-6';
-	return 'bottom-[calc(6.75rem+env(safe-area-inset-bottom,0px))] right-[max(1rem,env(safe-area-inset-right,0px))]';
+	return 'bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-[max(1rem,env(safe-area-inset-right,0px))]';
 }
 
 export function sectionId(id: string): string {

@@ -1,10 +1,21 @@
 <script lang="ts">
 	import { chromeState } from '$lib/chrome.svelte';
 	import AppIcon from './AppIcon.svelte';
-	import { formatRefreshStatus, formatStationLine, formatTemp, placeLabel } from '$lib/format';
-	import { clothingLine, insightLine } from '$lib/insights';
+	import {
+		formatHpa,
+		formatPercent,
+		formatRefreshStatus,
+		formatStationLine,
+		formatTemp,
+		formatTime,
+		formatWind,
+		placeLabel,
+		windDirection
+	} from '$lib/format';
+	import { clothingLine, insightLine, precipNowSummary } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
 	import type { Place, WeatherBundle } from '$lib/types';
+	import { unitsState } from '$lib/units.svelte';
 	import { getWmo, heroAtmosphere, weatherMood } from '$lib/wmo';
 	import { clockState, isFavorite, starPlace, weatherState } from '$lib/weather.svelte';
 	import WeatherIcon from './WeatherIcon.svelte';
@@ -56,11 +67,33 @@
 	const today = $derived(bundle?.days[0]);
 	const insight = $derived(bundle ? insightLine(bundle) : null);
 	const clothing = $derived(bundle ? clothingLine(bundle) : null);
+	const precip = $derived(bundle ? precipNowSummary(bundle) : null);
 	const favored = $derived(isFavorite(place));
 	const station = $derived(bundle?.station ?? null);
 	const stationLine = $derived(
 		station ? formatStationLine(station, bundle?.timezone) : null
 	);
+	/** Full now-details live on Jetzt; Favoriten keep a lean hero. */
+	const showNowDetails = $derived(!onOpen);
+	const metricParts = $derived.by(() => {
+		if (!current) return [] as string[];
+		const parts: string[] = [];
+		if (current.relative_humidity_2m != null) {
+			parts.push(`Feuchte ${formatPercent(current.relative_humidity_2m)}`);
+		}
+		if (current.pressure_msl != null) {
+			parts.push(`Druck ${formatHpa(current.pressure_msl)}`);
+		}
+		if (current.cloud_cover != null) {
+			parts.push(`Bewölkung ${formatPercent(current.cloud_cover)}`);
+		}
+		return parts;
+	});
+	const sunLine = $derived.by(() => {
+		if (!today?.sunrise || !today.sunset) return null;
+		const tz = bundle?.timezone;
+		return `Sonne ${formatTime(today.sunrise, tz)} – ${formatTime(today.sunset, tz)}`;
+	});
 </script>
 
 {#if current && wmo && bundle}
@@ -145,6 +178,47 @@
 					{/if}
 					{#if clothing}
 						<p class="break-words text-base leading-snug">{clothing}</p>
+					{/if}
+				</div>
+			{/if}
+
+			{#if showNowDetails && precip && current}
+				<div class="hero-now-strip" aria-label="Aktuell">
+					<div class="hero-now-pair">
+						<div class="hero-now-cell">
+							<p class="hero-now-label">
+								<AppIcon name="nowcast" class="size-4 shrink-0 wx-icon-storm" />
+								Regen
+							</p>
+							<p class="hero-now-value">{precip.headline}</p>
+							{#if precip.detail}
+								<p class="hero-now-detail">{precip.detail}</p>
+							{/if}
+						</div>
+						<div class="hero-now-cell">
+							<p class="hero-now-label">
+								<AppIcon name="wind" class="size-4 shrink-0 wx-icon-wind" />
+								Wind
+							</p>
+							<p class="hero-now-value">
+								{formatWind(current.wind_speed_10m, unitsState.wind)}
+							</p>
+							<p class="hero-now-detail">
+								aus {windDirection(current.wind_direction_10m)}
+								{#if current.wind_gusts_10m != null}
+									· Böen {formatWind(current.wind_gusts_10m, unitsState.wind)}
+								{/if}
+							</p>
+						</div>
+					</div>
+					{#if metricParts.length > 0}
+						<p class="hero-now-metrics">{metricParts.join(' · ')}</p>
+					{/if}
+					{#if sunLine}
+						<p class="hero-now-sun">
+							<AppIcon name="sunrise" class="size-3.5 shrink-0 wx-icon-sun" />
+							{sunLine}
+						</p>
 					{/if}
 				</div>
 			{/if}

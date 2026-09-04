@@ -217,6 +217,7 @@ export interface PassObservation {
 	windKmh: number | null;
 	windDir: number | null;
 	observedAt: string | null;
+	distanceKm: number;
 }
 
 export interface NotifyPrefs {

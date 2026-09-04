@@ -2,6 +2,7 @@ import type { AppIconName } from '$lib/icons/chrome';
 
 export type SectionId =
 	| 'jetzt'
+	| 'verlauf'
 	| 'radar'
 	| 'woche'
 	| 'luft'
@@ -19,7 +20,7 @@ export type TopicId =
 	| 'pendeln'
 	| 'meldungen'
 	| 'darstellung';
-export type MehrId = TopicId | 'favoriten' | 'einstellungen' | 'vergleich';
+export type MehrId = TopicId | 'radar' | 'favoriten' | 'einstellungen' | 'vergleich';
 
 export interface NavItem {
 	id: SectionId;
@@ -53,11 +54,11 @@ const JETZT: NavItem = {
 	pill: 'wx-chip-clear'
 };
 
-const RADAR: NavItem = {
-	id: 'radar',
-	label: 'Radar',
-	railLabel: 'Radar',
-	icon: 'radar',
+const VERLAUF: NavItem = {
+	id: 'verlauf',
+	label: 'Verlauf',
+	railLabel: 'Verlauf',
+	icon: 'verlauf',
 	iconClass: 'wx-icon-rain',
 	pill: 'wx-chip-rain'
 };
@@ -98,11 +99,11 @@ const MEHR: NavItem = {
 	pill: 'wx-chip-cloud'
 };
 
-/** Mobile bottom nav — MY3E max 5. Favoriten and Einstellungen live in Mehr. */
-export const NAV_ITEMS: NavItem[] = [JETZT, RADAR, WOCHE, LUFT, MEHR];
+/** Mobile bottom nav — MY3E max 5. Radar, Favoriten and Einstellungen live in Mehr. */
+export const NAV_ITEMS: NavItem[] = [JETZT, VERLAUF, WOCHE, LUFT, MEHR];
 
 /** Desktop Fluent rail may exceed 5. Favoriten is a first-class point. */
-export const RAIL_ITEMS: NavItem[] = [JETZT, RADAR, WOCHE, LUFT, FAVORITEN, MEHR];
+export const RAIL_ITEMS: NavItem[] = [JETZT, VERLAUF, WOCHE, LUFT, FAVORITEN, MEHR];
 
 export const TOPIC_CHIPS: TopicItem[] = [
 	{ id: 'wind', label: 'Wind', icon: 'wind', iconClass: 'wx-icon-wind' },
@@ -123,6 +124,7 @@ export const MEHR_GROUPS: { title: string; items: MehrItem[] }[] = [
 	{
 		title: 'Wetter',
 		items: [
+			{ id: 'radar', label: 'Wetterradar', icon: 'radar', iconClass: 'wx-icon-rain' },
 			{ id: 'pendeln', label: 'Pendeln', icon: 'pendeln', iconClass: 'wx-icon-week' },
 			{ id: 'draussen', label: 'Draußen', icon: 'draussen', iconClass: 'wx-icon-thermo' },
 			{ id: 'wind', label: 'Wind', icon: 'wind', iconClass: 'wx-icon-wind' },
@@ -140,6 +142,7 @@ export const MEHR_GROUPS: { title: string; items: MehrItem[] }[] = [
 
 const SECTION_HASH: Record<SectionId, string> = {
 	jetzt: 'jetzt',
+	verlauf: 'verlauf',
 	radar: 'radar',
 	woche: 'woche',
 	luft: 'luft',
@@ -155,9 +158,12 @@ const SECTION_ALIASES: Record<string, SectionId> = {
 	jetzt: 'jetzt',
 	aktuell: 'jetzt',
 	heute: 'jetzt',
-	stunden: 'jetzt',
-	'24h': 'jetzt',
+	verlauf: 'verlauf',
+	langzeit: 'verlauf',
+	stunden: 'verlauf',
+	'24h': 'verlauf',
 	radar: 'radar',
+	wetterradar: 'radar',
 	woche: 'woche',
 	luft: 'luft',
 	mehr: 'mehr',
@@ -192,8 +198,10 @@ const TOPIC_SECTION: Record<TopicId, SectionId> = {
 	darstellung: 'einstellungen'
 };
 
-export function isMehrSection(id: MehrId): id is 'favoriten' | 'einstellungen' | 'vergleich' {
-	return id === 'favoriten' || id === 'einstellungen' || id === 'vergleich';
+export function isMehrSection(
+	id: MehrId
+): id is 'radar' | 'favoriten' | 'einstellungen' | 'vergleich' {
+	return id === 'radar' || id === 'favoriten' || id === 'einstellungen' || id === 'vergleich';
 }
 
 export function navItemCurrent(
@@ -203,7 +211,7 @@ export function navItemCurrent(
 ): boolean {
 	if (itemId === section) return true;
 	if (itemId !== 'mehr') return false;
-	if (section === 'einstellungen' || section === 'vergleich') return true;
+	if (section === 'einstellungen' || section === 'vergleich' || section === 'radar') return true;
 	return section === 'favoriten' && surface === 'dock';
 }
 

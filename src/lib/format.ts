@@ -122,15 +122,23 @@ export function formatRefreshStatus(
 	return `Aktualisiert ${when}`;
 }
 
+/** de-CH 24h clock as hh:mm (e.g. 08:00) — Radar Verlauf axis labels. */
 export function formatHour(iso: string): string {
-	const raw = new Intl.DateTimeFormat('de-CH', { hour: '2-digit', hourCycle: 'h23' }).format(
-		new Date(iso)
-	);
+	const raw = new Intl.DateTimeFormat('de-CH', {
+		hour: '2-digit',
+		minute: '2-digit',
+		hourCycle: 'h23'
+	}).format(new Date(iso));
 	return raw.replace(/\s*Uhr\.?/gi, '').trim();
 }
 
+/** Spoken hour label for lists (e.g. 08 Uhr). */
 export function formatHourLabel(iso: string): string {
-	return `${formatHour(iso)} Uhr`;
+	const raw = new Intl.DateTimeFormat('de-CH', { hour: '2-digit', hourCycle: 'h23' }).format(
+		new Date(iso)
+	);
+	const hour = raw.replace(/\s*Uhr\.?/gi, '').trim();
+	return `${hour} Uhr`;
 }
 
 export function placeLabel(place: { name: string; admin1?: string; country?: string }): string {

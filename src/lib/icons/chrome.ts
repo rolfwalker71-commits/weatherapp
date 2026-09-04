@@ -64,6 +64,8 @@ import Sunny from '@material-symbols/svg-400/rounded/sunny.svg?raw';
 import SunnyFill from '@material-symbols/svg-400/rounded/sunny-fill.svg?raw';
 import Thunderstorm from '@material-symbols/svg-400/rounded/thunderstorm.svg?raw';
 import ThunderstormFill from '@material-symbols/svg-400/rounded/thunderstorm-fill.svg?raw';
+import Timeline from '@material-symbols/svg-400/rounded/timeline.svg?raw';
+import TimelineFill from '@material-symbols/svg-400/rounded/timeline-fill.svg?raw';
 import Visibility from '@material-symbols/svg-400/rounded/visibility.svg?raw';
 import VisibilityFill from '@material-symbols/svg-400/rounded/visibility-fill.svg?raw';
 import Warning from '@material-symbols/svg-400/rounded/warning.svg?raw';
@@ -79,6 +81,7 @@ import WeatherSnowyFill from '@material-symbols/svg-400/rounded/weather_snowy-fi
 
 export type AppIconName =
 	| 'jetzt'
+	| 'verlauf'
 	| 'radar'
 	| 'woche'
 	| 'luft'
@@ -127,6 +130,7 @@ export interface SymbolPair {
 
 export const ICONS: Record<AppIconName, SymbolPair> = {
 	jetzt: { outline: PartlyCloudyDay, fill: PartlyCloudyDayFill },
+	verlauf: { outline: Timeline, fill: TimelineFill },
 	radar: { outline: Radar, fill: RadarFill },
 	woche: { outline: CalendarMonth, fill: CalendarMonthFill },
 	luft: { outline: Air, fill: AirFill },

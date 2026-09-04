@@ -35,8 +35,26 @@ interface VqhaObs {
 	observedAt: string | null;
 }
 
-/** Major CH pass / pass-area stations that exist in SwissMetNet. Klausen has no SMN station. */
-const PASS_STATION_IDS = ['GUE', 'GRH', 'SIM', 'GSB', 'BEH'] as const;
+/**
+ * Curated SwissMetNet pass / pass-area stations (real IDs only).
+ * Coords come from ogd-smn meta at fetch time. Klausen has no SMN station.
+ * Pass exposition in meta: BEH, CDM, GSB, JUN, VAB; others are known pass-area sites.
+ */
+const PASS_STATION_IDS = [
+	'BEH',
+	'CDM',
+	'GSB',
+	'JUN',
+	'VAB',
+	'GUE',
+	'GRH',
+	'SIM',
+	'SBE',
+	'BUF'
+] as const;
+
+/** Nearest first within MAX_DISTANCE_KM; same idea as lakes (limit 2), slightly higher cap. */
+const MAX_PASS_RESULTS = 5;
 
 let memoryMeta: { at: number; stations: SmnStation[] } | null = null;
 
@@ -268,7 +286,12 @@ async function fetchMetar(place: Place, signal?: AbortSignal): Promise<StationOb
 	return pickNearest(place, candidates);
 }
 
-export async function fetchPassObservations(signal?: AbortSignal): Promise<PassObservation[]> {
+export async function fetchPassObservations(
+	latitude: number,
+	longitude: number,
+	signal?: AbortSignal
+): Promise<PassObservation[]> {
+	if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return [];
 	try {
 		const [stations, vqhaBytes] = await Promise.all([
 			loadSmnStations(signal),
@@ -283,16 +306,19 @@ export async function fetchPassObservations(signal?: AbortSignal): Promise<PassO
 			const obs = observations.get(id);
 			if (!meta || !obs || !isFresh(obs.observedAt)) continue;
 			if (obs.temperature == null && obs.windKmh == null) continue;
+			const distanceKm = haversineKm(latitude, longitude, meta.latitude, meta.longitude);
+			if (distanceKm > MAX_DISTANCE_KM) continue;
 			rows.push({
 				id,
 				name: meta.name,
 				temperature: obs.temperature,
 				windKmh: obs.windKmh,
 				windDir: obs.windDir,
-				observedAt: obs.observedAt
+				observedAt: obs.observedAt,
+				distanceKm
 			});
 		}
-		return rows;
+		return rows.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, MAX_PASS_RESULTS);
 	} catch {
 		return [];
 	}

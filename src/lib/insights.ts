@@ -1,5 +1,5 @@
 import { comfortAdvice } from './comfort';
-import { formatTime } from './format';
+import { formatMm, formatTime } from './format';
 import type { HourPoint, MinutePoint, WeatherBundle } from './types';
 import { getWmo } from './wmo';
 
@@ -77,6 +77,39 @@ function precipOnsetTime(bundle: WeatherBundle): string | null {
 	return new Date(minuteOnset.time).getTime() <= new Date(hourOnset.time).getTime()
 		? minuteOnset.time
 		: hourOnset.time;
+}
+
+/** Compact “Regen jetzt” from Open-Meteo current + onset — no chart, no invented values. */
+export function precipNowSummary(bundle: WeatherBundle): {
+	mm: number;
+	headline: string;
+	detail: string | null;
+} {
+	const mm = bundle.current.precipitation;
+	const minuteWet = bundle.minutes[0] != null && isWetMinute(bundle.minutes[0]);
+	const hourWet = (bundle.hours[0]?.precipMm ?? 0) >= WET_HOUR_MM;
+	const rainingNow = mm >= WET_MINUTE_MM || minuteWet || hourWet;
+
+	if (rainingNow) {
+		const detail =
+			mm >= WET_MINUTE_MM
+				? null
+				: minuteWet && bundle.minutes[0]?.precipMm != null
+					? `15-Min ${formatTime(bundle.minutes[0].time)} · ${formatMm(bundle.minutes[0].precipMm)}`
+					: nextPrecipLine(bundle);
+		return {
+			mm,
+			headline: mm >= WET_MINUTE_MM ? formatMm(mm) : 'Niederschlag jetzt',
+			detail
+		};
+	}
+
+	const onset = precipOnsetTime(bundle);
+	return {
+		mm,
+		headline: 'trocken',
+		detail: onset ? `Niederschlag ab ${formatTime(onset)}` : null
+	};
 }
 
 export function clothingLine(bundle: WeatherBundle): string | null {
@@ -260,7 +293,8 @@ function wind30Bars(minutes: MinutePoint[], horizonMin = NOWCAST_HORIZON_MIN): W
 	return bars;
 }
 
-function windHourBars(hours: HourPoint[], count = 6): WindBar[] {
+/** Hourly wind bars from Open-Meteo only — used for Radar Verlauf (e.g. 12 h). */
+export function windHourBars(hours: HourPoint[], count = 12): WindBar[] {
 	const bars: WindBar[] = [];
 	for (const hour of hours) {
 		if (bars.length >= count) break;
@@ -280,7 +314,7 @@ function windHourBars(hours: HourPoint[], count = 6): WindBar[] {
 export function windBars(minutes: MinutePoint[], hours: HourPoint[]): WindBar[] {
 	const fromMinutes = wind30Bars(minutes);
 	if (fromMinutes.length) return fromMinutes;
-	return windHourBars(hours);
+	return windHourBars(hours, 6);
 }
 
 export function windChartAriaLabel(bars: WindBar[]): string {

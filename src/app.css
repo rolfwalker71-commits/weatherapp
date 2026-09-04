@@ -138,7 +138,6 @@
 
 	@media (max-width: 1023px) {
 		.wx-page,
-		.wx-page main,
 		.wx-shell {
 			overflow-x: clip;
 			max-width: 100%;
@@ -278,6 +277,106 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
+	}
+
+	.hero-now-strip {
+		display: flex;
+		min-width: 0;
+		flex-direction: column;
+		gap: 0.625rem;
+		padding: 0.875rem 1rem;
+		animation: hero-now-in 0.45s cubic-bezier(0.2, 0, 0, 1) both;
+	}
+
+	html[data-chrome='android'] .hero-now-strip {
+		border-radius: 1.25rem;
+		background: color-mix(in srgb, currentColor 9%, transparent);
+	}
+
+	html[data-chrome='desktop'] .hero-now-strip {
+		border-radius: 0.375rem;
+		padding: 0.75rem 0.875rem;
+		background: rgb(var(--muted) / 0.55);
+	}
+
+	.hero-now-pair {
+		display: grid;
+		min-width: 0;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.75rem 1rem;
+	}
+
+	.hero-now-cell {
+		min-width: 0;
+		animation: hero-now-in 0.5s cubic-bezier(0.2, 0, 0, 1) both;
+	}
+
+	.hero-now-cell:nth-child(2) {
+		animation-delay: 0.06s;
+	}
+
+	.hero-now-label {
+		display: flex;
+		min-width: 0;
+		align-items: center;
+		gap: 0.375rem;
+		font-size: 0.8125rem;
+		font-weight: 500;
+		line-height: 1.25;
+		opacity: 0.78;
+	}
+
+	.hero-now-value {
+		margin-top: 0.25rem;
+		font-size: 1.25rem;
+		font-weight: 600;
+		line-height: 1.25;
+		font-variant-numeric: tabular-nums;
+		overflow-wrap: break-word;
+	}
+
+	.hero-now-detail {
+		margin-top: 0.125rem;
+		font-size: 0.8125rem;
+		line-height: 1.35;
+		opacity: 0.75;
+		overflow-wrap: break-word;
+	}
+
+	.hero-now-metrics,
+	.hero-now-sun {
+		font-size: 0.8125rem;
+		line-height: 1.4;
+		opacity: 0.78;
+		overflow-wrap: break-word;
+		animation: hero-now-in 0.55s cubic-bezier(0.2, 0, 0, 1) both;
+		animation-delay: 0.1s;
+	}
+
+	.hero-now-sun {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+	}
+
+	@keyframes hero-now-in {
+		from {
+			opacity: 0;
+			transform: translateY(0.4rem);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.hero-now-strip,
+		.hero-now-cell,
+		.hero-now-metrics,
+		.hero-now-sun {
+			animation: none;
+		}
 	}
 
 	.hero-weather,
@@ -1298,8 +1397,9 @@
 
 	.wx-leg {
 		display: inline-block;
-		width: 0.75rem;
-		height: 0.75rem;
+		width: 0.5rem;
+		height: 0.5rem;
+		flex-shrink: 0;
 		border-radius: 999px;
 	}
 
@@ -1349,13 +1449,6 @@
 		--wx-nav-h: 0px;
 		--wx-sheet-gap-top: max(0.75rem, env(safe-area-inset-top, 0px));
 		--wx-sheet-max: calc(100dvh - var(--wx-nav-h) - var(--wx-sheet-gap-top));
-	}
-
-	@media (max-width: 1023px) {
-		html[data-chrome='android'],
-		html[data-chrome='ios'] {
-			--wx-nav-h: calc(4rem + env(safe-area-inset-bottom, 0px));
-		}
 	}
 
 	.wx-overlay,
@@ -1457,6 +1550,17 @@
 	}
 }
 
+/* Dock height + home-indicator. Unlayered so --wx-nav-h is not stuck at 0
+   inside @layer components when unlayered overlay/scroll rules read it.
+   NavBar ResizeObserver overwrites this with the measured dock height. */
+@media (max-width: 1023px) {
+	html[data-chrome='android'],
+	html[data-chrome='ios'] {
+		/* icon pill + label + top/bottom padding + home-indicator */
+		--wx-nav-h: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+	}
+}
+
 /* Pin the MY3E dock to the visual viewport. Unlayered so Tailwind min-h-dvh /
    overflow utilities cannot park it at the end of a tall Jetzt column. */
 html[data-chrome='android'] .wx-dock,
@@ -1532,6 +1636,7 @@ html[data-chrome='ios'] .wx-dock ul {
 		flex-shrink: 0;
 	}
 
+	/* Sole mobile scrollport. Keep overflow-x:clip for strip containment. */
 	html[data-chrome='android'] .wx-shell,
 	html[data-chrome='ios'] .wx-shell {
 		flex: 1 1 auto;
@@ -1543,8 +1648,37 @@ html[data-chrome='ios'] .wx-dock ul {
 		-webkit-overflow-scrolling: touch;
 	}
 
-	html[data-chrome='android'] .wx-page:not([data-section='widget']) main,
-	html[data-chrome='ios'] .wx-page:not([data-section='widget']) main {
-		padding-bottom: calc(var(--wx-nav-h) + 1rem);
+	html[data-chrome='android'] .wx-page[data-dock] .wx-shell,
+	html[data-chrome='ios'] .wx-page[data-dock] .wx-shell {
+		/* Flex-start so main sizes to content; stretched main eats padding-bottom. */
+		align-items: flex-start;
+		/* Chromium often ignores padding-bottom on overflow:auto + overflow-x:clip;
+		   clearance is an in-flow ::after on main. Keep scroll-padding for anchors. */
+		scroll-padding-bottom: calc(var(--wx-nav-h) + 0.75rem);
+	}
+
+	html[data-chrome='android'] .wx-page[data-dock] main,
+	html[data-chrome='ios'] .wx-page[data-dock] main {
+		box-sizing: border-box;
+		flex: 1 1 auto;
+		width: 100%;
+		max-width: 100%;
+		/* Content height — not the scrollport height — so bottom spacing is real. */
+		height: auto;
+		min-height: 100%;
+		align-self: flex-start;
+		/* Do not set overflow-x: a non-visible X axis makes Y a nested scroller and
+		   Chromium then drops bottom clearance from scroll height. */
+		overflow: visible;
+	}
+
+	/* In-flow dock clearance (before Tailwind py-* padding). Survives flex/overflow bugs. */
+	html[data-chrome='android'] .wx-page[data-dock] main::after,
+	html[data-chrome='ios'] .wx-page[data-dock] main::after {
+		content: '';
+		display: block;
+		width: 100%;
+		height: var(--wx-nav-h);
+		pointer-events: none;
 	}
 }

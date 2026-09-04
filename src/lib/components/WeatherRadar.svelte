@@ -4,7 +4,7 @@
 	import AppIcon from './AppIcon.svelte';
 	import WeatherIcon from './WeatherIcon.svelte';
 	import { chromeState } from '$lib/chrome.svelte';
-	import { formatHour, formatMm, formatPercent, formatWind, windDirection } from '$lib/format';
+	import { formatWind, windDirection } from '$lib/format';
 	import { unitsState } from '$lib/units.svelte';
 	import { panelClass } from '$lib/platform';
 	import {
@@ -37,9 +37,7 @@
 	}
 
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
-	const hours = $derived((weatherState.bundle?.hours ?? []).slice(0, 12));
 	const current = $derived(weatherState.bundle?.current);
-	const maxPrecip = $derived(Math.max(0.2, ...hours.map((hour) => hour.precipMm)));
 	let showRain = $state(true);
 	let showWind = $state(true);
 	let showInfrared = $state(false);
@@ -70,9 +68,10 @@
 		const nowcast = frames.filter((frame) => frame.kind === 'nowcast');
 		const start = formatRadarTime(frames[0].time);
 		const end = formatRadarTime(frames[frames.length - 1].time);
-		const bits = [`${start} – ${end}`, `${frames.length} Bilder`];
-		if (past.length) bits.push(`${past.length} Vergangenheit`);
-		if (nowcast.length) bits.push(`${nowcast.length} Prognose`);
+		// nbsp keeps «13 Vergangenheit» / «13 Bilder» from wrapping mid-phrase
+		const bits = [`${start}\u00A0–\u00A0${end}`, `${frames.length}\u00A0Bilder`];
+		if (past.length) bits.push(`${past.length}\u00A0Vergangenheit`);
+		if (nowcast.length) bits.push(`${nowcast.length}\u00A0Prognose`);
 		return bits.join(' · ');
 	});
 
@@ -323,7 +322,10 @@
 				const previousTime = frames[frameIndex]?.time;
 				frames = catalog.frames;
 				infrared = catalog.infrared;
-				const kept = previousTime != null ? catalog.frames.findIndex((frame) => frame.time === previousTime) : -1;
+				const kept =
+					previousTime != null
+						? catalog.frames.findIndex((frame) => frame.time === previousTime)
+						: -1;
 				frameIndex = kept >= 0 ? kept : lastObservedIndex(catalog.frames);
 				irIndex = Math.max(0, catalog.infrared.length - 1);
 				mapError = catalog.frames.length ? null : 'Keine Radarframes verfügbar.';
@@ -434,7 +436,11 @@
 				<button
 					type="button"
 					aria-pressed={showRain}
-					class="{chip} {showRain ? (isDesktop ? 'bg-primary/10 text-primary' : 'wx-chip-rain') : 'bg-muted text-muted-foreground'}"
+					class="{chip} {showRain
+						? isDesktop
+							? 'bg-primary/10 text-primary'
+							: 'wx-chip-rain'
+						: 'bg-muted text-muted-foreground'}"
 					onclick={() => (showRain = !showRain)}
 				>
 					Regen
@@ -442,7 +448,11 @@
 				<button
 					type="button"
 					aria-pressed={showWind}
-					class="{chip} {showWind ? (isDesktop ? 'bg-primary/10 text-primary' : 'wx-chip-cloud') : 'bg-muted text-muted-foreground'}"
+					class="{chip} {showWind
+						? isDesktop
+							? 'bg-primary/10 text-primary'
+							: 'wx-chip-cloud'
+						: 'bg-muted text-muted-foreground'}"
 					onclick={() => (showWind = !showWind)}
 				>
 					Wind
@@ -450,7 +460,11 @@
 				<button
 					type="button"
 					aria-pressed={showInfrared}
-					class="{chip} {showInfrared ? (isDesktop ? 'bg-primary/10 text-primary' : 'wx-chip-night') : 'bg-muted text-muted-foreground'}"
+					class="{chip} {showInfrared
+						? isDesktop
+							? 'bg-primary/10 text-primary'
+							: 'wx-chip-night'
+						: 'bg-muted text-muted-foreground'}"
 					onclick={() => (showInfrared = !showInfrared)}
 				>
 					Infrarot
@@ -458,7 +472,11 @@
 				<button
 					type="button"
 					aria-pressed={showCape}
-					class="{chip} {showCape ? (isDesktop ? 'bg-primary/10 text-primary' : 'wx-chip-storm') : 'bg-muted text-muted-foreground'}"
+					class="{chip} {showCape
+						? isDesktop
+							? 'bg-primary/10 text-primary'
+							: 'wx-chip-storm'
+						: 'bg-muted text-muted-foreground'}"
 					onclick={() => (showCape = !showCape)}
 				>
 					CAPE
@@ -467,7 +485,11 @@
 					<button
 						type="button"
 						aria-pressed={showLightning}
-						class="{chip} {showLightning ? (isDesktop ? 'bg-primary/10 text-primary' : 'wx-chip-storm') : 'bg-muted text-muted-foreground'}"
+						class="{chip} {showLightning
+							? isDesktop
+								? 'bg-primary/10 text-primary'
+								: 'wx-chip-storm'
+							: 'bg-muted text-muted-foreground'}"
 						onclick={() => (showLightning = !showLightning)}
 					>
 						Blitz
@@ -480,34 +502,15 @@
 			<p class="mb-3 text-sm leading-snug text-muted-foreground" role="status">{mapError}</p>
 		{/if}
 
-		<div class="radar-frame overflow-hidden {isDesktop ? 'rounded-md ring-1 ring-border' : 'rounded-3xl'}">
+		<div
+			class="radar-frame overflow-hidden {isDesktop ? 'rounded-md ring-1 ring-border' : 'rounded-3xl'}"
+		>
 			<div bind:this={mapEl} class="radar-map h-[22rem] w-full lg:h-[32rem]"></div>
 		</div>
 
-		<div class="mt-4 flex items-center gap-3">
-			<button
-				type="button"
-				class="icon-btn"
-				onclick={() => (playing = !playing)}
-				aria-label={playing ? 'Animation anhalten' : 'Animation abspielen'}
-			>
-				{#if playing}
-					<AppIcon name="pause" class="size-5 wx-icon-rain" />
-				{:else}
-					<AppIcon name="play" class="size-5 wx-icon-rain" />
-				{/if}
-			</button>
-			<button
-				type="button"
-				class="min-h-12 px-4 text-sm {isDesktop
-					? 'rounded-md bg-primary/10 text-primary'
-					: 'rounded-full bg-secondary text-primary'}"
-				onclick={jumpToNow}
-				disabled={!frames.length}
-			>
-				Jetzt
-			</button>
-			<div class="min-w-0 flex-1">
+		<div class="mt-4 space-y-3">
+			<!-- Full-width timeline -->
+			<div class="min-w-0">
 				<label class="sr-only" for="radar-time">Radarzeit, halten und ziehen</label>
 				<input
 					id="radar-time"
@@ -522,35 +525,75 @@
 					oninput={onScrubStart}
 				/>
 				{#if ticks.length > 1}
-					<div class="mt-1 flex min-w-0 justify-between gap-1 overflow-hidden text-[0.7rem] tabular-nums text-muted-foreground">
+					<div
+						class="mt-1 flex min-w-0 justify-between gap-1 overflow-hidden text-[0.7rem] tabular-nums text-muted-foreground"
+					>
 						{#each ticks as tick (tick.index)}
-							<span>{formatRadarTime(tick.time)}</span>
+							<span class="shrink-0">{formatRadarTime(tick.time)}</span>
 						{/each}
 					</div>
 				{/if}
-				<p class="mt-1 text-sm text-muted-foreground">
-					{frameLabel}{rangeLabel ? ` · ${rangeLabel}` : ''}
-				</p>
 			</div>
-		</div>
-		<div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
-			<span class="text-muted-foreground">Legende</span>
-			<span class="inline-flex items-center gap-1">
-				<WeatherIcon code={51} class="size-6" />
-				<i class="wx-leg wx-leg-1"></i> leicht
-			</span>
-			<span class="inline-flex items-center gap-1">
-				<WeatherIcon code={63} class="size-6" />
-				<i class="wx-leg wx-leg-2"></i> mässig
-			</span>
-			<span class="inline-flex items-center gap-1">
-				<WeatherIcon code={65} class="size-6" />
-				<i class="wx-leg wx-leg-3"></i> stark
-			</span>
-			<span class="inline-flex items-center gap-1">
-				<WeatherIcon code={73} class="size-6" />
-				<i class="wx-leg wx-leg-4"></i> Schnee
-			</span>
+
+			<!-- Actions left · meta (intentional lines, inner scroll only) -->
+			<div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+				<div class="flex shrink-0 items-center gap-2">
+					<button
+						type="button"
+						class="icon-btn"
+						onclick={() => (playing = !playing)}
+						aria-label={playing ? 'Animation anhalten' : 'Animation abspielen'}
+					>
+						{#if playing}
+							<AppIcon name="pause" class="size-5 wx-icon-rain" />
+						{:else}
+							<AppIcon name="play" class="size-5 wx-icon-rain" />
+						{/if}
+					</button>
+					<button
+						type="button"
+						class="min-h-12 px-4 text-sm {isDesktop
+							? 'rounded-md bg-primary/10 text-primary'
+							: 'rounded-full bg-secondary text-primary'}"
+						onclick={jumpToNow}
+						disabled={!frames.length}
+					>
+						Jetzt
+					</button>
+				</div>
+				<div
+					class="min-w-0 max-w-full overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
+					role="status"
+					aria-live="polite"
+				>
+					<div class="w-max max-w-none space-y-0.5 text-sm text-muted-foreground">
+						<p class="whitespace-nowrap tabular-nums text-foreground">{frameLabel}</p>
+						{#if rangeLabel}
+							<p class="whitespace-nowrap tabular-nums">{rangeLabel}</p>
+						{/if}
+					</div>
+				</div>
+			</div>
+
+			<!-- Legend: compact chips; prefer one row on ~360px, wrap whole chips if needed -->
+			<div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.7rem] leading-none" aria-label="Radar-Legende">
+				<span class="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap">
+					<WeatherIcon code={51} class="size-3.5" />
+					<i class="wx-leg wx-leg-1"></i> leicht
+				</span>
+				<span class="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap">
+					<WeatherIcon code={63} class="size-3.5" />
+					<i class="wx-leg wx-leg-2"></i> mässig
+				</span>
+				<span class="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap">
+					<WeatherIcon code={65} class="size-3.5" />
+					<i class="wx-leg wx-leg-3"></i> stark
+				</span>
+				<span class="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap">
+					<WeatherIcon code={73} class="size-3.5" />
+					<i class="wx-leg wx-leg-4"></i> Schnee
+				</span>
+			</div>
 		</div>
 		{#if lightningStatus === 'down'}
 			<p class="mt-3 text-sm leading-snug text-muted-foreground" role="status">
@@ -561,56 +604,23 @@
 				Blitz: EUMETSAT MTG Lightning Imager (akkumulierte Flash-Fläche).
 			</p>
 		{/if}
+		{#if current}
+			<p class="mt-3 text-sm text-muted-foreground">
+				Wind vor Ort {formatWind(current.wind_speed_10m, unitsState.wind)} aus {windDirection(
+					current.wind_direction_10m
+				)}
+				{#if current.wind_gusts_10m != null}
+					· Böen {formatWind(current.wind_gusts_10m, unitsState.wind)}
+				{/if}
+				{#if windPoints.length}
+					· {windPoints.length} Windpfeile im Ausschnitt
+				{/if}
+			</p>
+		{/if}
 		{#if weatherState.bundle?.hours[0]?.cape != null}
 			<p class="mt-2 text-sm tabular-nums text-muted-foreground">
 				CAPE {Math.round(weatherState.bundle.hours[0].cape)} J/kg · Modell
 			</p>
 		{/if}
-	</div>
-
-	<div class="grid grid-cols-1 border-t border-border lg:grid-cols-2">
-		<div class="p-5 sm:p-6">
-			<h3 class="mb-3 flex items-center gap-2 font-medium">
-				<AppIcon name="wind" class="size-4 wx-icon-wind" /> Wind vor Ort
-			</h3>
-			{#if current}
-				<p class="text-3xl font-semibold tabular-nums">{formatWind(current.wind_speed_10m, unitsState.wind)}</p>
-				<p class="mt-1 text-sm text-muted-foreground">
-					aus {windDirection(current.wind_direction_10m)} · Böen {formatWind(current.wind_gusts_10m, unitsState.wind)}
-				</p>
-				<p class="mt-2 text-sm text-muted-foreground">
-					{windPoints.length} Windpfeile im sichtbaren Ausschnitt
-				</p>
-			{:else}
-				<p class="text-sm text-muted-foreground">Winddaten werden geladen.</p>
-			{/if}
-		</div>
-		<div class="border-t border-border p-5 sm:p-6 lg:border-l lg:border-t-0">
-			<h3 class="mb-3 font-medium">Regen nächste 12 Stunden</h3>
-			{#if hours.length}
-				<div class="flex items-end gap-1">
-					{#each hours as hour (hour.time)}
-						<div class="flex min-w-0 flex-1 flex-col items-center gap-1">
-							<div class="flex h-16 w-full items-end">
-								<div
-									class="w-full {isDesktop ? 'rounded-sm' : 'rounded-full'} wx-bar-rain"
-									style="height: {Math.max(10, (hour.precipMm / maxPrecip) * 100)}%;"
-									title="{formatHour(hour.time)} · {formatMm(hour.precipMm)}"
-								></div>
-							</div>
-							<span class="text-[0.65rem] tabular-nums text-muted-foreground">{formatHour(hour.time)}</span>
-						</div>
-					{/each}
-				</div>
-				<p class="mt-3 text-sm text-muted-foreground">
-					Nächste Stunde {formatMm(hours[0]?.precipMm ?? 0)}
-					{#if hours[0]?.precipProb != null}
-						· Wahrscheinlichkeit {formatPercent(hours[0].precipProb)}
-					{/if}
-				</p>
-			{:else}
-				<p class="text-sm text-muted-foreground">Keine Niederschlagsdaten.</p>
-			{/if}
-		</div>
 	</div>
 </section>
