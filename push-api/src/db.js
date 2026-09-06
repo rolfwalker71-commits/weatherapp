@@ -61,10 +61,10 @@ export function upsertPreferences(db, payload) {
 	db.prepare(
 		`
 		INSERT INTO notification_preferences (
-			client_id, rain_soon, warnings, frost, uv, air, daily_brief,
+			client_id, rain_soon, warnings, frost, uv, air, daily_brief, forecast_change,
 			latitude, longitude, place_name, timezone, updated_at
 		) VALUES (
-			@client_id, @rain_soon, @warnings, @frost, @uv, @air, @daily_brief,
+			@client_id, @rain_soon, @warnings, @frost, @uv, @air, @daily_brief, @forecast_change,
 			@latitude, @longitude, @place_name, @timezone, datetime('now')
 		)
 		ON CONFLICT(client_id) DO UPDATE SET
@@ -74,6 +74,7 @@ export function upsertPreferences(db, payload) {
 			uv = excluded.uv,
 			air = excluded.air,
 			daily_brief = excluded.daily_brief,
+			forecast_change = excluded.forecast_change,
 			latitude = excluded.latitude,
 			longitude = excluded.longitude,
 			place_name = excluded.place_name,
@@ -102,11 +103,42 @@ export function listRecipients(db) {
 			COALESCE(p.uv, 0) AS uv,
 			COALESCE(p.air, 0) AS air,
 			COALESCE(p.daily_brief, 0) AS daily_brief,
+			COALESCE(p.forecast_change, 0) AS forecast_change,
 			p.latitude, p.longitude, p.place_name, p.timezone
 		FROM subscriptions s
 		LEFT JOIN notification_preferences p ON p.client_id = s.client_id
 	`
 	).all();
+}
+
+export function getForecastSnapshot(db, clientId, locationKey) {
+	const row = db
+		.prepare(
+			`SELECT snapshot_json FROM forecast_snapshots WHERE client_id = ? AND location_key = ?`
+		)
+		.get(clientId, locationKey);
+	if (!row?.snapshot_json) return null;
+	try {
+		return JSON.parse(row.snapshot_json);
+	} catch {
+		return null;
+	}
+}
+
+export function saveForecastSnapshot(db, clientId, locationKey, snapshot) {
+	db.prepare(
+		`
+		INSERT INTO forecast_snapshots (client_id, location_key, snapshot_json, updated_at)
+		VALUES (?, ?, ?, datetime('now'))
+		ON CONFLICT(client_id, location_key) DO UPDATE SET
+			snapshot_json = excluded.snapshot_json,
+			updated_at = datetime('now')
+	`
+	).run(clientId, locationKey, JSON.stringify(snapshot));
+}
+
+export function pruneForecastSnapshots(db) {
+	db.prepare(`DELETE FROM forecast_snapshots WHERE updated_at < datetime('now', '-14 days')`).run();
 }
 
 export function wasRecentlySent(db, clientId, category, fingerprint, cooldownHours) {

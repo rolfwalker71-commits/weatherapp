@@ -1,5 +1,6 @@
 import { BERN, emptyExtras, fetchWeather, fetchWeatherHero, reverseGeocode } from './api';
 import { loadNotifyPrefs } from './notify-prefs';
+import { applyProactivity, loadProactivityNotice, type ProactivityNotice } from './proactivity';
 import { syncPreferences } from './push-client';
 import {
 	loadFavorites,
@@ -23,7 +24,8 @@ export const weatherState = $state({
 	locating: false,
 	error: null as string | null,
 	stale: false,
-	section: 'jetzt' as SectionId
+	section: 'jetzt' as SectionId,
+	proactivity: null as ProactivityNotice | null
 });
 
 export const clockState = $state({
@@ -181,6 +183,7 @@ export async function loadPlace(place: Place, options?: { recent?: boolean }): P
 		if (inFlight !== controller) return;
 		weatherState.bundle = bundle;
 		weatherState.stale = false;
+		weatherState.proactivity = applyProactivity(place, bundle);
 		saveLastBundle(bundle);
 		void syncPreferences(loadNotifyPrefs(), {
 			latitude: place.latitude,
@@ -196,6 +199,7 @@ export async function loadPlace(place: Place, options?: { recent?: boolean }): P
 		if (cached && samePlace(cached.place, place)) {
 			weatherState.bundle = cached;
 			weatherState.stale = true;
+			weatherState.proactivity = loadProactivityNotice(place);
 			weatherState.error = 'Offline — zuletzt gespeicherte Daten.';
 		} else {
 			weatherState.error = 'Wetterdaten konnten nicht geladen werden.';
@@ -220,6 +224,7 @@ export function hydrateFromCache(): void {
 		});
 		weatherState.place = cached.place;
 		weatherState.stale = true;
+		weatherState.proactivity = loadProactivityNotice(cached.place);
 	}
 }
 

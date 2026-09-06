@@ -48,7 +48,7 @@ export async function fetchPlaceWeather(lat, lon) {
 	);
 	forecastUrl.searchParams.set(
 		'hourly',
-		'temperature_2m,precipitation,precipitation_probability,uv_index,weather_code,apparent_temperature,cloud_cover,snowfall,is_day,wind_speed_10m,relative_humidity_2m'
+		'temperature_2m,precipitation,precipitation_probability,uv_index,weather_code,apparent_temperature,cloud_cover,snowfall,is_day,wind_speed_10m,wind_gusts_10m,relative_humidity_2m'
 	);
 	forecastUrl.searchParams.set('minutely_15', 'precipitation');
 	forecastUrl.searchParams.set('daily', 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code');
@@ -88,6 +88,9 @@ export async function fetchPlaceWeather(lat, lon) {
 		snowfall: Number.isFinite(forecast.hourly.snowfall?.[index]) ? forecast.hourly.snowfall[index] : null,
 		isDay: forecast.hourly.is_day?.[index] === 1,
 		wind: Number.isFinite(forecast.hourly.wind_speed_10m?.[index]) ? forecast.hourly.wind_speed_10m[index] : null,
+		gusts: Number.isFinite(forecast.hourly.wind_gusts_10m?.[index])
+			? forecast.hourly.wind_gusts_10m[index]
+			: null,
 		humidity: Number.isFinite(forecast.hourly.relative_humidity_2m?.[index])
 			? forecast.hourly.relative_humidity_2m[index]
 			: null,
@@ -346,5 +349,19 @@ export function evaluateNotifications(weather, prefs, alerts) {
 		}
 	}
 
+	return notices;
+}
+
+/** Append forecast-change notice when prefs.forecast_change and a plan delta exists. */
+export function appendForecastChangeNotice(notices, change) {
+	if (!change) return notices;
+	notices.push({
+		category: 'forecastChange',
+		fingerprint: change.fingerprint,
+		cooldownHours: 4,
+		title: change.title,
+		body: change.body,
+		url: '/#jetzt'
+	});
 	return notices;
 }

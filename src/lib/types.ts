@@ -227,6 +227,7 @@ export interface NotifyPrefs {
 	uv: boolean;
 	air: boolean;
 	dailyBrief: boolean;
+	forecastChange: boolean;
 }
 
 export interface AlertItem {

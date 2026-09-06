@@ -9,7 +9,8 @@ export const DEFAULT_PREFS: NotifyPrefs = {
 	frost: false,
 	uv: false,
 	air: false,
-	dailyBrief: false
+	dailyBrief: false,
+	forecastChange: false
 };
 
 export const PREF_META: { id: keyof NotifyPrefs; label: string; hint: string }[] = [
@@ -18,7 +19,12 @@ export const PREF_META: { id: keyof NotifyPrefs; label: string; hint: string }[]
 	{ id: 'frost', label: 'Frost', hint: 'Glatteis und Temperaturen um den Gefrierpunkt' },
 	{ id: 'uv', label: 'UV hoch', hint: 'Starke Sonne am Tag' },
 	{ id: 'air', label: 'Luft & Pollen', hint: 'Schlechte Luft oder starker Pollenflug' },
-	{ id: 'dailyBrief', label: 'Morgenbriefing', hint: 'Kurzer Überblick am Morgen' }
+	{ id: 'dailyBrief', label: 'Morgenbriefing', hint: 'Kurzer Überblick am Morgen' },
+	{
+		id: 'forecastChange',
+		label: 'Wetteränderung',
+		hint: 'Wenn sich Regen, Wind oder Temperatur gegenüber der letzten Prognose deutlich ändern'
+	}
 ];
 
 function readJson<T>(key: string, fallback: T): T {

@@ -1,7 +1,16 @@
 import { fetchMeteoalarm } from './alerts.js';
-import { listRecipients, pruneSendLog, recordSend, wasRecentlySent } from './db.js';
+import {
+	getForecastSnapshot,
+	listRecipients,
+	pruneForecastSnapshots,
+	pruneSendLog,
+	recordSend,
+	saveForecastSnapshot,
+	wasRecentlySent
+} from './db.js';
+import { buildForecastSnapshot, diffForecastSnapshots } from './proactivity.js';
 import { sendPush } from './send.js';
-import { evaluateNotifications, fetchPlaceWeather } from './weather.js';
+import { appendForecastChangeNotice, evaluateNotifications, fetchPlaceWeather } from './weather.js';
 
 const DEFAULT_POLL_MS = 10 * 60 * 1000;
 const weatherCache = new Map();
@@ -11,7 +20,15 @@ function locationKey(lat, lon) {
 }
 
 function hasAnyPref(row) {
-	return row.rain_soon || row.warnings || row.frost || row.uv || row.air || row.daily_brief;
+	return (
+		row.rain_soon ||
+		row.warnings ||
+		row.frost ||
+		row.uv ||
+		row.air ||
+		row.daily_brief ||
+		row.forecast_change
+	);
 }
 
 async function weatherFor(lat, lon, hints = {}) {
@@ -44,6 +61,16 @@ export async function runPushCycle(db) {
 				name: row.place_name || ''
 			});
 			const notices = evaluateNotifications(weather, row, alerts);
+			const loc = locationKey(row.latitude, row.longitude);
+			const nextSnap = buildForecastSnapshot(weather, alerts);
+			if (row.forecast_change) {
+				const prevSnap = getForecastSnapshot(db, row.client_id, loc);
+				const change = diffForecastSnapshots(prevSnap, nextSnap, weather.timezone, {
+					includeWarnings: !row.warnings
+				});
+				appendForecastChangeNotice(notices, change);
+			}
+			saveForecastSnapshot(db, row.client_id, loc, nextSnap);
 			for (const notice of notices) {
 				if (wasRecentlySent(db, row.client_id, notice.category, notice.fingerprint, notice.cooldownHours)) {
 					continue;
@@ -51,7 +78,7 @@ export async function runPushCycle(db) {
 				const result = await sendPush(db, row, {
 					title: notice.title,
 					body: notice.body,
-					url: '/',
+					url: notice.url || '/#jetzt',
 					tag: notice.category
 				});
 				if (result.ok) {
@@ -67,6 +94,7 @@ export async function runPushCycle(db) {
 		}
 	}
 	pruneSendLog(db);
+	pruneForecastSnapshots(db);
 	return results;
 }
 

@@ -14,6 +14,7 @@
 	} from '$lib/format';
 	import { clothingLine, insightLine, precipNowSummary } from '$lib/insights';
 	import { panelClass } from '$lib/platform';
+	import { samePlace } from '$lib/storage';
 	import type { Place, WeatherBundle } from '$lib/types';
 	import { unitsState } from '$lib/units.svelte';
 	import { getWmo, heroAtmosphere, weatherMood } from '$lib/wmo';
@@ -75,6 +76,11 @@
 	);
 	/** Full now-details live on Jetzt; Favoriten keep a lean hero. */
 	const showNowDetails = $derived(!onOpen);
+	const proactiveLine = $derived(
+		!onOpen && weatherState.proactivity && samePlace(weatherState.place, place)
+			? weatherState.proactivity.line
+			: null
+	);
 	const metricParts = $derived.by(() => {
 		if (!current) return [] as string[];
 		const parts: string[] = [];
@@ -171,8 +177,13 @@
 				{/if}
 			</div>
 
-			{#if insight || clothing}
+			{#if insight || clothing || proactiveLine}
 				<div class="hero-meta">
+					{#if proactiveLine}
+						<p class="hero-proactive break-words text-base font-medium leading-snug" role="status">
+							{proactiveLine}
+						</p>
+					{/if}
 					{#if insight}
 						<p class="break-words text-base font-medium leading-snug">{insight}</p>
 					{/if}
