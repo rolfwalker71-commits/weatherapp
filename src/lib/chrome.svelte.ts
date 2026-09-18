@@ -12,10 +12,19 @@ function readPreference(): ChromePreference {
 
 export const chromeState = $state({
 	preference: 'auto' as ChromePreference,
-	chrome: 'android' as Chrome
+	chrome: 'android' as Chrome,
+	width: 0
 });
 
+/** iPad-class width in the iOS design (iPad mini portrait is 744 pt); Split View below that stays phone-like. */
+export const TABLET_MIN_WIDTH = 744;
+
+export function isTabletLayout(): boolean {
+	return chromeState.chrome === 'ios' && chromeState.width >= TABLET_MIN_WIDTH;
+}
+
 function applyChrome(): void {
+	chromeState.width = window.innerWidth;
 	const next = resolveChrome(chromeState.preference, window.innerWidth);
 	chromeState.chrome = next;
 	document.documentElement.dataset.chrome = next;

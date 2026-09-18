@@ -143,7 +143,7 @@
 	<p class="mt-4 text-sm leading-snug text-muted-foreground">
 		{#if isNativeApp()}
 			Kategorie einschalten oder «Gerät anmelden» — iOS fragt einmal nach Erlaubnis für
-			Mitteilungen. Ändern jederzeit in Einstellungen → Mitteilungen → Wetter Schweiz.
+			Mitteilungen. Ändern jederzeit in Einstellungen → Mitteilungen → Wetter CH.
 		{:else}
 			Kategorie einschalten oder «Gerät anmelden» — der Browser fragt nach Erlaubnis.
 			VAPID-Schlüssel erzeugt der Wetter-Container selbst in der Datenbank.

@@ -85,7 +85,7 @@
 					</p>
 				</div>
 			</div>
-			<div class="flex items-center gap-2 lg:hidden">
+			<div class="flex items-center gap-2 {chromeState.chrome === 'ios' ? '' : 'lg:hidden'}">
 				<button
 					type="button"
 					class="icon-btn"

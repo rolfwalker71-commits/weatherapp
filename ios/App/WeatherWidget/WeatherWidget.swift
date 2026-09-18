@@ -470,6 +470,37 @@ struct LargeWeatherView: View {
     }
 }
 
+/// iPad only: current weather, rain/wind and hours on the left, a week of days on the right.
+struct ExtraLargeWeatherView: View {
+    let entry: WeatherEntry
+
+    var body: some View {
+        let days = Array(entry.days.prefix(7))
+        let low = days.map(\.tMin).min() ?? 0
+        let high = days.map(\.tMax).max() ?? 1
+        HStack(spacing: 20) {
+            VStack(spacing: 0) {
+                MediumHeader(entry: entry, showWind: false)
+                RainWindBar(entry: entry)
+                    .padding(.top, 10)
+                Spacer(minLength: 8)
+                HourRow(entry: entry, showWind: true)
+            }
+            .frame(maxWidth: .infinity)
+            Rectangle()
+                .fill(.white.opacity(0.3))
+                .frame(width: 0.5)
+            VStack(spacing: 0) {
+                ForEach(days, id: \.date) { day in
+                    DayRow(day: day, range: low...max(high, low + 1), zone: entry.timeZone)
+                        .frame(maxHeight: .infinity)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
 // MARK: Lock screen
 
 struct CircularWeatherView: View {
@@ -567,6 +598,8 @@ struct WeatherWidgetView: View {
                 MediumWeatherView(entry: entry).foregroundStyle(.white)
             case .systemLarge:
                 LargeWeatherView(entry: entry).foregroundStyle(.white)
+            case .systemExtraLarge:
+                ExtraLargeWeatherView(entry: entry).foregroundStyle(.white)
             case .accessoryCircular:
                 CircularWeatherView(entry: entry)
             case .accessoryRectangular:
@@ -595,6 +628,7 @@ struct WeatherWidget: Widget {
             .systemSmall,
             .systemMedium,
             .systemLarge,
+            .systemExtraLarge,
             .accessoryCircular,
             .accessoryRectangular,
             .accessoryInline

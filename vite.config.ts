@@ -29,7 +29,7 @@ export default defineConfig({
 			includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png', 'push-sw.js'],
 			manifest: {
 				name: 'Wetter Schweiz',
-				short_name: 'Wetter',
+				short_name: 'Wetter CH',
 				description: 'Moderne Wetter-PWA mit Fokus auf die Schweiz — weltweit nutzbar.',
 				lang: 'de-CH',
 				theme_color: '#006874',

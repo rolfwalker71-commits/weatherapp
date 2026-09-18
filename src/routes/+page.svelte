@@ -23,7 +23,7 @@
 	import VerlaufCharts from '$lib/components/VerlaufCharts.svelte';
 	import WarningsCard from '$lib/components/WarningsCard.svelte';
 	import WeatherRadar from '$lib/components/WeatherRadar.svelte';
-	import { chromeState } from '$lib/chrome.svelte';
+	import { chromeState, isTabletLayout } from '$lib/chrome.svelte';
 	import { hydrateCommute } from '$lib/commute.svelte';
 	import type { DayPoint, HourPoint } from '$lib/types';
 	import { initPush } from '$lib/push-client';
@@ -39,6 +39,8 @@
 			: 'cloud'
 	);
 	const section = $derived(weatherState.section);
+	/** iPad (iOS design, ≥ 744 pt): two-column pages; phone widths and narrow Split View keep one column. */
+	const tablet = $derived(isTabletLayout());
 
 	$effect(() => {
 		weatherState.place.latitude;
@@ -135,6 +137,23 @@
 				<div id={section === 'jetzt' ? 'jetzt' : undefined} aria-busy="true">
 					<div class="h-64 animate-pulse bg-card [html[data-chrome=android]_&]:rounded-3xl [html[data-chrome=desktop]_&]:rounded-md"></div>
 				</div>
+			{:else if section === 'jetzt' && tablet}
+				{#if weatherState.bundle}
+					<!-- iPad: now, 24 hours and warnings on the left; the taller 10-day forecast on the right. -->
+					<div class="wx-tablet-grid">
+						<div class="min-w-0 space-y-4">
+							<CurrentHero />
+							<HourlyForecast onSelect={(hour) => (selectedHour = hour)} />
+							<WarningsCard />
+						</div>
+						<DailyForecast
+							selectedDate={selectedDay?.date}
+							onSelect={(day) => (selectedDay = day)}
+						/>
+					</div>
+				{:else}
+					<section id="jetzt" hidden></section>
+				{/if}
 			{:else if section === 'jetzt'}
 				{#if weatherState.bundle}
 					<div class="mx-auto min-w-0 max-w-full space-y-4 max-lg:overflow-x-clip max-lg:[contain:inline-size] lg:max-w-2xl">
@@ -156,7 +175,11 @@
 				<WeatherRadar />
 			{:else if section === 'woche'}
 				{#if weatherState.bundle}
-					<div class="grid min-w-0 max-w-full grid-cols-1 gap-4 max-lg:overflow-x-hidden lg:grid-cols-2 lg:items-start">
+					<div
+						class="grid min-w-0 max-w-full grid-cols-1 gap-4 max-lg:overflow-x-hidden lg:grid-cols-2 lg:items-start {tablet
+							? 'wx-tablet-grid'
+							: ''}"
+					>
 						<DailyForecast
 							selectedDate={selectedDay?.date}
 							onSelect={(day) => (selectedDay = day)}

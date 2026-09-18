@@ -72,7 +72,7 @@ export async function enableNativePush(
 	if (receive !== 'granted') {
 		return {
 			ok: false,
-			message: 'Mitteilungen sind aus. In Einstellungen → Mitteilungen → Wetter Schweiz erlauben.'
+			message: 'Mitteilungen sind aus. In Einstellungen → Mitteilungen → Wetter CH erlauben.'
 		};
 	}
 
@@ -92,8 +92,8 @@ export async function enableNativePush(
 		return {
 			ok: true,
 			message: result.hasApns
-				? 'iPhone angemeldet. Der Server sendet nach den gewählten Kategorien.'
-				: 'iPhone angemeldet. Dem Server fehlt noch der Apple-Push-Schlüssel — Meldungen kommen, sobald er eingetragen ist.'
+				? 'Gerät angemeldet. Der Server sendet nach den gewählten Kategorien.'
+				: 'Gerät angemeldet. Dem Server fehlt noch der Apple-Push-Schlüssel — Meldungen kommen, sobald er eingetragen ist.'
 		};
 	} catch (error) {
 		return { ok: false, message: error instanceof Error ? error.message : 'Server nicht erreichbar.' };
