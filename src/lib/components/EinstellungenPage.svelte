@@ -1,18 +1,35 @@
 <script lang="ts">
 	import { chromeState } from '$lib/chrome.svelte';
-	import { listTileClass, panelClass } from '$lib/platform';
+	import { isNativeApp, listTileClass, panelClass } from '$lib/platform';
 	import { loadHomePlace, saveHomePlace, samePlace } from '$lib/storage';
 	import type { Place, WindUnit } from '$lib/types';
 	import { setWindUnit, unitsState } from '$lib/units.svelte';
 	import { weatherState } from '$lib/weather.svelte';
 	import AppIcon from './AppIcon.svelte';
 	import CitySearch from './CitySearch.svelte';
+	import {
+		loadLiveActivityPrefs,
+		saveLiveActivityPrefs,
+		syncLiveActivities,
+		type LiveActivityPrefs
+	} from '$lib/live-activities';
 	import SettingsSheet from './SettingsSheet.svelte';
 	import ThemePanel from './ThemePanel.svelte';
 
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
 	let home = $state<Place | null>(loadHomePlace());
 	let standalone = $state(false);
+	let liveActivities = $state<LiveActivityPrefs>(loadLiveActivityPrefs());
+	const liveActivityOptions: { id: keyof LiveActivityPrefs; label: string; hint: string }[] = [
+		{ id: 'rain', label: 'Regen im Anmarsch', hint: 'Countdown und Regenkurve, sobald es in der nächsten Stunde nass wird' },
+		{ id: 'warning', label: 'Unwetter aktiv', hint: 'Orange und rote Warnungen, solange sie gelten' }
+	];
+
+	function toggleLiveActivity(id: keyof LiveActivityPrefs) {
+		liveActivities = { ...liveActivities, [id]: !liveActivities[id] };
+		saveLiveActivityPrefs(liveActivities);
+		if (weatherState.bundle) void syncLiveActivities(weatherState.bundle);
+	}
 
 	const windOptions: { id: WindUnit; label: string }[] = [
 		{ id: 'kmh', label: 'km/h' },
@@ -23,7 +40,8 @@
 		if (typeof window === 'undefined') return;
 		const media = window.matchMedia('(display-mode: standalone)');
 		const nav = navigator as Navigator & { standalone?: boolean };
-		standalone = media.matches || nav.standalone === true;
+		standalone = isNativeApp() || media.matches || nav.standalone === true;
+		if (isNativeApp()) return;
 		const onChange = () => {
 			standalone = media.matches || nav.standalone === true;
 		};
@@ -97,7 +115,7 @@
 		<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
 			<h2 class="mb-3 text-xl font-semibold leading-snug tracking-tight">Einheiten</h2>
 			<p class="mb-3 text-sm text-muted-foreground">Wind. Temperatur bleibt °C, Niederschlag mm.</p>
-			<ul class="flex flex-wrap gap-2">
+			<ul class="wx-segmented flex flex-wrap gap-2">
 				{#each windOptions as option (option.id)}
 					<li>
 						<button
@@ -120,6 +138,33 @@
 			<h2 class="mb-3 text-xl font-semibold leading-snug tracking-tight">Meldungen</h2>
 			<SettingsSheet embedded />
 		</section>
+		{#if isNativeApp()}
+			<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
+				<h2 class="mb-1 text-xl font-semibold leading-snug tracking-tight">Live-Aktivitäten</h2>
+				<p class="mb-3 text-sm text-muted-foreground">
+					Auf dem Sperrbildschirm und in der Dynamic Island, für deinen Standort.
+				</p>
+				<ul class="wx-grouped space-y-2">
+					{#each liveActivityOptions as option (option.id)}
+						<li>
+							<label class="flex min-h-12 items-center justify-between gap-3 rounded-[1.25rem] bg-muted px-4">
+								<span class="min-w-0">
+									<span class="block leading-snug">{option.label}</span>
+									<span class="block text-sm text-muted-foreground">{option.hint}</span>
+								</span>
+								<input
+									type="checkbox"
+									class="size-5 accent-primary"
+									checked={liveActivities[option.id]}
+									onchange={() => toggleLiveActivity(option.id)}
+								/>
+							</label>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
+
 		<section class="{panelClass(chromeState.chrome)} p-5 sm:p-6">
 			<h2 class="mb-3 text-xl font-semibold leading-snug tracking-tight">Darstellung</h2>
 			<ThemePanel />

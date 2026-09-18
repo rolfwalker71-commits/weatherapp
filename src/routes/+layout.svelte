@@ -1,14 +1,21 @@
 <script lang="ts">
 	import { pwaInfo } from 'virtual:pwa-info';
 	import { useRegisterSW } from 'virtual:pwa-register/svelte';
+	import { readable } from 'svelte/store';
 	import '../app.css';
+	import '$lib/styles/ios.css';
 	import ChromeProvider from '$lib/components/ChromeProvider.svelte';
+	import { isNativeApp } from '$lib/platform';
 
 	let { children } = $props();
 
-	const { needRefresh, updateServiceWorker } = useRegisterSW({ immediate: true });
+	// The iOS app ships its assets in the bundle; a service worker would only cache stale builds.
+	const native = isNativeApp();
+	const { needRefresh, updateServiceWorker } = native
+		? { needRefresh: readable(false), updateServiceWorker: async () => {} }
+		: useRegisterSW({ immediate: true });
 
-	const webManifest = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '');
+	const webManifest = $derived(pwaInfo && !native ? pwaInfo.webManifest.linkTag : '');
 </script>
 
 <svelte:head>

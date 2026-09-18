@@ -38,7 +38,7 @@
 	{#if days.length === 0}
 		<p class="text-sm text-muted-foreground">Keine Tagesdaten verfügbar.</p>
 	{:else}
-	<ul class="space-y-2">
+	<ul class="wx-rows space-y-2">
 		{#each days as day, index (day.date)}
 			{@const mood = weatherMood(day.code, true)}
 			{@const selected = selectedDate === day.date || (!selectedDate && index === 0)}

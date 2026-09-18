@@ -24,7 +24,7 @@
 	{#each MEHR_GROUPS as group (group.title)}
 		<section>
 			<h2 class="mb-2 px-1 text-sm font-medium text-muted-foreground">{group.title}</h2>
-			<ul class="space-y-2">
+			<ul class="wx-grouped wx-grouped-nav space-y-2">
 				{#each group.items as item (item.id)}
 					<li>
 						<button
@@ -37,6 +37,7 @@
 							onclick={() => openItem(item.id)}
 						>
 							<span
+								data-tile={item.id}
 								class="flex size-10 items-center justify-center rounded-full bg-muted [html[data-chrome=desktop]_&]:size-8 [html[data-chrome=desktop]_&]:rounded-md"
 							>
 								<AppIcon name={item.icon} class="size-5 {item.iconClass}" />

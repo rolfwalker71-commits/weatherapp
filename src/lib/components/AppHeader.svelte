@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { chromeState } from '$lib/chrome.svelte';
 	import { formatRefreshStatus } from '$lib/format';
 	import { goSection, setDrawer } from '$lib/ui.svelte';
@@ -8,6 +9,37 @@
 	import ThemeToggle from './ThemeToggle.svelte';
 
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
+	/** iOS scroll-edge appearance: hairline + compact title once content scrolls under the bar. */
+	let scrolled = $state(false);
+	let headerEl: HTMLElement | undefined = $state();
+
+	onMount(() => {
+		const shell = document.querySelector<HTMLElement>('.wx-shell');
+		const el = headerEl;
+		if (!shell || !el) return;
+		const root = document.documentElement;
+		// iOS draws content under the bar; the shell offsets it by the expanded bar height.
+		// Measured only at the top so the large-title collapse does not shift the content.
+		const syncHeight = () => {
+			if (shell.scrollTop > 4) return;
+			const height = el.getBoundingClientRect().height;
+			if (height > 0) root.style.setProperty('--wx-header-h', `${Math.ceil(height)}px`);
+		};
+		const onScroll = () => {
+			scrolled = shell.scrollTop > 4;
+			if (!scrolled) syncHeight();
+		};
+		onScroll();
+		syncHeight();
+		const ro = new ResizeObserver(syncHeight);
+		ro.observe(el);
+		shell.addEventListener('scroll', onScroll, { passive: true });
+		return () => {
+			ro.disconnect();
+			shell.removeEventListener('scroll', onScroll);
+			root.style.removeProperty('--wx-header-h');
+		};
+	});
 	const updatedLabel = $derived(
 		weatherState.bundle
 			? formatRefreshStatus(
@@ -21,9 +53,11 @@
 </script>
 
 <header
-	class={isDesktop
+	bind:this={headerEl}
+	class="wx-appbar {isDesktop
 		? 'mica sticky top-0 z-20 border-b border-border'
-		: 'sticky top-0 z-20 bg-card'}
+		: 'sticky top-0 z-20 bg-card'}"
+	data-scrolled={scrolled ? '1' : undefined}
 >
 	<div
 		class="mx-auto flex w-full min-w-0 max-w-[90rem] flex-col gap-3 px-4 py-3 sm:px-6 {isDesktop
@@ -36,7 +70,7 @@
 				{#if !isDesktop}
 					<button
 						type="button"
-						class="icon-btn shrink-0 lg:hidden"
+						class="wx-menu-btn icon-btn shrink-0 lg:hidden"
 						onclick={() => setDrawer(true)}
 						aria-label="Menü"
 						title="Menü"
@@ -45,8 +79,10 @@
 					</button>
 				{/if}
 				<div class="min-w-0">
-					<p class="text-sm leading-snug text-muted-foreground">{updatedLabel}</p>
-					<p class="break-words text-lg font-semibold leading-snug tracking-tight">Schweiz & Welt</p>
+					<p class="wx-appbar-status text-sm leading-snug text-muted-foreground">{updatedLabel}</p>
+					<p class="wx-appbar-title break-words text-lg font-semibold leading-snug tracking-tight">
+						Schweiz & Welt
+					</p>
 				</div>
 			</div>
 			<div class="flex items-center gap-2 lg:hidden">

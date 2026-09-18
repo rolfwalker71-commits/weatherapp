@@ -1,11 +1,13 @@
 import { env } from '$env/dynamic/public';
 import { getPushClientId, loadNotifyPrefs } from './notify-prefs';
+import { disableNativePush, enableNativePush, initNativePush } from './native-push';
+import { isNativeApp, serverUrl } from './platform';
 import type { AlertItem, AvalancheBulletin, NotifyPrefs } from './types';
 
 export function pushApiBase(): string {
 	const configured = env.PUBLIC_PUSH_API_URL?.trim();
 	if (configured) return configured.replace(/\/$/, '');
-	return '/api/push';
+	return serverUrl('/api/push');
 }
 
 export interface PushStatus {
@@ -13,6 +15,8 @@ export interface PushStatus {
 	configured: boolean;
 	sendingEnabled: boolean;
 	hasVapid: boolean;
+	/** Server can reach iPhones (APNs key, or simulator transport in development). */
+	hasApns?: boolean;
 	message: string;
 	blockedReason?: string;
 }
@@ -23,6 +27,8 @@ function isLocalHost(hostname = typeof location === 'undefined' ? '' : location.
 
 export function pushBlockedReason(): string | null {
 	if (typeof window === 'undefined') return null;
+	// iOS app: Apple Push, not Web Push; permission is asked when enabling.
+	if (isNativeApp()) return null;
 	if (!window.isSecureContext && !isLocalHost()) {
 		return 'Benachrichtigungen brauchen HTTPS. Über HTTP blockiert der Browser Push (außer localhost).';
 	}
@@ -64,6 +70,16 @@ export async function fetchPushStatus(): Promise<PushStatus> {
 	const blocked = pushBlockedReason();
 	try {
 		const data = await request<PushStatus>('/v1/status');
+		if (isNativeApp()) {
+			return {
+				...data,
+				ok: true,
+				configured: true,
+				message: data.hasApns
+					? 'Mitteilungen sind bereit. Kategorie einschalten oder iPhone anmelden.'
+					: 'Server erreichbar, aber noch ohne Apple-Push-Schlüssel. Kategorien werden gespeichert.'
+			};
+		}
 		return {
 			...data,
 			ok: true,
@@ -174,6 +190,7 @@ export async function enablePush(
 	prefs: NotifyPrefs,
 	place?: PushPlace
 ): Promise<{ ok: boolean; message: string }> {
+	if (isNativeApp()) return enableNativePush(request, getPushClientId(), prefs, place);
 	const blocked = pushBlockedReason();
 	if (blocked && !blocked.includes('blockiert. In den Browser-Einstellungen')) {
 		return { ok: false, message: blocked };
@@ -249,6 +266,7 @@ export async function enablePush(
 }
 
 export async function disablePush(): Promise<void> {
+	if (isNativeApp()) return disableNativePush(request, getPushClientId());
 	if (!('serviceWorker' in navigator)) return;
 	const registration = await navigator.serviceWorker.getRegistration('/');
 	if (!registration) return;
@@ -293,4 +311,9 @@ export async function fetchAvalanche(lat: number, lon: number): Promise<Avalanch
 			note: 'Kein öffentlicher Feed erreichbar — keine Schätzwerte.'
 		};
 	}
+}
+
+/** App start hook: in the iOS app, refreshes the APNs token and handles notification taps. */
+export function initPush(): void {
+	if (isNativeApp()) initNativePush(request, getPushClientId());
 }

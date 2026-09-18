@@ -70,20 +70,37 @@
 		--destructive: 255 153 145;
 	}
 
+	/* Apple system colors: systemGroupedBackground, secondarySystemGroupedBackground,
+	   label, secondaryLabel (opaque), separator, tertiarySystemFill, systemBlue. */
 	html[data-chrome='ios'] {
 		--background: 242 242 247;
-		--foreground: 29 29 31;
+		--foreground: 0 0 0;
 		--card: 255 255 255;
 		--primary: 0 122 255;
 		--on-primary: 255 255 255;
-		--secondary: 242 242 247;
-		--muted: 242 242 247;
-		--muted-foreground: 110 110 115;
-		--border: 209 209 214;
+		--secondary: 227 227 232;
+		--muted: 227 227 232;
+		--muted-foreground: 108 108 112;
+		--border: 198 198 200;
 		--ring: 0 122 255;
 		--destructive: 255 59 48;
-		--radius: 1rem;
-		--font-sans: system-ui, sans-serif;
+		--radius: 1.375rem;
+		--font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+		--ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
+	}
+
+	html[data-chrome='ios'].dark {
+		--background: 0 0 0;
+		--foreground: 255 255 255;
+		--card: 28 28 30;
+		--primary: 10 132 255;
+		--on-primary: 255 255 255;
+		--secondary: 44 44 46;
+		--muted: 44 44 46;
+		--muted-foreground: 152 152 159;
+		--border: 56 56 58;
+		--ring: 10 132 255;
+		--destructive: 255 69 58;
 	}
 
 	html {
@@ -471,6 +488,21 @@
 	html[data-chrome='android'] .hero-fav-glyph {
 		width: 1.5rem;
 		height: 1.5rem;
+	}
+
+	/* 44pt tap target per Apple HIG. */
+	html[data-chrome='ios'] button.hero-fav {
+		width: 2.75rem;
+		height: 2.75rem;
+		min-width: 2.75rem;
+		min-height: 2.75rem;
+		margin-right: -0.5rem;
+		margin-bottom: -0.5rem;
+	}
+
+	html[data-chrome='ios'] .hero-fav-glyph {
+		width: 1.375rem;
+		height: 1.375rem;
 	}
 
 	html[data-chrome='desktop'] .hero-fav-glyph {

@@ -1,0 +1,968 @@
+/*
+ * iOS design language (data-chrome="ios").
+ * Follows the current Apple HIG: Liquid Glass tab bar and bar buttons, large titles,
+ * inset grouped lists, switches, segmented controls and sky-gradient weather hero.
+ * Loaded after app.css; every rule is scoped to html[data-chrome='ios'] so the Android and
+ * desktop chromes are untouched.
+ */
+
+html[data-chrome='ios'] {
+	--ios-glass: rgb(255 255 255 / 0.62);
+	--ios-glass-edge: rgb(255 255 255 / 0.7);
+	--ios-glass-rim: inset 0 1px 0 rgb(255 255 255 / 0.85), inset 0 -0.5px 0 rgb(255 255 255 / 0.35);
+	--ios-glass-shadow: 0 0.5rem 2rem rgb(0 0 0 / 0.12), 0 0.0625rem 0.25rem rgb(0 0 0 / 0.08);
+	--ios-fill: rgb(118 118 128 / 0.12);
+	--ios-highlight: rgb(0 0 0 / 0.06);
+	--ios-separator: rgb(60 60 67 / 0.29);
+	--ios-label: rgb(var(--foreground));
+	-webkit-font-smoothing: antialiased;
+	-webkit-text-size-adjust: 100%;
+	/* 17pt body, per the iOS type scale. */
+	letter-spacing: -0.01em;
+}
+
+html[data-chrome='ios'].dark {
+	--ios-glass: rgb(40 40 44 / 0.62);
+	--ios-glass-edge: rgb(255 255 255 / 0.14);
+	--ios-glass-rim: inset 0 1px 0 rgb(255 255 255 / 0.16), inset 0 -0.5px 0 rgb(255 255 255 / 0.06);
+	--ios-glass-shadow: 0 0.5rem 2rem rgb(0 0 0 / 0.5), 0 0.0625rem 0.25rem rgb(0 0 0 / 0.4);
+	--ios-fill: rgb(118 118 128 / 0.24);
+	--ios-highlight: rgb(255 255 255 / 0.08);
+	--ios-separator: rgb(84 84 88 / 0.6);
+}
+
+html[data-chrome='ios'] body {
+	font-size: 1.0625rem;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+}
+
+html[data-chrome='ios'] input,
+html[data-chrome='ios'] textarea {
+	-webkit-user-select: text;
+	user-select: text;
+}
+
+/* No page-wide mood tint: iOS keeps the grouped background neutral. */
+html[data-chrome='ios'] .wx-page {
+	background: rgb(var(--background));
+}
+
+/* Pressed state instead of hover — touch UI. */
+html[data-chrome='ios'] button {
+	transition:
+		opacity 120ms ease,
+		background-color 120ms ease,
+		transform 200ms var(--ease-emphasized);
+}
+
+html[data-chrome='ios'] button:active:not(:disabled) {
+	opacity: 0.55;
+}
+
+/* ---------------------------------------------------------------------------
+ * Navigation bar: large title, scroll-edge hairline, glass bar buttons
+ * ------------------------------------------------------------------------ */
+
+html[data-chrome='ios'] .wx-appbar {
+	background: rgb(var(--background));
+}
+
+/* Liquid Glass scroll edge: the bar floats over the content, which fades and blurs under it. */
+@media (max-width: 1023px) {
+	html[data-chrome='ios'] .wx-page {
+		position: relative;
+	}
+
+	html[data-chrome='ios'] .wx-page > header.wx-appbar {
+		position: absolute;
+		top: 0;
+		right: 0;
+		left: 0;
+		z-index: 30;
+		background: transparent;
+	}
+
+	html[data-chrome='ios'] .wx-appbar::before {
+		content: '';
+		position: absolute;
+		inset: 0 0 -1.5rem;
+		z-index: -1;
+		pointer-events: none;
+		background: linear-gradient(
+			to bottom,
+			rgb(var(--background) / 0.92) 0%,
+			rgb(var(--background) / 0.78) 70%,
+			rgb(var(--background) / 0) 100%
+		);
+		-webkit-backdrop-filter: blur(0.75rem) saturate(1.6);
+		backdrop-filter: blur(0.75rem) saturate(1.6);
+		-webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+		mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+		opacity: 0;
+		transition: opacity 200ms ease;
+	}
+
+	html[data-chrome='ios'] .wx-appbar[data-scrolled]::before {
+		opacity: 1;
+	}
+
+	html[data-chrome='ios'] .wx-page:has(> header.wx-appbar) > .wx-shell {
+		padding-top: var(--wx-header-h, 0px);
+		scroll-padding-top: var(--wx-header-h, 0px);
+	}
+}
+
+html[data-chrome='ios'] .wx-appbar > div {
+	gap: 0.625rem;
+	padding-bottom: 0.625rem;
+}
+
+/* Drawer duplicates the "Mehr" tab; iOS apps navigate through the tab bar only. */
+html[data-chrome='ios'] .wx-menu-btn {
+	display: none;
+}
+
+html[data-chrome='ios'] .wx-appbar-status {
+	font-size: 0.8125rem;
+	font-weight: 500;
+	text-transform: none;
+}
+
+html[data-chrome='ios'] .wx-appbar-title {
+	font-size: 2.125rem;
+	font-weight: 700;
+	line-height: 1.2;
+	letter-spacing: 0.0125em;
+	transform-origin: left center;
+	transition:
+		font-size 220ms var(--ease-emphasized),
+		letter-spacing 220ms var(--ease-emphasized);
+}
+
+html[data-chrome='ios'] .wx-appbar[data-scrolled] .wx-appbar-title {
+	font-size: 1.0625rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+/* Glass circular bar buttons (44pt). */
+html[data-chrome='ios'] .icon-btn {
+	width: 2.75rem;
+	height: 2.75rem;
+	min-width: 2.75rem;
+	min-height: 2.75rem;
+	border-radius: 9999px;
+	color: rgb(var(--foreground));
+	background: var(--ios-glass);
+	-webkit-backdrop-filter: blur(1.25rem) saturate(1.8);
+	backdrop-filter: blur(1.25rem) saturate(1.8);
+	box-shadow:
+		var(--ios-glass-rim),
+		inset 0 0 0 0.5px var(--ios-glass-edge),
+		0 0.125rem 0.5rem rgb(0 0 0 / 0.08);
+}
+
+html[data-chrome='ios'].dark .icon-btn {
+	box-shadow:
+		var(--ios-glass-rim),
+		inset 0 0 0 0.5px var(--ios-glass-edge);
+}
+
+html[data-chrome='ios'] .icon-btn [class*='wx-icon-'] {
+	color: inherit;
+}
+
+html[data-chrome='ios'] .icon-btn:disabled {
+	opacity: 0.45;
+}
+
+/* Close buttons inside sheets: small filled circle, like UIButton.close. */
+html[data-chrome='ios'] .wx-sheet .icon-btn,
+html[data-chrome='ios'] .wx-drawer .icon-btn {
+	width: 1.875rem;
+	height: 1.875rem;
+	min-width: 1.875rem;
+	min-height: 1.875rem;
+	color: rgb(var(--muted-foreground));
+	background: var(--ios-fill);
+	box-shadow: none;
+	-webkit-backdrop-filter: none;
+	backdrop-filter: none;
+}
+
+html[data-chrome='ios'] .wx-sheet .icon-btn .inline-flex {
+	width: 0.9375rem;
+	height: 0.9375rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Search field (UISearchBar)
+ * ------------------------------------------------------------------------ */
+
+html[data-chrome='ios'] .wx-search-field {
+	min-height: 2.5rem;
+	padding-inline: 0.75rem;
+	gap: 0.375rem;
+	border-radius: 9999px;
+	background: var(--ios-fill);
+	color: rgb(var(--muted-foreground));
+}
+
+/* In the bar the field is a glass capsule; content may scroll under it. */
+html[data-chrome='ios'] .wx-appbar .wx-search-field {
+	background: var(--ios-glass);
+	-webkit-backdrop-filter: blur(1.25rem) saturate(1.8);
+	backdrop-filter: blur(1.25rem) saturate(1.8);
+	box-shadow:
+		var(--ios-glass-rim),
+		inset 0 0 0 0.5px var(--ios-glass-edge),
+		0 0.125rem 0.5rem rgb(0 0 0 / 0.06);
+}
+
+html[data-chrome='ios'] .wx-search-field [class*='wx-icon-'] {
+	color: inherit;
+}
+
+html[data-chrome='ios'] .wx-search-field input {
+	height: 2.5rem;
+	font-size: 1.0625rem;
+}
+
+html[data-chrome='ios'] .wx-search-field input::-webkit-search-cancel-button {
+	-webkit-appearance: none;
+}
+
+html[data-chrome='ios'] .wx-search-field ~ ul[role='listbox'] {
+	border-radius: 0.875rem;
+	padding: 0;
+	box-shadow: 0 0.75rem 2.5rem rgb(0 0 0 / 0.18);
+}
+
+html[data-chrome='ios'] .wx-search-field ~ ul[role='listbox'] > li + li button {
+	box-shadow: inset 0 0.5px 0 var(--ios-separator);
+}
+
+html[data-chrome='ios'] .wx-search-field ~ ul[role='listbox'] button {
+	background: transparent;
+	color: rgb(var(--foreground));
+}
+
+html[data-chrome='ios'] .wx-search-field ~ ul[role='listbox'] li[aria-selected='true'] button {
+	background: var(--ios-highlight);
+}
+
+/* ---------------------------------------------------------------------------
+ * Tab bar: floating Liquid Glass capsule
+ * ------------------------------------------------------------------------ */
+
+html[data-chrome='ios'] .wx-dock {
+	border: 0;
+	background: transparent;
+	padding: 0 1.25rem max(0.5rem, calc(env(safe-area-inset-bottom, 0px) - 0.625rem));
+	/* Only the capsule takes touches; content under the transparent gutters stays tappable. */
+	pointer-events: none;
+}
+
+html[data-chrome='ios'] .wx-dock ul {
+	pointer-events: auto;
+	align-items: center;
+	gap: 0;
+	padding: 0.25rem !important;
+	border-radius: 9999px;
+	background: var(--ios-glass);
+	-webkit-backdrop-filter: blur(1.5rem) saturate(1.8);
+	backdrop-filter: blur(1.5rem) saturate(1.8);
+	box-shadow:
+		var(--ios-glass-rim),
+		inset 0 0 0 0.5px var(--ios-glass-edge),
+		var(--ios-glass-shadow);
+}
+
+html[data-chrome='ios'] .wx-dock button {
+	min-height: 3.375rem;
+	gap: 0.125rem;
+	border-radius: 9999px;
+	color: rgb(var(--foreground));
+}
+
+html[data-chrome='ios'] .wx-dock button[aria-current='page'] {
+	color: rgb(var(--primary));
+	background: var(--ios-highlight);
+}
+
+/* Material pill and per-tab colours give way to a monochrome glyph tinted when selected. */
+html[data-chrome='ios'] .wx-dock button > span:first-child {
+	width: auto;
+	height: 1.75rem;
+	background: transparent !important;
+	color: inherit !important;
+}
+
+html[data-chrome='ios'] .wx-dock button [class*='wx-icon-'],
+html[data-chrome='ios'] .wx-dock button > span:last-child {
+	color: inherit !important;
+}
+
+html[data-chrome='ios'] .wx-dock button > span:first-child > span {
+	width: 1.5rem;
+	height: 1.5rem;
+}
+
+html[data-chrome='ios'] .wx-dock button > span:last-child {
+	margin-top: 0;
+	font-size: 0.625rem;
+	font-weight: 600;
+	letter-spacing: 0.01em;
+}
+
+/* ---------------------------------------------------------------------------
+ * Cards and headings
+ * ------------------------------------------------------------------------ */
+
+html[data-chrome='ios'] main h2.text-xl {
+	font-size: 1.25rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+}
+
+html[data-chrome='ios'] main h1.text-2xl {
+	font-size: 2.125rem;
+	font-weight: 700;
+	letter-spacing: 0.0125em;
+}
+
+html[data-chrome='ios'] main .text-muted-foreground {
+	letter-spacing: -0.005em;
+}
+
+/* Weather chips: neutral fills with coloured glyphs instead of Material tonal colours. */
+html[data-chrome='ios'] main .wx-chip-clear,
+html[data-chrome='ios'] main .wx-chip-night,
+html[data-chrome='ios'] main .wx-chip-rain,
+html[data-chrome='ios'] main .wx-chip-snow,
+html[data-chrome='ios'] main .wx-chip-storm,
+html[data-chrome='ios'] main .wx-chip-cloud,
+html[data-chrome='ios'] main .wx-chip-fog,
+html[data-chrome='ios'] .wx-sheet .wx-chip-clear,
+html[data-chrome='ios'] .wx-sheet .wx-chip-night,
+html[data-chrome='ios'] .wx-sheet .wx-chip-rain,
+html[data-chrome='ios'] .wx-sheet .wx-chip-snow,
+html[data-chrome='ios'] .wx-sheet .wx-chip-storm,
+html[data-chrome='ios'] .wx-sheet .wx-chip-cloud,
+html[data-chrome='ios'] .wx-sheet .wx-chip-fog {
+	background: var(--ios-fill);
+	color: rgb(var(--foreground));
+}
+
+html[data-chrome='ios'] .rounded-3xl {
+	border-radius: 1.125rem;
+}
+
+html[data-chrome='ios'] .rounded-\[1\.25rem\] {
+	border-radius: 0.875rem;
+}
+
+/* Hourly strip (Weather app idiom): bare columns, "Jetzt" in bold, no per-hour tiles. */
+html[data-chrome='ios'] .wx-hour {
+	border-radius: 1rem;
+	background: transparent !important;
+	--tw-ring-shadow: 0 0 #0000;
+	box-shadow: none;
+}
+
+html[data-chrome='ios'] .wx-hour[data-now] > span:first-child {
+	font-weight: 700;
+	opacity: 1;
+}
+
+html[data-chrome='ios'] .wx-hour .bg-background\/50 {
+	background: var(--ios-fill);
+}
+
+/* Show ~5½ hours per screen so the strip reads as scrollable. */
+html[data-chrome='ios'] .wx-hour.snap-start {
+	flex-basis: calc((100% - 5 * var(--hourly-gap)) / 5.5) !important;
+}
+
+/* Row lists inside a card (10-day forecast): hairline-separated rows, not separate tiles. */
+html[data-chrome='ios'] .wx-rows > li {
+	position: relative;
+	margin: 0 !important;
+}
+
+html[data-chrome='ios'] .wx-rows > li + li::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	right: 0.75rem;
+	left: 0.75rem;
+	height: 0.5px;
+	background: var(--ios-separator);
+	pointer-events: none;
+}
+
+html[data-chrome='ios'] .wx-rows > li > button {
+	border-radius: 0.875rem;
+	background: transparent;
+	color: rgb(var(--foreground));
+	--tw-ring-shadow: 0 0 #0000;
+	box-shadow: none;
+}
+
+html[data-chrome='ios'] .wx-rows > li > button[aria-pressed='true'] {
+	background: var(--ios-highlight);
+}
+
+html[data-chrome='ios'] .wx-rows .wx-temp-bar {
+	opacity: 1;
+}
+
+html[data-chrome='ios'] .wx-rows .bg-background\/50 {
+	background: var(--ios-fill);
+}
+
+/* ---------------------------------------------------------------------------
+ * Weather hero: sky gradient with white type, thin temperature (Weather app idiom)
+ * ------------------------------------------------------------------------ */
+
+html[data-chrome='ios'] .hero-stack {
+	gap: 0.75rem;
+}
+
+html[data-chrome='ios'] [class*='hero-on-'] {
+	color: #fff;
+}
+
+html[data-chrome='ios'] [class*='hero-on-'] .text-muted-foreground,
+html[data-chrome='ios'] [class*='hero-on-'] [class*='wx-icon-'],
+html[data-chrome='ios'] [class*='hero-on-'] .hero-weather {
+	color: inherit;
+}
+
+html[data-chrome='ios'] [class*='hero-on-'] .hero-now p.font-extrabold {
+	font-weight: 200;
+	letter-spacing: -0.02em;
+}
+
+html[data-chrome='ios'] [class*='hero-on-'] .hero-place h1,
+html[data-chrome='ios'] [class*='hero-on-'] .hero-place h2 {
+	font-weight: 600;
+}
+
+html[data-chrome='ios'] .hero-wash[data-mood='clear'] {
+	background: linear-gradient(180deg, #2e7fd9 0%, #57a4ec 100%);
+}
+html[data-chrome='ios'] .hero-wash[data-mood='night'] {
+	background: linear-gradient(180deg, #0b1633 0%, #26365f 100%);
+}
+html[data-chrome='ios'] .hero-wash[data-mood='rain'] {
+	background: linear-gradient(180deg, #4a5a6c 0%, #748598 100%);
+}
+html[data-chrome='ios'] .hero-wash[data-mood='snow'] {
+	background: linear-gradient(180deg, #7890a8 0%, #a9bccd 100%);
+}
+html[data-chrome='ios'] .hero-wash[data-mood='storm'] {
+	background: linear-gradient(180deg, #2b2f3a 0%, #4b5264 100%);
+}
+html[data-chrome='ios'] .hero-wash[data-mood='cloud'] {
+	background: linear-gradient(180deg, #5f7a96 0%, #8ea4ba 100%);
+}
+html[data-chrome='ios'] .hero-wash[data-mood='fog'] {
+	background: linear-gradient(180deg, #7d8893 0%, #a7b0b8 100%);
+}
+
+html[data-chrome='ios'].dark .hero-wash {
+	filter: brightness(0.72) saturate(0.9);
+}
+
+html[data-chrome='ios'] .hero-now-strip {
+	border-radius: 1rem;
+	background: rgb(255 255 255 / 0.16);
+	box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.18);
+}
+
+html[data-chrome='ios'] .hero-proactive {
+	align-self: flex-start;
+	max-width: 100%;
+	border-radius: 9999px;
+	background: rgb(255 255 255 / 0.2);
+}
+
+html[data-chrome='ios'] button.hero-fav {
+	color: inherit;
+}
+
+/* ---------------------------------------------------------------------------
+ * Inset grouped lists (UITableView .insetGrouped)
+ * ------------------------------------------------------------------------ */
+
+html[data-chrome='ios'] .wx-grouped {
+	overflow: hidden;
+	border-radius: 1.375rem;
+	background: rgb(var(--card));
+}
+
+/* Lists inside a card sit on the card fill, so they get the secondary fill instead. */
+html[data-chrome='ios'] section .wx-grouped:not(.wx-grouped-nav) {
+	background: rgb(var(--background));
+}
+
+html[data-chrome='ios'].dark section .wx-grouped:not(.wx-grouped-nav) {
+	background: rgb(var(--muted));
+}
+
+html[data-chrome='ios'] .wx-grouped > li {
+	position: relative;
+	margin: 0 !important;
+}
+
+html[data-chrome='ios'] .wx-grouped > li + li::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	right: 0;
+	left: var(--ios-separator-inset, 1rem);
+	height: 0.5px;
+	background: var(--ios-separator);
+	pointer-events: none;
+}
+
+html[data-chrome='ios'] .wx-grouped > li > button,
+html[data-chrome='ios'] .wx-grouped > li > label {
+	min-height: 2.75rem;
+	border-radius: 0;
+	background: transparent !important;
+	color: rgb(var(--foreground)) !important;
+	box-shadow: none !important;
+}
+
+html[data-chrome='ios'] .wx-grouped > li > label {
+	padding-block: 0.6875rem;
+}
+
+html[data-chrome='ios'] .wx-grouped > li > button:active {
+	opacity: 1;
+	background: var(--ios-highlight) !important;
+}
+
+/* Settings-style icon tiles: white glyph on a coloured rounded square. */
+html[data-chrome='ios'] .wx-grouped-nav {
+	--ios-separator-inset: 3.625rem;
+}
+
+html[data-chrome='ios'] .wx-grouped-nav > li > button > span:first-child {
+	width: 1.875rem;
+	height: 1.875rem;
+	border-radius: 0.5rem;
+	background: var(--ios-tile, #8e8e93);
+}
+
+html[data-chrome='ios'] .wx-grouped-nav > li > button > span:first-child > span {
+	width: 1.125rem;
+	height: 1.125rem;
+	color: #fff !important;
+}
+
+html[data-chrome='ios'] [data-tile='favoriten'] {
+	--ios-tile: #ff9500;
+}
+html[data-chrome='ios'] [data-tile='vergleich'] {
+	--ios-tile: #5856d6;
+}
+html[data-chrome='ios'] [data-tile='radar'] {
+	--ios-tile: #007aff;
+}
+html[data-chrome='ios'] [data-tile='pendeln'] {
+	--ios-tile: #34c759;
+}
+html[data-chrome='ios'] [data-tile='draussen'] {
+	--ios-tile: #ff3b30;
+}
+html[data-chrome='ios'] [data-tile='wind'] {
+	--ios-tile: #30b0c7;
+}
+html[data-chrome='ios'] [data-tile='berge'] {
+	--ios-tile: #5ac8fa;
+}
+html[data-chrome='ios'] [data-tile='seen'] {
+	--ios-tile: #0a84ff;
+}
+html[data-chrome='ios'] [data-tile='einstellungen'] {
+	--ios-tile: #8e8e93;
+}
+
+/* Disclosure chevron. */
+html[data-chrome='ios'] .wx-grouped-nav > li > button::after,
+html[data-chrome='ios'] .wx-grouped-check > li > button[aria-pressed='true']::after {
+	content: '';
+	flex-shrink: 0;
+	margin-left: auto;
+	background: currentColor;
+	-webkit-mask: var(--ios-accessory) center / contain no-repeat;
+	mask: var(--ios-accessory) center / contain no-repeat;
+}
+
+html[data-chrome='ios'] .wx-grouped-nav > li > button::after {
+	--ios-accessory: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 14'%3E%3Cpath d='M1 1l6 6-6 6' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	width: 0.5rem;
+	height: 0.875rem;
+	opacity: 0.3;
+}
+
+/* Checkmark for single-choice lists. */
+html[data-chrome='ios'] .wx-grouped-check > li > button[aria-pressed='true']::after {
+	--ios-accessory: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 14'%3E%3Cpath d='M1.5 7.5l4.5 4.5 8.5-10' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	width: 1rem;
+	height: 0.875rem;
+	color: rgb(var(--primary));
+}
+
+html[data-chrome='ios'] .wx-grouped-check > li > button [class*='wx-icon-'] {
+	color: rgb(var(--primary));
+}
+
+/* ---------------------------------------------------------------------------
+ * Switch (UISwitch)
+ * ------------------------------------------------------------------------ */
+
+html[data-chrome='ios'] input[type='checkbox'] {
+	-webkit-appearance: none;
+	appearance: none;
+	position: relative;
+	flex-shrink: 0;
+	width: 3.1875rem;
+	height: 1.9375rem;
+	margin: 0;
+	border-radius: 9999px;
+	background: rgb(120 120 128 / 0.16);
+	cursor: pointer;
+	transition: background-color 250ms ease;
+}
+
+html[data-chrome='ios'].dark input[type='checkbox'] {
+	background: rgb(120 120 128 / 0.32);
+}
+
+html[data-chrome='ios'] input[type='checkbox']::before {
+	content: '';
+	position: absolute;
+	top: 0.125rem;
+	left: 0.125rem;
+	width: 1.6875rem;
+	height: 1.6875rem;
+	border-radius: 9999px;
+	background: #fff;
+	box-shadow:
+		0 0.1875rem 0.5rem rgb(0 0 0 / 0.15),
+		0 0.1875rem 0.0625rem rgb(0 0 0 / 0.06);
+	transition: transform 250ms var(--ease-emphasized);
+}
+
+html[data-chrome='ios'] input[type='checkbox']:checked {
+	background: #34c759;
+}
+
+html[data-chrome='ios'].dark input[type='checkbox']:checked {
+	background: #30d158;
+}
+
+html[data-chrome='ios'] input[type='checkbox']:checked::before {
+	transform: translateX(1.25rem);
+}
+
+html[data-chrome='ios'] input[type='checkbox']:focus-visible {
+	outline: 0.125rem solid rgb(var(--ring));
+	outline-offset: 0.125rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Segmented control (UISegmentedControl)
+ * ------------------------------------------------------------------------ */
+
+html[data-chrome='ios'] .wx-segmented {
+	display: inline-grid;
+	grid-auto-columns: minmax(5.5rem, 1fr);
+	grid-auto-flow: column;
+	gap: 0;
+	padding: 0.125rem;
+	border-radius: 0.5625rem;
+	background: var(--ios-fill);
+}
+
+html[data-chrome='ios'] .wx-segmented button {
+	width: 100%;
+	min-height: 2rem;
+	border-radius: 0.4375rem;
+	background: transparent;
+	color: rgb(var(--foreground));
+	font-size: 0.8125rem;
+	font-weight: 500;
+}
+
+html[data-chrome='ios'] .wx-segmented button[aria-pressed='true'] {
+	background: #fff;
+	color: #000;
+	font-weight: 600;
+	box-shadow:
+		0 0.1875rem 0.5rem rgb(0 0 0 / 0.12),
+		0 0.1875rem 0.0625rem rgb(0 0 0 / 0.04);
+}
+
+html[data-chrome='ios'].dark .wx-segmented button[aria-pressed='true'] {
+	background: #636366;
+	color: #fff;
+}
+
+/* ---------------------------------------------------------------------------
+ * Sheets (UISheetPresentationController)
+ * ------------------------------------------------------------------------ */
+
+html[data-chrome='ios'] .wx-sheet-backdrop {
+	background: rgb(0 0 0 / 0.2);
+}
+
+html[data-chrome='ios'].dark .wx-sheet-backdrop {
+	background: rgb(0 0 0 / 0.48);
+}
+
+html[data-chrome='ios'] .wx-sheet {
+	border-radius: 2.375rem 2.375rem 0 0;
+	background: rgb(var(--background));
+	box-shadow: 0 -0.25rem 2rem rgb(0 0 0 / 0.12);
+}
+
+html[data-chrome='ios'].dark .wx-sheet {
+	background: rgb(var(--card));
+}
+
+/* Grabber. */
+html[data-chrome='ios'] .wx-sheet-head > div[aria-hidden='true']:first-child {
+	width: 2.25rem;
+	height: 0.3125rem;
+	margin-top: -0.75rem;
+	margin-bottom: 0.875rem;
+	background: rgb(127 127 127 / 0.4);
+}
+
+html[data-chrome='ios'] .wx-sheet-head h2 {
+	font-size: 1.25rem;
+	font-weight: 700;
+}
+
+html[data-chrome='ios'].dark .wx-sheet .rounded-\[1\.375rem\].bg-card {
+	background: rgb(var(--muted));
+}
+
+/* Primary buttons: filled capsule (iOS 26 prominent style). */
+html[data-chrome='ios'] .bg-primary.rounded-full {
+	font-weight: 600;
+}
+
+/* Sheets cover the tab bar, as UIKit sheets do; the bottom inset moves into the body. */
+html[data-chrome='ios'] .wx-overlay {
+	bottom: 0;
+	padding-top: calc(var(--wx-sheet-gap-top) + 0.625rem);
+	--wx-sheet-max: calc(100dvh - var(--wx-sheet-gap-top) - 0.625rem);
+}
+
+html[data-chrome='ios'] .wx-sheet-body {
+	padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Sky-tinted sheets (day/hour detail): translucent white fills, like the Weather app's modules. */
+html[data-chrome='ios'] .wx-sheet [class*='hero-on-'] .bg-muted,
+html[data-chrome='ios'] .wx-sheet [class*='hero-on-'] .bg-secondary,
+html[data-chrome='ios'] .wx-sheet [class*='hero-on-'] [class*='wx-chip-'],
+html[data-chrome='ios'] .wx-sheet [class*='hero-on-'] [class*='wx-scale-'] {
+	background: rgb(255 255 255 / 0.16);
+	color: inherit;
+}
+
+html[data-chrome='ios'] .wx-sheet [class*='hero-on-'] button[aria-pressed='true'] {
+	background: rgb(255 255 255 / 0.92);
+	color: #000;
+	font-weight: 600;
+}
+
+html[data-chrome='ios'] .wx-sheet [class*='hero-on-'] .text-muted-foreground,
+html[data-chrome='ios'] .wx-sheet [class*='hero-on-'] [class*='wx-icon-'] {
+	color: inherit;
+}
+
+html[data-chrome='ios'] .wx-sheet [class*='hero-on-'] .bg-gradient-to-l {
+	display: none;
+}
+
+html[data-chrome='ios'] .wx-sheet [class*='hero-on-'] .icon-btn {
+	color: #fff;
+	background: rgb(255 255 255 / 0.2);
+}
+
+html[data-chrome='ios'] .wx-sheet [class*='hero-on-'] p.font-extrabold {
+	font-weight: 300;
+}
+
+/* Level tiles (air quality, pollen, UV): neutral fill with the level in an accessible system colour,
+   instead of Material tonal containers. Bars and charts keep their colours. */
+html[data-chrome='ios'] .wx-scale-good,
+html[data-chrome='ios'] .wx-scale-fair,
+html[data-chrome='ios'] .wx-scale-warn,
+html[data-chrome='ios'] .wx-scale-bad,
+html[data-chrome='ios'] .wx-scale-extreme {
+	background: rgb(var(--background));
+}
+
+html[data-chrome='ios'].dark .wx-scale-good,
+html[data-chrome='ios'].dark .wx-scale-fair,
+html[data-chrome='ios'].dark .wx-scale-warn,
+html[data-chrome='ios'].dark .wx-scale-bad,
+html[data-chrome='ios'].dark .wx-scale-extreme {
+	background: rgb(var(--muted));
+}
+
+html[data-chrome='ios'] .wx-scale-good {
+	color: #248a3d;
+}
+html[data-chrome='ios'] .wx-scale-fair {
+	color: #a05a00;
+}
+html[data-chrome='ios'] .wx-scale-warn {
+	color: #c93400;
+}
+html[data-chrome='ios'] .wx-scale-bad {
+	color: #d70015;
+}
+html[data-chrome='ios'] .wx-scale-extreme {
+	color: #8944ab;
+}
+
+html[data-chrome='ios'].dark .wx-scale-good {
+	color: #30d158;
+}
+html[data-chrome='ios'].dark .wx-scale-fair {
+	color: #ffd60a;
+}
+html[data-chrome='ios'].dark .wx-scale-warn {
+	color: #ff9f0a;
+}
+html[data-chrome='ios'].dark .wx-scale-bad {
+	color: #ff453a;
+}
+html[data-chrome='ios'].dark .wx-scale-extreme {
+	color: #bf5af2;
+}
+
+/* ---------------------------------------------------------------------------
+ * Toggle capsules (radar layers, topic chips): tinted when on, gray fill when off
+ * ------------------------------------------------------------------------ */
+
+html[data-chrome='ios'] main button.rounded-full[aria-pressed] {
+	font-weight: 500;
+}
+
+html[data-chrome='ios'] main button.rounded-full[aria-pressed='true'] {
+	background: rgb(var(--primary));
+	color: rgb(var(--on-primary));
+}
+
+html[data-chrome='ios'] main button.rounded-full[aria-pressed='false'] {
+	background: var(--ios-fill);
+	color: rgb(var(--foreground));
+}
+
+/* Gray (secondary) buttons: iOS "gray" button style with tinted label. */
+html[data-chrome='ios'] button.bg-secondary.text-primary {
+	background: var(--ios-fill);
+	font-weight: 500;
+}
+
+/* ---------------------------------------------------------------------------
+ * Slider (UISlider)
+ * ------------------------------------------------------------------------ */
+
+html[data-chrome='ios'] input[type='range'] {
+	-webkit-appearance: none;
+	appearance: none;
+	height: 1.75rem;
+	background: transparent;
+}
+
+html[data-chrome='ios'] input[type='range']::-webkit-slider-runnable-track {
+	height: 0.25rem;
+	border-radius: 9999px;
+	/* Tinted minimum track up to the thumb; components set --range-fill. */
+	background: linear-gradient(
+		to right,
+		rgb(var(--primary)) var(--range-fill, 0%),
+		var(--ios-fill) var(--range-fill, 0%)
+	);
+}
+
+html[data-chrome='ios'] input[type='range']::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	width: 1.75rem;
+	height: 1.75rem;
+	margin-top: -0.75rem;
+	border-radius: 9999px;
+	background: #fff;
+	box-shadow:
+		0 0.125rem 0.5rem rgb(0 0 0 / 0.18),
+		0 0 0 0.5px rgb(0 0 0 / 0.04);
+}
+
+/* ---------------------------------------------------------------------------
+ * Map controls: glass buttons instead of the Leaflet defaults
+ * ------------------------------------------------------------------------ */
+
+html[data-chrome='ios'] .radar-frame {
+	border-radius: 1.125rem;
+}
+
+html[data-chrome='ios'] .radar-map .leaflet-control-zoom {
+	overflow: hidden;
+	border-radius: 0.875rem;
+	background: var(--ios-glass);
+	-webkit-backdrop-filter: blur(1.25rem) saturate(1.8);
+	backdrop-filter: blur(1.25rem) saturate(1.8);
+	box-shadow:
+		var(--ios-glass-rim),
+		inset 0 0 0 0.5px var(--ios-glass-edge),
+		0 0.25rem 1rem rgb(0 0 0 / 0.18);
+}
+
+html[data-chrome='ios'] .radar-map .leaflet-control-zoom a {
+	width: 2.5rem;
+	height: 2.5rem;
+	line-height: 2.5rem;
+	border: 0;
+	background: transparent;
+	color: rgb(var(--foreground));
+	font-weight: 400;
+}
+
+html[data-chrome='ios'] .radar-map .leaflet-control-zoom a + a {
+	border-top: 0.5px solid var(--ios-separator);
+}
+
+html[data-chrome='ios'] .radar-map .leaflet-control-attribution {
+	background: rgb(var(--card) / 0.7);
+	-webkit-backdrop-filter: blur(0.5rem);
+	backdrop-filter: blur(0.5rem);
+	border-top-left-radius: 0.5rem;
+}
+
+html[data-chrome='ios'] .wx-place-label {
+	border-radius: 9999px !important;
+	background: var(--ios-glass) !important;
+	-webkit-backdrop-filter: blur(1rem) saturate(1.8);
+	backdrop-filter: blur(1rem) saturate(1.8);
+	font-weight: 600;
+}
+
+/* Large numerals in Apple's light display weight (Weather app), not Material extra-bold. */
+html[data-chrome='ios'] .font-extrabold {
+	font-weight: 300;
+	letter-spacing: -0.02em;
+}

@@ -1,6 +1,7 @@
 import { fetchMeteoalarm } from './alerts.js';
 import {
 	getForecastSnapshot,
+	listApnsRecipients,
 	listRecipients,
 	pruneForecastSnapshots,
 	pruneSendLog,
@@ -44,10 +45,25 @@ async function weatherFor(lat, lon, hints = {}) {
 	return value;
 }
 
+/**
+ * One entry per client: preferences plus every device it can be reached on (browsers, iPhones).
+ * Rules, snapshots and cooldowns are per client, so a user with web and iOS gets each notice
+ * on both and the forecast-change diff is not consumed by the first device.
+ */
+function recipientsByClient(db) {
+	const groups = new Map();
+	for (const row of [...listRecipients(db), ...listApnsRecipients(db)]) {
+		const group = groups.get(row.client_id);
+		if (group) group.channels.push(row);
+		else groups.set(row.client_id, { row, channels: [row] });
+	}
+	return [...groups.values()];
+}
+
 export async function runPushCycle(db) {
-	const rows = listRecipients(db);
-	const results = { considered: rows.length, sent: 0, skipped: 0, errors: 0 };
-	for (const row of rows) {
+	const clients = recipientsByClient(db);
+	const results = { considered: clients.length, sent: 0, skipped: 0, errors: 0 };
+	for (const { row, channels } of clients) {
 		if (!hasAnyPref(row)) {
 			results.skipped += 1;
 			continue;
@@ -75,18 +91,23 @@ export async function runPushCycle(db) {
 				if (wasRecentlySent(db, row.client_id, notice.category, notice.fingerprint, notice.cooldownHours)) {
 					continue;
 				}
-				const result = await sendPush(db, row, {
+				const payload = {
 					title: notice.title,
 					body: notice.body,
 					url: notice.url || '/#jetzt',
 					tag: notice.category
-				});
-				if (result.ok) {
-					recordSend(db, row.client_id, notice.category, notice.fingerprint);
-					results.sent += 1;
-				} else {
-					results.errors += 1;
+				};
+				let delivered = false;
+				for (const channel of channels) {
+					const result = await sendPush(db, channel, payload);
+					if (result.ok) {
+						delivered = true;
+						results.sent += 1;
+					} else {
+						results.errors += 1;
+					}
 				}
+				if (delivered) recordSend(db, row.client_id, notice.category, notice.fingerprint);
 			}
 		} catch (error) {
 			console.warn('push cycle', row.client_id, error.message);

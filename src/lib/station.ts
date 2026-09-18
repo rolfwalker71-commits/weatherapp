@@ -1,4 +1,6 @@
+import { CapacitorHttp } from '@capacitor/core';
 import { haversineKm, isSwitzerland } from './geo';
+import { isNativeApp } from './platform';
 import type { PassObservation, Place, StationObservation } from './types';
 
 const SMN_META_URL = 'https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ogd-smn_meta_stations.csv';
@@ -237,6 +239,14 @@ interface MetarRow {
 }
 
 async function fetchMetarJson(url: string, signal?: AbortSignal): Promise<MetarRow[]> {
+	if (isNativeApp()) {
+		// Native HTTP is not subject to CORS, so the app can skip the /api/metar proxy.
+		const response = await CapacitorHttp.get({ url, headers: { Accept: 'application/json' } });
+		if (response.status < 200 || response.status >= 300) {
+			throw new Error(`Anfrage fehlgeschlagen (${response.status})`);
+		}
+		return Array.isArray(response.data) ? (response.data as MetarRow[]) : [];
+	}
 	const response = await fetch(url, { signal, headers: { Accept: 'application/json' } });
 	if (!response.ok) throw new Error(`Anfrage fehlgeschlagen (${response.status})`);
 	const data = (await response.json()) as MetarRow[] | { features?: unknown };

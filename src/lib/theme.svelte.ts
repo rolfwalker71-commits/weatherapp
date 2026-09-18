@@ -1,3 +1,5 @@
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { isNativeApp } from './platform';
 import type { ThemePreference } from './types';
 
 function readTheme(): ThemePreference {
@@ -20,6 +22,8 @@ export function applyTheme(preference = themeState.preference): void {
 	themeState.dark = dark;
 	document.documentElement.classList.toggle('dark', dark);
 	document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+	// Native status bar ignores CSS; match its text colour to the app theme, not the system one.
+	if (isNativeApp()) void StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light });
 	const themeColor = document.querySelector('meta[name="theme-color"]');
 	if (themeColor) {
 		const chrome = document.documentElement.dataset.chrome;

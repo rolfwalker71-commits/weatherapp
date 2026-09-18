@@ -15,7 +15,7 @@
 
 <section aria-labelledby="theme-title">
 	<h2 id="theme-title" class="sr-only">Darstellung</h2>
-	<ul class="space-y-2">
+	<ul class="wx-grouped wx-grouped-check space-y-2">
 		{#each options as option (option.id)}
 			<li>
 				<button

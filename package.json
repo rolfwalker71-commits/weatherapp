@@ -8,9 +8,13 @@
 		"build": "vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"push:dev": "npm --prefix push-api start"
+		"push:dev": "npm --prefix push-api start",
+		"ios:sync": "vite build && cap sync ios",
+		"ios:open": "cap open ios",
+		"ios:dev": "PUBLIC_PUSH_API_URL=http://localhost:4426 vite build && cap sync ios"
 	},
 	"devDependencies": {
+		"@capacitor/cli": "^8.5.2",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.49.2",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
@@ -27,6 +31,11 @@
 		"vite-plugin-pwa": "^1.2.0"
 	},
 	"dependencies": {
+		"@capacitor/core": "^8.5.2",
+		"@capacitor/geolocation": "^8.2.2",
+		"@capacitor/ios": "^8.5.2",
+		"@capacitor/push-notifications": "^8.1.2",
+		"@capacitor/status-bar": "^8.0.3",
 		"@material-symbols/svg-400": "^0.47.0",
 		"leaflet": "^1.9.4"
 	}

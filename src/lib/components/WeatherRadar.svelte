@@ -519,6 +519,7 @@
 					max={Math.max(0, frames.length - 1)}
 					bind:value={frameIndex}
 					class="w-full accent-primary"
+					style="--range-fill: {frames.length > 1 ? (frameIndex / (frames.length - 1)) * 100 : 100}%"
 					disabled={frames.length < 2}
 					onpointerdown={onScrubStart}
 					ontouchstart={onScrubStart}

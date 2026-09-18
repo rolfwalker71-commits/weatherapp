@@ -111,6 +111,54 @@ export function listRecipients(db) {
 	).all();
 }
 
+export function upsertApnsDevice(db, payload) {
+	db.prepare(
+		`
+		INSERT INTO apns_devices (token, client_id, environment, bundle_id, updated_at)
+		VALUES (@token, @client_id, @environment, @bundle_id, datetime('now'))
+		ON CONFLICT(token) DO UPDATE SET
+			client_id = excluded.client_id,
+			bundle_id = excluded.bundle_id,
+			updated_at = datetime('now')
+	`
+	).run(payload);
+}
+
+export function deleteApnsDevice(db, token, clientId) {
+	if (clientId) {
+		return db.prepare('DELETE FROM apns_devices WHERE token = ? AND client_id = ?').run(token, clientId);
+	}
+	return db.prepare('DELETE FROM apns_devices WHERE token = ?').run(token);
+}
+
+export function setApnsEnvironment(db, token, environment) {
+	db.prepare('UPDATE apns_devices SET environment = ? WHERE token = ?').run(environment, token);
+}
+
+export function listApnsDevices(db) {
+	return db.prepare(`SELECT *, 'apns' AS kind FROM apns_devices`).all();
+}
+
+/** Same shape as listRecipients, for iOS devices; `kind` routes delivery in sendPush. */
+export function listApnsRecipients(db) {
+	return db.prepare(
+		`
+		SELECT
+			'apns' AS kind, d.token, d.environment, d.client_id,
+			COALESCE(p.rain_soon, 0) AS rain_soon,
+			COALESCE(p.warnings, 0) AS warnings,
+			COALESCE(p.frost, 0) AS frost,
+			COALESCE(p.uv, 0) AS uv,
+			COALESCE(p.air, 0) AS air,
+			COALESCE(p.daily_brief, 0) AS daily_brief,
+			COALESCE(p.forecast_change, 0) AS forecast_change,
+			p.latitude, p.longitude, p.place_name, p.timezone
+		FROM apns_devices d
+		LEFT JOIN notification_preferences p ON p.client_id = d.client_id
+	`
+	).all();
+}
+
 export function getForecastSnapshot(db, clientId, locationKey) {
 	const row = db
 		.prepare(

@@ -12,6 +12,7 @@
 		type PushStatus
 	} from '$lib/push-client';
 	import type { NotifyPrefs } from '$lib/types';
+	import { isNativeApp } from '$lib/platform';
 	import { weatherState } from '$lib/weather.svelte';
 
 	interface Props {
@@ -91,7 +92,7 @@
 		{status?.message ?? 'Prüfe Push-Server…'}
 	</p>
 
-	<ul class="space-y-2">
+	<ul class="wx-grouped space-y-2">
 		{#each PREF_META as item (item.id)}
 			<li>
 				<label
@@ -140,9 +141,14 @@
 		</p>
 	{/if}
 	<p class="mt-4 text-sm leading-snug text-muted-foreground">
-		Kategorie einschalten oder «Gerät anmelden» — der Browser fragt nach Erlaubnis.
-		VAPID-Schlüssel erzeugt der Wetter-Container selbst in der Datenbank.
-		Auf dem Desktop braucht die Seite HTTPS (localhost ausgenommen).
+		{#if isNativeApp()}
+			Kategorie einschalten oder «Gerät anmelden» — iOS fragt einmal nach Erlaubnis für
+			Mitteilungen. Ändern jederzeit in Einstellungen → Mitteilungen → Wetter Schweiz.
+		{:else}
+			Kategorie einschalten oder «Gerät anmelden» — der Browser fragt nach Erlaubnis.
+			VAPID-Schlüssel erzeugt der Wetter-Container selbst in der Datenbank.
+			Auf dem Desktop braucht die Seite HTTPS (localhost ausgenommen).
+		{/if}
 	</p>
 {/snippet}
 

@@ -26,6 +26,7 @@
 	import { chromeState } from '$lib/chrome.svelte';
 	import { hydrateCommute } from '$lib/commute.svelte';
 	import type { DayPoint, HourPoint } from '$lib/types';
+	import { initPush } from '$lib/push-client';
 	import { closeTopic, initRoutes, setDrawer, uiState } from '$lib/ui.svelte';
 	import { weatherMood } from '$lib/wmo';
 	import { hydrateFromCache, locateUser, startAutoRefresh, weatherState } from '$lib/weather.svelte';
@@ -67,6 +68,7 @@
 		hydrateFromCache();
 		hydrateCommute();
 		const stopRoutes = initRoutes();
+		initPush();
 		void locateUser();
 		const stopRefresh = startAutoRefresh();
 		return () => {

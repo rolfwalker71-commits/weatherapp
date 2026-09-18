@@ -121,7 +121,7 @@
 <div class="relative w-full {isDesktop ? 'max-w-xl' : ''}">
 	<label class="sr-only" for={inputId}>Stadt suchen</label>
 	<div
-		class="flex items-center gap-2 bg-muted px-4 {isDesktop
+		class="wx-search-field flex items-center gap-2 bg-muted px-4 {isDesktop
 			? 'h-11 rounded-md ring-1 ring-border'
 			: 'min-h-12 rounded-full'}"
 	>

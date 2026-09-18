@@ -1,5 +1,9 @@
+import { Geolocation } from '@capacitor/geolocation';
 import { BERN, emptyExtras, fetchWeather, fetchWeatherHero, reverseGeocode } from './api';
 import { loadNotifyPrefs } from './notify-prefs';
+import { isNativeApp } from './platform';
+import { setLiveActivityPlace, syncLiveActivities } from './live-activities';
+import { shareWidgetPlace } from './widget-bridge';
 import { applyProactivity, loadProactivityNotice, type ProactivityNotice } from './proactivity';
 import { syncPreferences } from './push-client';
 import {
@@ -185,6 +189,7 @@ export async function loadPlace(place: Place, options?: { recent?: boolean }): P
 		weatherState.stale = false;
 		weatherState.proactivity = applyProactivity(place, bundle);
 		saveLastBundle(bundle);
+		void syncLiveActivities(bundle);
 		void syncPreferences(loadNotifyPrefs(), {
 			latitude: place.latitude,
 			longitude: place.longitude,
@@ -232,6 +237,8 @@ async function loadFallbackPlace(reason: string): Promise<void> {
 	const home = loadHomePlace();
 	const last = loadLastPlace();
 	const fallback = home ?? last ?? BERN;
+	shareWidgetPlace(fallback, false);
+	setLiveActivityPlace(fallback);
 	await loadPlace(fallback, { recent: false });
 	if (home && samePlace(fallback, home)) {
 		weatherState.error = `${reason} Home-Ort ${home.name}.`;
@@ -243,20 +250,25 @@ async function loadFallbackPlace(reason: string): Promise<void> {
 export async function locateUser(): Promise<void> {
 	weatherState.locating = true;
 	try {
-		if (!('geolocation' in navigator)) {
-			await loadFallbackPlace('Standort nicht verfügbar.');
-			return;
+		const options = { enableHighAccuracy: false, timeout: 8000, maximumAge: 5 * 60 * 1000 };
+		let position: { coords: { latitude: number; longitude: number } };
+		if (isNativeApp()) {
+			// Native Core Location: one system prompt instead of an extra WebView "localhost" prompt.
+			position = await Geolocation.getCurrentPosition(options);
+		} else {
+			if (!('geolocation' in navigator)) {
+				await loadFallbackPlace('Standort nicht verfügbar.');
+				return;
+			}
+			position = await new Promise<GeolocationPosition>((resolve, reject) => {
+				navigator.geolocation.getCurrentPosition(resolve, reject, options);
+			});
 		}
 
-		const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-			navigator.geolocation.getCurrentPosition(resolve, reject, {
-				enableHighAccuracy: false,
-				timeout: 8000,
-				maximumAge: 5 * 60 * 1000
-			});
-		});
-
 		const place = await reverseGeocode(position.coords.latitude, position.coords.longitude);
+		// Widgets follow the device location, like "Mein Standort" in Apple Weather.
+		shareWidgetPlace(place, true);
+		setLiveActivityPlace(place);
 		await loadPlace(place, { recent: false });
 	} catch {
 		await loadFallbackPlace('Standort nicht verfügbar.');

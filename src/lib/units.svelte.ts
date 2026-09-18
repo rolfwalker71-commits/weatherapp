@@ -1,4 +1,5 @@
 import type { WindUnit } from './types';
+import { shareWidgetWindUnit } from './widget-bridge';
 
 const KEY = 'weather.windUnit';
 
@@ -14,10 +15,12 @@ export const unitsState = $state({
 
 export function setWindUnit(unit: WindUnit): void {
 	unitsState.wind = unit;
+	shareWidgetWindUnit(unit);
 	if (typeof localStorage === 'undefined') return;
 	localStorage.setItem(KEY, unit);
 }
 
 export function initUnits(): void {
 	unitsState.wind = readUnit();
+	shareWidgetWindUnit(unitsState.wind);
 }

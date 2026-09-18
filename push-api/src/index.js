@@ -2,8 +2,18 @@ import cors from 'cors';
 import express from 'express';
 import { fetchMeteoalarm } from './alerts.js';
 import { fetchAvalanche } from './avalanche.js';
-import { deleteSubscription, getPreferences, listSubscriptions, openDb, upsertPreferences, upsertSubscription } from './db.js';
-import { canTriggerManualSend, sendPush } from './send.js';
+import {
+	deleteApnsDevice,
+	deleteSubscription,
+	getPreferences,
+	listApnsDevices,
+	listSubscriptions,
+	openDb,
+	upsertApnsDevice,
+	upsertPreferences,
+	upsertSubscription
+} from './db.js';
+import { canTriggerManualSend, getApns, sendPush } from './send.js';
 import { ensureWebPushConfigured } from './vapid.js';
 import { startPushWorker } from './worker.js';
 
@@ -14,6 +24,7 @@ const PUSH_TEST_TOKEN = process.env.PUSH_TEST_TOKEN || '';
 const db = openDb();
 const vapid = ensureWebPushConfigured(db);
 const sendingEnabled = process.env.PUSH_SEND_ENABLED !== 'false' && Boolean(vapid);
+const apns = getApns();
 
 const app = express();
 app.disable('x-powered-by');
@@ -31,6 +42,9 @@ app.get('/v1/status', (_req, res) => {
 		configured: true,
 		sendingEnabled,
 		hasVapid: Boolean(vapid),
+		// iOS app: whether this server can reach iPhones (APNs key or local simulator transport).
+		hasApns: Boolean(apns),
+		apnsTransport: apns?.transport ?? null,
 		message: sendingEnabled
 			? 'Versand eingeschaltet — der Worker prüft Kategorien periodisch.'
 			: 'Versand aus. Subscriptions und Prefs werden gespeichert.'
@@ -79,6 +93,33 @@ app.delete('/v1/subscriptions', (req, res) => {
 	const clientId = String(req.body?.clientId || '');
 	if (!endpoint) return res.status(400).json({ error: 'endpoint fehlt' });
 	deleteSubscription(db, endpoint, clientId || undefined);
+	res.json({ ok: true });
+});
+
+/** Native iOS app: APNs device token (hex) for a client, optionally with prefs and place. */
+app.post('/v1/apns-devices', (req, res) => {
+	const token = String(req.body?.token || '').toLowerCase();
+	const clientId = String(req.body?.clientId || '').slice(0, 80);
+	if (!/^[0-9a-f]{64,200}$/.test(token) || !clientId) {
+		return res.status(400).json({ error: 'Ungültiges Geräte-Token' });
+	}
+	upsertApnsDevice(db, {
+		token,
+		client_id: clientId,
+		environment: 'auto',
+		bundle_id: String(req.body?.bundleId || '').slice(0, 120) || null
+	});
+	if (req.body?.preferences || req.body?.place) {
+		savePrefs(clientId, req.body.preferences || {}, req.body.place);
+	}
+	res.json({ ok: true, hasApns: Boolean(apns) });
+});
+
+app.delete('/v1/apns-devices', (req, res) => {
+	const token = String(req.body?.token || '').toLowerCase();
+	const clientId = String(req.body?.clientId || '');
+	if (!token) return res.status(400).json({ error: 'token fehlt' });
+	deleteApnsDevice(db, token, clientId || undefined);
 	res.json({ ok: true });
 });
 
@@ -163,7 +204,7 @@ app.post('/v1/send', async (req, res) => {
 	const title = String(req.body?.title || 'Wetter');
 	const body = String(req.body?.body || 'Neue Wetterinfo');
 	const url = String(req.body?.url || '/');
-	const results = await broadcast(listSubscriptions(db), { title, body, url });
+	const results = await broadcast([...listSubscriptions(db), ...listApnsDevices(db)], { title, body, url });
 	res.json({ sent: results.filter((item) => item.ok).length, results });
 });
 
@@ -176,7 +217,9 @@ app.post('/v1/send-test', async (req, res) => {
 		});
 	}
 	const clientId = req.body?.clientId ? String(req.body.clientId).slice(0, 80) : '';
-	const rows = listSubscriptions(db).filter((row) => !clientId || row.client_id === clientId);
+	const rows = [...listSubscriptions(db), ...listApnsDevices(db)].filter(
+		(row) => !clientId || row.client_id === clientId
+	);
 	if (!rows.length) {
 		return res.status(404).json({ error: 'Kein Abonnement gespeichert' });
 	}
@@ -214,6 +257,7 @@ app.listen(PORT, HOST, () => {
 		console.warn('Web-Push nicht bereit — VAPID-Schlüssel fehlen.');
 	}
 	console.log(`weather push api on ${HOST}:${PORT} (send=${sendingEnabled ? 'on' : 'off'})`);
+	console.log(apns ? `iOS-Push aktiv (${apns.transport}, ${apns.bundleId}).` : 'iOS-Push aus — APNS_KEY_ID/APNS_TEAM_ID/APNS_KEY fehlen.');
 	startPushWorker(db, {
 		enabled: sendingEnabled,
 		hasKeys: Boolean(vapid)

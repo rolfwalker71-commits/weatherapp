@@ -67,7 +67,8 @@
 						: formatHourLabel(hour.time)}, {formatTemp(hour.temperature)}{hour.precipProb != null
 						? `, Regen ${formatPercent(hour.precipProb)}`
 						: ''}"
-					class="flex min-w-0 w-full flex-col items-center gap-1.5 px-1 py-2.5 sm:gap-2 sm:px-2 sm:py-3 {moodChipClass(
+					data-now={index === 0 ? '' : undefined}
+					class="wx-hour flex min-w-0 w-full flex-col items-center gap-1.5 px-1 py-2.5 sm:gap-2 sm:px-2 sm:py-3 {moodChipClass(
 						mood
 					)} {isDesktop ? 'rounded-md' : 'rounded-3xl'} {index === 0
 						? 'ring-2 ring-inset ring-primary'
@@ -113,7 +114,8 @@
 						: formatHourLabel(hour.time)}, {formatTemp(hour.temperature)}{hour.precipProb != null
 						? `, Regen ${formatPercent(hour.precipProb)}`
 						: ''}"
-					class="flex min-w-0 shrink-0 snap-start flex-col items-center gap-2 px-1 py-2.5 sm:gap-2 sm:px-2 sm:py-3 {moodChipClass(
+					data-now={index === 0 ? '' : undefined}
+					class="wx-hour flex min-w-0 shrink-0 snap-start flex-col items-center gap-2 px-1 py-2.5 sm:gap-2 sm:px-2 sm:py-3 {moodChipClass(
 						mood
 					)} {isDesktop ? 'rounded-md' : 'rounded-3xl'} {index === 0
 						? 'ring-2 ring-inset ring-primary'
