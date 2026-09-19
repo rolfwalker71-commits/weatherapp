@@ -1,103 +1,26 @@
 // @ts-nocheck (runs in Scriptable, not in the app; stripped on export)
-// Wetter CH — Widget für Scriptable (https://scriptable.app)
+// Wetter CH — Widgets für Scriptable (https://scriptable.app)
 // Erzeugt in der App unter Einstellungen › Scriptable-Widgets.
 // Daten: Open-Meteo (wie die App), kein Konto und kein Schlüssel nötig.
 //
-// Widget-Parameter (optional, lange auf das Widget drücken › Widget bearbeiten):
-//   gps          – immer den aktuellen Standort zeigen
-//   Zürich       – einen anderen Ort zeigen (Ortsname)
-//   leer         – den in der App gewählten Ort
+// Widget-Parameter (optional, lange auf das Widget drücken › Widget bearbeiten),
+// mehrere durch Komma getrennt, z. B. «karte, Zürich»:
+//   karte | klassisch  – Stil des Widgets
+//   gps                – immer den aktuellen Standort zeigen
+//   Zürich             – einen anderen Ort zeigen (Ortsname)
+//
+// Antippen öffnet die animierte Detailansicht direkt in Scriptable.
 
 const CONFIG = "__CONFIG__";
+const GLYPHS = "__GLYPHS__";
 
-const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
-const GEO_URL = "https://geocoding-api.open-meteo.com/v1/search";
+//__CORE__
+
 const fm = FileManager.local();
 const cacheDir = fm.joinPath(fm.cacheDirectory(), "wetter-ch-widget");
 if (!fm.fileExists(cacheDir)) fm.createDirectory(cacheDir, true);
 
-// ---------------------------------------------------------------------------
-// Wettercodes (WMO) – Texte wie in der App, Symbole als SF Symbols
-// ---------------------------------------------------------------------------
-
-const WMO = {
-  0: ["Klarer Himmel", "sun.max.fill", "moon.stars.fill"],
-  1: ["Überwiegend klar", "sun.max.fill", "moon.stars.fill"],
-  2: ["Teilweise bewölkt", "cloud.sun.fill", "cloud.moon.fill"],
-  3: ["Bedeckt", "cloud.fill"],
-  45: ["Nebel", "cloud.fog.fill"],
-  48: ["Reifnebel", "cloud.fog.fill"],
-  51: ["Leichter Nieselregen", "cloud.drizzle.fill"],
-  53: ["Nieselregen", "cloud.drizzle.fill"],
-  55: ["Starker Nieselregen", "cloud.drizzle.fill"],
-  56: ["Leichter Eisniesel", "cloud.sleet.fill"],
-  57: ["Gefrierender Nieselregen", "cloud.sleet.fill"],
-  61: ["Leichter Regen", "cloud.rain.fill"],
-  63: ["Regen", "cloud.rain.fill"],
-  65: ["Starker Regen", "cloud.heavyrain.fill"],
-  66: ["Leichter Eisregen", "cloud.sleet.fill"],
-  67: ["Eisregen", "cloud.sleet.fill"],
-  71: ["Leichter Schneefall", "cloud.snow.fill"],
-  73: ["Schneefall", "cloud.snow.fill"],
-  75: ["Starker Schneefall", "snowflake"],
-  77: ["Schneegriesel", "cloud.snow.fill"],
-  80: ["Leichte Regenschauer", "cloud.sun.rain.fill", "cloud.moon.rain.fill"],
-  81: ["Regenschauer", "cloud.rain.fill"],
-  82: ["Heftige Regenschauer", "cloud.heavyrain.fill"],
-  85: ["Leichte Schneeschauer", "cloud.snow.fill"],
-  86: ["Schneeschauer", "snowflake"],
-  95: ["Gewitter", "cloud.bolt.rain.fill"],
-  96: ["Gewitter mit Hagel", "cloud.hail.fill"],
-  99: ["Schweres Gewitter mit Hagel", "cloud.hail.fill"],
-};
-
-function wmo(code, isDay = true) {
-  const c = Math.round(Number(code) || 0);
-  let e = WMO[c];
-  if (!e) {
-    if (c <= 19) e = ["Dunst oder Nebel", "cloud.fog.fill"];
-    else if (c <= 29) e = ["Niederschlag in der Nähe", "cloud.rain.fill"];
-    else if (c <= 39) e = ["Schneeverwehung", "wind.snow"];
-    else if (c <= 49) e = ["Nebel", "cloud.fog.fill"];
-    else if (c <= 59) e = ["Nieselregen", "cloud.drizzle.fill"];
-    else if (c <= 69) e = ["Regen", "cloud.rain.fill"];
-    else if (c <= 79) e = ["Schnee", "cloud.snow.fill"];
-    else if (c <= 84) e = ["Regenschauer", "cloud.rain.fill"];
-    else if (c <= 94) e = ["Schneeschauer", "cloud.snow.fill"];
-    else e = ["Gewitter", "cloud.bolt.rain.fill"];
-  }
-  return { label: e[0], symbol: !isDay && e[2] ? e[2] : e[1] };
-}
-
-/** Same scenes as the Jetzt card in the app. */
-function sceneOf(code, isDay) {
-  if (!isDay && code <= 2) return "night";
-  if (code <= 1) return "clear";
-  if (code === 2) return "partly";
-  if (code === 3) return "cloud";
-  if (code >= 95) return "storm";
-  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return "snow";
-  if ((code >= 10 && code <= 19) || (code >= 40 && code <= 49)) return "fog";
-  if (code >= 51) return "rain";
-  return "cloud";
-}
-
-const SCENES = {
-  clear: ["#ffd84a", "#ffba2e", "#ff9d24"],
-  partly: ["#2f7fd6", "#5ea3e8", "#86bcef"],
-  night: ["#070e26", "#15224a", "#25366a"],
-  cloud: ["#5d7289", "#7f93a8", "#95a7b9"],
-  rain: ["#34424f", "#4d5e6f", "#65788b"],
-  storm: ["#16181f", "#2a2f3d", "#434a5c"],
-  snow: ["#5a7a9c", "#7894b1", "#92aac2"],
-  fog: ["#5b656f", "#75808a", "#88929b"],
-};
-
-function shade(hex, factor) {
-  const n = parseInt(hex.slice(1), 16);
-  const ch = (v) => Math.max(0, Math.min(255, Math.round(v * factor))).toString(16).padStart(2, "0");
-  return `#${ch((n >> 16) & 255)}${ch((n >> 8) & 255)}${ch(n & 255)}`;
-}
+const windText = (kmh) => wind(kmh, CONFIG.wind);
 
 function themeFor(scene) {
   const stops = SCENES[scene] || SCENES.cloud;
@@ -117,31 +40,26 @@ function themeFor(scene) {
     sun: light ? new Color("#3a2300") : new Color("#ffd60a"),
     outline: light ? new Color(ink, 0.45) : null,
     prob: new Color(light ? "#0a5ea8" : "#9ad8ff"),
+    glass: new Color("#ffffff", light ? 0.3 : 0.16),
+    glyph: new Color(scene === "night" ? "#f3f1ff" : "#ffffff"),
   };
 }
 
 // ---------------------------------------------------------------------------
-// Formatierung
+// Parameter und Ort
 // ---------------------------------------------------------------------------
 
-const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
-const COMPASS = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-
-const temp = (v) => (v == null || !Number.isFinite(v) ? "–" : `${Math.round(v)}°`);
-const pad = (n) => String(n).padStart(2, "0");
-
-function wind(kmh) {
-  if (kmh == null) return "–";
-  return CONFIG.wind === "ms" ? `${(kmh / 3.6).toFixed(1).replace(".0", "")} m/s` : `${Math.round(kmh)} km/h`;
+function parseParam(raw) {
+  const out = { raw: String(raw || "").trim(), style: null, gps: false, place: null };
+  for (const token of out.raw.split(/[,;]/).map((s) => s.trim()).filter(Boolean)) {
+    const l = token.toLowerCase();
+    if (l === "karte" || l === "jetzt") out.style = "card";
+    else if (l === "klassisch" || l === "kompakt") out.style = "classic";
+    else if (l === "gps" || l === "standort") out.gps = true;
+    else out.place = token;
+  }
+  return out;
 }
-
-function mm(v) {
-  return `${(Math.round(v * 10) / 10).toString()} mm`;
-}
-
-// ---------------------------------------------------------------------------
-// Ort
-// ---------------------------------------------------------------------------
 
 function readCache(name) {
   const file = fm.joinPath(cacheDir, name);
@@ -161,13 +79,16 @@ async function gpsPlace() {
   try {
     Location.setAccuracyToThreeKilometers();
     const loc = await Location.current();
-    let name = "Aktueller Standort";
+    const place = { name: "Aktueller Standort", latitude: loc.latitude, longitude: loc.longitude, gps: true };
     try {
       const geo = await Location.reverseGeocode(loc.latitude, loc.longitude, "de");
       const g = geo && geo[0];
-      if (g) name = g.locality || g.subLocality || g.subAdministrativeArea || name;
+      if (g) {
+        place.name = g.locality || g.subLocality || g.subAdministrativeArea || place.name;
+        place.admin1 = g.administrativeArea;
+        place.country = g.country;
+      }
     } catch (e) {}
-    const place = { name, latitude: loc.latitude, longitude: loc.longitude, gps: true };
     writeCache("gps.json", place);
     return place;
   } catch (e) {
@@ -177,7 +98,7 @@ async function gpsPlace() {
 }
 
 async function searchPlace(query) {
-  const key = `geo-${query.toLowerCase().replace(/[^a-z0-9äöüéèà]/g, "_")}.json`;
+  const key = `geo2-${query.toLowerCase().replace(/[^a-z0-9äöüéèà]/g, "_")}.json`;
   const cached = readCache(key);
   if (cached) return cached;
   try {
@@ -185,7 +106,7 @@ async function searchPlace(query) {
     const json = await new Request(url).loadJSON();
     const hit = json.results && json.results[0];
     if (!hit) return null;
-    const place = { name: hit.name, latitude: hit.latitude, longitude: hit.longitude };
+    const place = { name: hit.name, latitude: hit.latitude, longitude: hit.longitude, admin1: hit.admin1, country: hit.country };
     writeCache(key, place);
     return place;
   } catch (e) {
@@ -193,96 +114,17 @@ async function searchPlace(query) {
   }
 }
 
-async function resolvePlace() {
-  const param = String(args.widgetParameter || "").trim();
-  const lower = param.toLowerCase();
-  if (lower === "gps" || lower === "standort") return gpsPlace();
-  if (param) {
-    const found = await searchPlace(param);
+async function resolvePlace(param) {
+  if (param.gps) return gpsPlace();
+  if (param.place) {
+    const found = await searchPlace(param.place);
     if (found) return found;
   }
   return CONFIG.place ? CONFIG.place : gpsPlace();
 }
 
-// ---------------------------------------------------------------------------
-// Daten
-// ---------------------------------------------------------------------------
-
-function forecastUrl(place) {
-  const q = {
-    latitude: place.latitude,
-    longitude: place.longitude,
-    current:
-      "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day,precipitation,cloud_cover",
-    hourly: "temperature_2m,weather_code,precipitation_probability,precipitation,is_day,cloud_cover",
-    minutely_15: "precipitation",
-    daily:
-      "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset,uv_index_max",
-    timezone: "auto",
-    forecast_days: 10,
-    wind_speed_unit: "kmh",
-    models: "best_match",
-  };
-  return `${FORECAST_URL}?${Object.entries(q).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&")}`;
-}
-
-/** Open-Meteo sends local wall-clock times; turn them into real instants. */
-function parser(offsetSec) {
-  return (iso) => Date.parse(`${iso.length === 10 ? `${iso}T00:00` : iso}:00Z`) - offsetSec * 1000;
-}
-
-function normalize(raw, place) {
-  const offset = raw.utc_offset_seconds || 0;
-  const at = parser(offset);
-  const local = (ts) => new Date(ts + offset * 1000);
-  const c = raw.current;
-  const h = raw.hourly;
-  const d = raw.daily;
-  const m = raw.minutely_15 || { time: [], precipitation: [] };
-  return {
-    place,
-    offset,
-    fetchedAt: Date.now(),
-    local,
-    current: {
-      temp: c.temperature_2m,
-      feels: c.apparent_temperature,
-      code: c.weather_code,
-      isDay: c.is_day === 1,
-      wind: c.wind_speed_10m,
-      windDir: c.wind_direction_10m,
-      gusts: c.wind_gusts_10m,
-      humidity: c.relative_humidity_2m,
-      precip: c.precipitation || 0,
-      cloud: c.cloud_cover,
-    },
-    hours: h.time.map((t, i) => ({
-      ts: at(t),
-      temp: h.temperature_2m[i],
-      code: h.weather_code[i],
-      prob: h.precipitation_probability[i],
-      mm: h.precipitation[i] || 0,
-      isDay: h.is_day[i] === 1,
-      cloud: h.cloud_cover ? h.cloud_cover[i] : null,
-    })),
-    minutes: m.time.map((t, i) => ({ ts: at(t), mm: m.precipitation[i] || 0 })),
-    days: d.time.map((t, i) => ({
-      date: t,
-      ts: at(t),
-      code: d.weather_code[i],
-      max: d.temperature_2m_max[i],
-      min: d.temperature_2m_min[i],
-      mm: d.precipitation_sum[i] || 0,
-      prob: d.precipitation_probability_max[i],
-      sunrise: d.sunrise[i] ? at(d.sunrise[i]) : null,
-      sunset: d.sunset[i] ? at(d.sunset[i]) : null,
-      uv: d.uv_index_max[i],
-    })),
-  };
-}
-
-async function loadWeather() {
-  const place = await resolvePlace();
+async function loadWeather(param) {
+  const place = await resolvePlace(param);
   if (!place) return { error: "Kein Ort. Standort erlauben oder Ort als Parameter eintragen." };
   const key = `wx-${place.latitude.toFixed(2)}-${place.longitude.toFixed(2)}.json`;
   try {
@@ -290,96 +132,14 @@ async function loadWeather() {
     req.timeoutInterval = 15;
     const raw = await req.loadJSON();
     if (!raw || !raw.current) throw new Error(raw && raw.reason ? raw.reason : "Keine Daten");
-    writeCache(key, { raw, place, fetchedAt: Date.now() });
-    return { data: normalize(raw, place), stale: false };
+    const fetchedAt = Date.now();
+    writeCache(key, { raw, place, fetchedAt });
+    return { data: normalize(raw, place, fetchedAt), stale: false };
   } catch (e) {
     const cached = readCache(key);
-    if (cached) {
-      const data = normalize(cached.raw, cached.place);
-      data.fetchedAt = cached.fetchedAt;
-      return { data, stale: true };
-    }
+    if (cached) return { data: normalize(cached.raw, cached.place, cached.fetchedAt), stale: true };
     return { error: "Keine Verbindung zu Open-Meteo." };
   }
-}
-
-// ---------------------------------------------------------------------------
-// Auswertung (wie die Jetzt-Karte)
-// ---------------------------------------------------------------------------
-
-function clock(data, ts) {
-  const d = data.local(ts);
-  return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
-}
-
-function hourLabel(data, ts) {
-  return `${pad(data.local(ts).getUTCHours())} Uhr`;
-}
-
-function weekday(data, day, index) {
-  if (index === 0) return "Heute";
-  return WEEKDAYS[new Date(`${day.date}T12:00:00Z`).getUTCDay()];
-}
-
-function upcomingHours(data, count) {
-  const now = Date.now();
-  return data.hours.filter((h) => h.ts > now).slice(0, count);
-}
-
-function hourNow(data) {
-  const now = Date.now();
-  return data.hours.find((h) => h.ts + 3600e3 > now) || data.hours[0];
-}
-
-function upcomingMinutes(data) {
-  const now = Date.now();
-  return data.minutes.filter((p) => p.ts + 15 * 60e3 > now);
-}
-
-/** Rain now / onset, from the 15-minute nowcast and the hourly model. */
-function rain(data) {
-  const minutes = upcomingMinutes(data);
-  const hNow = hourNow(data);
-  const wet = (p) => p.mm >= 0.1;
-  const rainingNow = data.current.precip >= 0.1 || (minutes[0] && wet(minutes[0])) || (hNow && hNow.mm >= 0.4);
-  if (rainingNow) {
-    const dry = minutes.slice(1, 9).find((p) => !wet(p));
-    return {
-      wet: true,
-      short: "Regen jetzt",
-      headline: data.current.precip >= 0.1 ? mm(data.current.precip) : "Niederschlag",
-      detail: dry ? `trocken ab ${clock(data, dry.ts)}` : "hält an",
-    };
-  }
-  const soon = minutes.slice(0, 9).find(wet);
-  const later = upcomingHours(data, 12).find((h) => h.mm >= 0.4);
-  const onset = soon ? soon.ts : later ? later.ts : null;
-  return {
-    wet: false,
-    short: onset ? `Regen ab ${clock(data, onset)}` : "Trocken",
-    headline: "trocken",
-    detail: onset ? `Niederschlag ab ${clock(data, onset)}` : "nächste 12 Std.",
-  };
-}
-
-function insight(data) {
-  const now = hourNow(data);
-  const hrs = upcomingHours(data, 3);
-  const later = hrs[1] || hrs[0];
-  const out = [];
-  if (now && later) {
-    if (now.mm >= 0.3 && later.mm < now.mm * 0.45) out.push("Regen lässt nach");
-    else if (now.mm < 0.15 && later.mm >= 0.5 && (later.prob == null || later.prob >= 45))
-      out.push(`ab ${clock(data, later.ts)} Regen`);
-    const clear = data.hours.find((h) => h.ts > Date.now() && h.cloud != null && h.cloud <= 25 && h.code <= 1);
-    const cloud = now.cloud != null ? now.cloud : data.current.cloud;
-    if (clear && cloud >= 55) out.push(`ab ${clock(data, clear.ts)} klar`);
-    else if (cloud <= 25 && now.code <= 1) out.push("weiterhin klar");
-    if (later.temp - now.temp >= 3) out.push("es wird milder");
-    else if (now.temp - later.temp >= 3) out.push("es kühlt ab");
-  }
-  if (out.length) return out.slice(0, 2).join(" · ");
-  return `${wmo(data.current.code, data.current.isDay).label} bleibt vorerst ähnlich`;
 }
 
 // ---------------------------------------------------------------------------
@@ -398,6 +158,8 @@ function font(size, weight) {
       return Font.mediumSystemFont(size);
     case "light":
       return Font.lightSystemFont(size);
+    case "thin":
+      return Font.thinSystemFont(size);
     default:
       return Font.systemFont(size);
   }
@@ -465,31 +227,8 @@ function hiLo(data) {
   return today ? `H ${temp(today.max)}  T ${temp(today.min)}` : "";
 }
 
-const TEMP_STOPS = [
-  [-15, [94, 92, 230]],
-  [-5, [10, 132, 255]],
-  [3, [100, 210, 255]],
-  [10, [48, 209, 88]],
-  [17, [255, 214, 10]],
-  [24, [255, 159, 10]],
-  [31, [255, 69, 58]],
-];
-
 function tempColor(t) {
-  if (t <= TEMP_STOPS[0][0]) return new Color(rgb(TEMP_STOPS[0][1]));
-  for (let i = 1; i < TEMP_STOPS.length; i++) {
-    const [t1, c1] = TEMP_STOPS[i];
-    const [t0, c0] = TEMP_STOPS[i - 1];
-    if (t <= t1) {
-      const f = (t - t0) / (t1 - t0);
-      return new Color(rgb(c0.map((v, k) => v + (c1[k] - v) * f)));
-    }
-  }
-  return new Color(rgb(TEMP_STOPS[TEMP_STOPS.length - 1][1]));
-}
-
-function rgb(c) {
-  return `#${c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
+  return new Color(tempHex(t));
 }
 
 /** Min–max bar like the 10-day list in the app, with the current temperature as a dot. */
@@ -589,7 +328,7 @@ function dayRows(parent, data, theme, count, width, rowSpacing) {
     row.centerAlignContent();
     const name = hstack(row, 0);
     name.size = new Size(42, 0);
-    text(name, weekday(data, d, i), 13, theme.text, { weight: "semibold" });
+    text(name, weekday(d, i), 13, theme.text, { weight: "semibold" });
     name.addSpacer();
     const ic = hstack(row, 0);
     ic.size = new Size(22, 0);
@@ -630,8 +369,7 @@ function nowCells(parent, data, theme, width) {
   const row = hstack(parent, 8);
   const w = width ? Math.floor((width - 16) / 3) : 0;
   cell(row, theme, "umbrella.fill", "Regen", r.headline, r.detail, w);
-  const dir = COMPASS[Math.round((data.current.windDir || 0) / 22.5) % 16];
-  cell(row, theme, "wind", "Wind", wind(data.current.wind), `aus ${dir} · Böen ${wind(data.current.gusts)}`, w);
+  cell(row, theme, "wind", "Wind", windText(data.current.wind), `aus ${compass(data.current.windDir)} · Böen ${windText(data.current.gusts)}`, w);
   const today = data.days[0];
   if (today && today.sunrise && today.sunset) {
     const up = Date.now() < today.sunset;
@@ -646,11 +384,6 @@ function nowCells(parent, data, theme, width) {
     );
   }
   return row;
-}
-
-function statusLine(data, stale) {
-  if (stale) return `Offline · Stand ${clock(data, data.fetchedAt)}`;
-  return `Aktualisiert ${clock(data, data.fetchedAt)}`;
 }
 
 function heroHeader(parent, data, theme, opts) {
@@ -686,7 +419,7 @@ function heroHeader(parent, data, theme, opts) {
 // Grössen
 // ---------------------------------------------------------------------------
 
-function small(w, data, theme) {
+function classicSmall(w, data, theme) {
   const cur = data.current;
   const top = hstack(w, 4);
   top.centerAlignContent();
@@ -705,13 +438,13 @@ function small(w, data, theme) {
   text(rr, r.short, 10, theme.muted, { weight: "medium" });
 }
 
-function medium(w, data, theme) {
+function classicMedium(w, data, theme) {
   heroHeader(w, data, theme, { tempSize: 40, iconSize: 26, placeSize: 14, compact: true });
   w.addSpacer();
   hourStrip(w, data, theme, 6, { iconSize: 16, tempSize: 13, labelSize: 10, spacing: 4 });
 }
 
-function large(w, data, theme) {
+function classicLarge(w, data, theme) {
   heroHeader(w, data, theme, { tempSize: 44, iconSize: 30, compact: true });
   w.addSpacer(6);
   text(w, insight(data), 13, theme.text, { weight: "medium", lines: 1 });
@@ -724,7 +457,7 @@ function large(w, data, theme) {
   w.addSpacer();
 }
 
-function extraLarge(w, data, theme) {
+function classicExtraLarge(w, data, theme) {
   const row = hstack(w, 22);
   const left = vstack(row, 0);
   left.size = new Size(330, 0);
@@ -797,13 +530,274 @@ function accessoryInline(w, data) {
 }
 
 // ---------------------------------------------------------------------------
+// Stil «Jetzt-Karte»: Szene als Hintergrundbild, Aufbau wie die Karte in der App
+// ---------------------------------------------------------------------------
+
+/** Widget sizes in points (Apple HIG); the background image is drawn at this size. */
+function widgetSize(family) {
+  const s = Device.screenSize();
+  const w = Math.min(s.width, s.height);
+  let t;
+  if (Device.isPad()) {
+    if (w >= 1024) t = [170, 379, 379, 795];
+    else if (w >= 820) t = [155, 342, 342, 715];
+    else if (w >= 810) t = [146, 320, 320, 669];
+    else t = [141, 305, 305, 634];
+  } else if (w >= 428) t = [170, 364, 382];
+  else if (w >= 414) t = [169, 360, 379];
+  else if (w >= 390) t = [158, 338, 354];
+  else if (w >= 375) t = s.height >= 812 ? [155, 329, 345] : [148, 321, 324];
+  else t = [141, 292, 311];
+  if (family === "small") return [t[0], t[0]];
+  if (family === "medium") return [t[1], t[0]];
+  if (family === "extraLarge") return [t[3] || t[1] * 2 + 16, t[2]];
+  return [t[1], t[2]];
+}
+
+function lerpStops(stops, t) {
+  if (t <= stops[0][0]) return stops[0][1];
+  for (let i = 1; i < stops.length; i++) {
+    const [t1, c1] = stops[i];
+    const [t0, c0] = stops[i - 1];
+    if (t <= t1) {
+      const f = t1 === t0 ? 0 : (t - t0) / (t1 - t0);
+      return c0.map((v, k) => v + (c1[k] - v) * f);
+    }
+  }
+  return stops[stops.length - 1][1];
+}
+
+function rgba(c, alpha) {
+  const hex = `#${c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
+  return new Color(hex, Math.max(0, Math.min(1, alpha == null ? c[3] : alpha)));
+}
+
+/** DrawContext adapter for `paintScene` (gradients as bands and rings). */
+function scriptablePainter(ctx) {
+  return {
+    linear(x, y, w, h, stops) {
+      const n = Math.max(2, Math.ceil(h / 2));
+      for (let i = 0; i < n; i++) {
+        const c = lerpStops(stops, (i + 0.5) / n);
+        ctx.setFillColor(rgba(c));
+        ctx.fillRect(new Rect(x, y + (h * i) / n, w, h / n + (c[3] >= 1 ? 0.6 : 0)));
+      }
+    },
+    radial(cx, cy, rx, ry, stops) {
+      // Rings from outside in; each ring's alpha tops the coverage up to the target.
+      const n = 28;
+      let covered = 0;
+      for (let k = n; k >= 1; k--) {
+        const t = k / n;
+        const c = lerpStops(stops, t);
+        const target = c[3];
+        if (target <= covered + 0.002) continue;
+        const a = (target - covered) / (1 - covered);
+        covered = target;
+        ctx.setFillColor(rgba(c, a));
+        ctx.fillEllipse(new Rect(cx - rx * t, cy - ry * t, rx * t * 2, ry * t * 2));
+      }
+    },
+    ellipse(cx, cy, rx, ry, c) {
+      ctx.setFillColor(rgba(c));
+      ctx.fillEllipse(new Rect(cx - rx, cy - ry, rx * 2, ry * 2));
+    },
+    poly(points, c) {
+      const p = new Path();
+      p.addLines(points.map(([x, y]) => new Point(x, y)));
+      p.closeSubpath();
+      ctx.addPath(p);
+      ctx.setFillColor(rgba(c));
+      ctx.fillPath();
+    },
+    line(x1, y1, x2, y2, width, c) {
+      const p = new Path();
+      p.move(new Point(x1, y1));
+      p.addLine(new Point(x2, y2));
+      ctx.addPath(p);
+      ctx.setStrokeColor(rgba(c));
+      ctx.setLineWidth(width);
+      ctx.strokePath();
+    },
+  };
+}
+
+const CARD = {
+  small: { pad: 14, glyph: 34 },
+  medium: { pad: 15, glyph: 46 },
+  large: { pad: 16, glyph: 60 },
+  extraLarge: { pad: 18, glyph: 56 },
+};
+
+function cardBackground(w, family, scene) {
+  const [W, H] = widgetSize(family);
+  const spec = CARD[family];
+  const gx = family === "extraLarge" ? spec.pad + 330 - spec.glyph / 2 : W - spec.pad - spec.glyph / 2;
+  const ctx = new DrawContext();
+  ctx.size = new Size(W, H);
+  ctx.opaque = true;
+  ctx.respectScreenScale = true;
+  paintScene(scriptablePainter(ctx), scene, W, H, { x: gx, y: spec.pad + spec.glyph / 2, size: spec.glyph });
+  w.backgroundImage = ctx.getImage();
+}
+
+function bigGlyph(stack, cur, size, theme) {
+  const sf = SFSymbol.named(wmo(cur.code, cur.isDay).symbol) || SFSymbol.named("cloud.fill");
+  sf.applyFont(Font.systemFont(size));
+  const img = stack.addImage(sf.image);
+  img.imageSize = new Size(size, size);
+  img.tintColor = theme.glyph;
+  return img;
+}
+
+function glass(parent, theme, spacing = 6) {
+  const s = vstack(parent, spacing);
+  s.backgroundColor = theme.glass;
+  s.cornerRadius = 14;
+  s.setPadding(10, 12, 10, 12);
+  return s;
+}
+
+function cardTop(parent, data, stale, theme, opts) {
+  const top = hstack(parent, 8);
+  const left = vstack(top, 1);
+  text(left, statusLine(data, stale), opts.statusSize, theme.muted);
+  placeLine(left, data, theme, opts.placeSize);
+  text(left, placeRegion(data.place), opts.regionSize, theme.muted);
+  top.addSpacer();
+  bigGlyph(top, data.current, opts.glyph, theme);
+  return top;
+}
+
+function cardNow(parent, data, theme, tempSize, labelSize) {
+  const cur = data.current;
+  const row = hstack(parent, 10);
+  row.centerAlignContent();
+  text(row, temp(cur.temp), tempSize, theme.text, { weight: "thin", scale: 0.6 });
+  const side = vstack(row, 1);
+  text(side, wmo(cur.code, cur.isDay).label, labelSize, theme.text, { weight: "medium", lines: 2 });
+  text(side, `Gefühlt ${temp(cur.feels)}`, labelSize - 4, theme.muted);
+  return row;
+}
+
+function cardStrip(parent, data, theme, width) {
+  const box = glass(parent, theme, 6);
+  const r = rain(data);
+  const pair = hstack(box, 10);
+  const col = Math.floor((width - 24 - 10) / 2);
+  const cells = [
+    ["umbrella.fill", "Regen", r.headline, r.detail],
+    ["wind", "Wind", windText(data.current.wind), `aus ${compass(data.current.windDir)} · Böen ${windText(data.current.gusts)}`],
+  ];
+  for (const [sf, label, value, detail] of cells) {
+    const c = vstack(pair, 1);
+    c.size = new Size(col, 0);
+    const head = hstack(c, 4);
+    head.centerAlignContent();
+    sfIcon(head, sf, 11, theme.muted);
+    text(head, label, 11, theme.muted);
+    text(c, value, 18, theme.text, { weight: "semibold" });
+    text(c, detail, 10, theme.muted);
+  }
+  text(box, metricsLine(data), 10, theme.text, { scale: 0.7 });
+  const sun = sunLine(data);
+  if (sun) {
+    const row = hstack(box, 4);
+    row.centerAlignContent();
+    sfIcon(row, "sunrise.fill", 10, theme.text);
+    text(row, sun, 10, theme.text);
+  }
+  return box;
+}
+
+function cardSmall(w, data, stale, theme) {
+  const cur = data.current;
+  const top = hstack(w, 4);
+  placeLine(vstack(top, 0), data, theme, 15);
+  top.addSpacer();
+  bigGlyph(top, cur, CARD.small.glyph, theme);
+  text(w, temp(cur.temp), 48, theme.text, { weight: "thin", scale: 0.6 });
+  w.addSpacer();
+  text(w, wmo(cur.code, cur.isDay).label, 13, theme.text, { weight: "medium" });
+  text(w, todayRange(data), 11, theme.muted);
+}
+
+function cardMedium(w, data, stale, theme) {
+  cardTop(w, data, stale, theme, { statusSize: 10, placeSize: 20, regionSize: 11, glyph: CARD.medium.glyph });
+  w.addSpacer();
+  const row = hstack(w, 8);
+  row.bottomAlignContent();
+  cardNow(row, data, theme, 48, 15);
+  row.addSpacer();
+  const right = vstack(row, 2);
+  const r = rain(data);
+  const rr = hstack(right, 3);
+  rr.addSpacer();
+  sfIcon(rr, r.wet ? "umbrella.fill" : "drop", 10, r.wet ? theme.prob : theme.muted);
+  text(rr, r.short, 11, theme.text, { weight: "medium" });
+  const tr = hstack(right, 0);
+  tr.addSpacer();
+  text(tr, todayRange(data), 11, theme.muted);
+}
+
+function cardLarge(w, data, stale, theme) {
+  const inner = widgetSize("large")[0] - CARD.large.pad * 2;
+  cardTop(w, data, stale, theme, { statusSize: 11, placeSize: 26, regionSize: 12, glyph: CARD.large.glyph });
+  w.addSpacer(4);
+  cardNow(w, data, theme, 62, 17);
+  w.addSpacer(4);
+  text(w, insight(data), 14, theme.text, { weight: "medium" });
+  const cloth = clothing(data);
+  if (cloth) text(w, cloth, 14, theme.text);
+  w.addSpacer(8);
+  cardStrip(w, data, theme, inner);
+  w.addSpacer();
+  text(w, todayRange(data), 12, theme.muted);
+}
+
+function cardExtraLarge(w, data, stale, theme) {
+  const [W] = widgetSize("extraLarge");
+  const row = hstack(w, 22);
+  const left = vstack(row, 0);
+  left.size = new Size(330, 0);
+  cardTop(left, data, stale, theme, { statusSize: 11, placeSize: 26, regionSize: 12, glyph: CARD.extraLarge.glyph });
+  left.addSpacer(4);
+  cardNow(left, data, theme, 58, 17);
+  left.addSpacer(4);
+  text(left, insight(data), 14, theme.text, { weight: "medium" });
+  const cloth = clothing(data);
+  if (cloth) text(left, cloth, 14, theme.text);
+  left.addSpacer();
+  cardStrip(left, data, theme, 330);
+  const rightWidth = W - CARD.extraLarge.pad * 2 - 330 - 22;
+  const right = vstack(row, 8);
+  right.size = new Size(rightWidth, 0);
+  const hours = glass(right, theme, 0);
+  hourStrip(hours, data, theme, 7, { iconSize: 18, tempSize: 14, labelSize: 10, spacing: 4 });
+  const days = glass(right, theme, 4);
+  const head = hstack(days, 4);
+  head.centerAlignContent();
+  sfIcon(head, "calendar", 10, theme.muted);
+  text(head, "7 TAGE", 10, theme.muted, { weight: "semibold" });
+  dayRows(days, data, theme, 6, rightWidth - 24, 2);
+  right.addSpacer();
+}
+
+// ---------------------------------------------------------------------------
 // Zusammensetzen
 // ---------------------------------------------------------------------------
 
-async function build(family) {
-  const result = await loadWeather();
+function detailUrl(param) {
+  return `scriptable:///run/${encodeURIComponent(Script.name())}?view=detail&p=${encodeURIComponent(param.raw)}`;
+}
+
+async function build(family, rawParam) {
+  const param = parseParam(rawParam);
+  const style = param.style || CONFIG.style || "classic";
+  const result = await loadWeather(param);
   const w = new ListWidget();
-  w.url = CONFIG.appUrl;
+  // Antippen: Detailansicht in Scriptable (Web-Apps lassen sich per Link nicht öffnen).
+  w.url = detailUrl(param);
   // iOS entscheidet selbst; gewünscht ist etwa alle 15 Minuten.
   w.refreshAfterDate = new Date(Date.now() + 15 * 60e3);
   const accessory = family.startsWith("accessory");
@@ -825,15 +819,29 @@ async function build(family) {
   if (family === "accessoryCircular") accessoryCircular(w, data);
   else if (family === "accessoryRectangular") accessoryRectangular(w, data);
   else if (family === "accessoryInline") accessoryInline(w, data);
-  else {
+  else if (style === "card") {
+    const scene = sceneOf(data.current.code, data.current.isDay);
+    const theme = themeFor(scene);
+    const p = CARD[family] ? CARD[family].pad : 15;
+    w.setPadding(p, p, p, p);
+    try {
+      cardBackground(w, CARD[family] ? family : "medium", scene);
+    } catch (e) {
+      w.backgroundGradient = theme.gradient;
+    }
+    if (family === "small") cardSmall(w, data, result.stale, theme);
+    else if (family === "large") cardLarge(w, data, result.stale, theme);
+    else if (family === "extraLarge") cardExtraLarge(w, data, result.stale, theme);
+    else cardMedium(w, data, result.stale, theme);
+  } else {
     const theme = themeFor(sceneOf(data.current.code, data.current.isDay));
     w.backgroundGradient = theme.gradient;
     const p = family === "small" ? 14 : family === "extraLarge" ? 18 : 15;
     w.setPadding(p, p, p, p);
-    if (family === "small") small(w, data, theme);
-    else if (family === "large") large(w, data, theme);
-    else if (family === "extraLarge") extraLarge(w, data, theme);
-    else medium(w, data, theme);
+    if (family === "small") classicSmall(w, data, theme);
+    else if (family === "large") classicLarge(w, data, theme);
+    else if (family === "extraLarge") classicExtraLarge(w, data, theme);
+    else classicMedium(w, data, theme);
     if (result.stale && family !== "small") {
       w.addSpacer(4);
       text(w, statusLine(data, true), 9, theme.muted);
@@ -842,29 +850,60 @@ async function build(family) {
   return w;
 }
 
+async function showDetail(rawParam) {
+  const result = await loadWeather(parseParam(rawParam));
+  if (result.error) {
+    const a = new Alert();
+    a.title = "Wetter CH";
+    a.message = result.error;
+    a.addCancelAction("OK");
+    await a.present();
+    return;
+  }
+  const wv = new WebView();
+  // Links (Web-App) in Safari öffnen, nicht in der Detailansicht.
+  wv.shouldAllowRequest = (req) => {
+    if (/^https?:/.test(req.url)) {
+      Safari.open(req.url);
+      return false;
+    }
+    return true;
+  };
+  await wv.loadHTML(detailHtml(result.data, GLYPHS, { stale: result.stale, wind: CONFIG.wind, appUrl: CONFIG.appUrl }));
+  await wv.present(true);
+}
+
+async function presentWidget(family, param) {
+  const w = await build(family, param);
+  if (family === "small") await w.presentSmall();
+  else if (family === "large") await w.presentLarge();
+  else if (family === "extraLarge") await w.presentExtraLarge();
+  else await w.presentMedium();
+}
+
+const query = args.queryParameters || {};
 if (config.runsInWidget || config.runsInAccessoryWidget) {
-  Script.setWidget(await build(config.widgetFamily || "medium"));
+  Script.setWidget(await build(config.widgetFamily || "medium", args.widgetParameter));
+} else if (query.view === "detail") {
+  await showDetail(query.p || "");
 } else {
   const alert = new Alert();
   alert.title = "Wetter CH";
   alert.message =
     "Vorschau wählen. Zum Hinzufügen: Home- oder Sperrbildschirm lange drücken › Bearbeiten › Widget hinzufügen › Scriptable, dann dieses Skript wählen.";
-  const sizes = [
-    ["Klein", "small"],
-    ["Mittel", "medium"],
-    ["Gross", "large"],
-    ["Extragross (iPad)", "extraLarge"],
-  ];
-  for (const [label] of sizes) alert.addAction(label);
+  const choices = [["Detailansicht (animiert)", null, null]];
+  for (const [style, name] of [["card", "Jetzt-Karte"], ["classic", "Klassisch"]]) {
+    for (const [label, family] of [["Klein", "small"], ["Mittel", "medium"], ["Gross", "large"], ["Extragross (iPad)", "extraLarge"]]) {
+      choices.push([`${name} · ${label}`, style, family]);
+    }
+  }
+  for (const [label] of choices) alert.addAction(label);
   alert.addCancelAction("Fertig");
   const choice = await alert.presentSheet();
-  if (choice >= 0) {
-    const family = sizes[choice][1];
-    const w = await build(family);
-    if (family === "small") await w.presentSmall();
-    else if (family === "large") await w.presentLarge();
-    else if (family === "extraLarge") await w.presentExtraLarge();
-    else await w.presentMedium();
+  if (choice === 0) await showDetail("");
+  else if (choice > 0) {
+    const [, style, family] = choices[choice];
+    await presentWidget(family, style === "card" ? "karte" : "klassisch");
   }
 }
 Script.complete();

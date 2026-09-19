@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { chromeState } from '$lib/chrome.svelte';
 	import { listTileClass } from '$lib/platform';
-	import { buildWidgetScript, widgetScriptName } from '$lib/scriptable';
+	import { buildWidgetScript, widgetScriptName, type WidgetStyle } from '$lib/scriptable';
+	import * as core from '$lib/scriptable/core.js';
+	import { WEATHER_GLYPHS } from '$lib/icons/weather';
+	import { APP_ORIGIN } from '$lib/platform';
 	import { loadHomePlace, samePlace } from '$lib/storage';
 	import type { Place } from '$lib/types';
 	import { unitsState } from '$lib/units.svelte';
 	import { favoriteKey, favoriteWeather, weatherState } from '$lib/weather.svelte';
 	import AppIcon from './AppIcon.svelte';
+	import ScriptableCardPreviews from './ScriptableCardPreviews.svelte';
 	import ScriptablePreviews from './ScriptablePreviews.svelte';
 
 	interface Choice {
@@ -33,8 +37,43 @@
 	const selected = $derived(
 		choices.find((c) => c.id === selectedId) ?? choices[1] ?? choices[0]
 	);
-	const script = $derived(buildWidgetScript({ place: selected.place, wind: unitsState.wind }));
-	const scriptName = $derived(widgetScriptName(selected.place));
+	const styles: { id: WidgetStyle; label: string }[] = [
+		{ id: 'card', label: 'Jetzt-Karte' },
+		{ id: 'classic', label: 'Klassisch' }
+	];
+	let style = $state<WidgetStyle>('card');
+	const script = $derived(buildWidgetScript({ place: selected.place, wind: unitsState.wind, style }));
+	const scriptName = $derived(widgetScriptName(selected.place, style));
+
+	/** Same request and evaluation as the script itself (card preview and detail view). */
+	let coreData = $state<ReturnType<typeof core.normalize> | null>(null);
+	$effect(() => {
+		const place = selected.place ?? weatherState.place;
+		const gps = !selected.place;
+		const controller = new AbortController();
+		fetch(core.forecastUrl(place), { signal: controller.signal })
+			.then((response) => response.json())
+			.then((raw) => {
+				if (!raw?.current) return;
+				coreData = core.normalize(raw, {
+					name: place.name,
+					latitude: place.latitude,
+					longitude: place.longitude,
+					admin1: place.admin1,
+					country: place.country,
+					gps
+				});
+			})
+			.catch(() => {
+				/* preview only */
+			});
+		return () => controller.abort();
+	});
+	const detail = $derived(
+		coreData ? core.detailHtml(coreData, WEATHER_GLYPHS, { wind: unitsState.wind, appUrl: APP_ORIGIN }) : null
+	);
+	let detailWidth = $state(390);
+	const detailScale = $derived(Math.min(1, detailWidth / 390));
 
 	/** Preview data: the chosen place's live bundle (Jetzt or Favoriten), else what Jetzt shows. */
 	const preview = $derived.by(() => {
@@ -125,6 +164,22 @@
 		>. Das Skript holt die Daten direkt bei Open-Meteo — ohne Konto.
 	</p>
 
+	<h3 class="mb-2 text-sm font-medium uppercase tracking-wide text-muted-foreground">Stil</h3>
+	<ul class="wx-segmented mb-4 flex flex-wrap gap-2">
+		{#each styles as option (option.id)}
+			<li>
+				<button
+					type="button"
+					class="min-h-11 px-3 text-sm {listTileClass(chromeState.chrome, style === option.id)}"
+					aria-pressed={style === option.id}
+					onclick={() => (style = option.id)}
+				>
+					{option.label}
+				</button>
+			</li>
+		{/each}
+	</ul>
+
 	<h3 class="mb-2 text-sm font-medium uppercase tracking-wide text-muted-foreground">Ort</h3>
 	<ul class="wx-segmented mb-4 flex flex-wrap gap-2">
 		{#each choices as choice (choice.id)}
@@ -181,18 +236,50 @@
 			</li>
 			<li>Widget lange drücken › <strong>Widget bearbeiten</strong> › Script: {scriptName}.</li>
 			<li>
-				Optional unter <strong>Parameter</strong>: <code>gps</code> für den aktuellen Standort oder ein Ortsname wie
-				<code>Zürich</code>. So reicht ein Skript für mehrere Widgets.
+				Optional unter <strong>Parameter</strong>, mehrere durch Komma getrennt: <code>karte</code> oder
+				<code>klassisch</code> für den Stil, <code>gps</code> für den aktuellen Standort oder ein Ortsname wie
+				<code>Zürich</code>. So reicht ein Skript für mehrere Widgets, z. B. <code>klassisch, Zürich</code>.
+			</li>
+			<li>
+				Antippen öffnet die animierte Detailansicht in Scriptable. Web-Apps auf dem Home-Bildschirm lassen sich
+				von iOS aus nicht per Link öffnen.
 			</li>
 			<li>Sperrbildschirm: gleich, beim Anpassen des Sperrbildschirms Scriptable wählen.</li>
 		</ol>
 	</details>
 
-	{#if preview}
+	{#if style === 'card'}
+		{#if coreData}
+			<ScriptableCardPreviews data={coreData} wind={unitsState.wind} />
+			<p class="mt-3 text-sm text-muted-foreground">
+				Widgets zeigen ein Standbild der Wetterszene, iOS spielt in Widgets keine Animationen ab. Animiert ist die
+				Detailansicht beim Antippen.
+			</p>
+		{:else}
+			<p class="text-sm text-muted-foreground">Vorschau wird geladen …</p>
+		{/if}
+	{:else if preview}
 		<ScriptablePreviews bundle={preview} placeName={previewName} gps={!selected.place} />
 	{:else}
 		<p class="text-sm text-muted-foreground">
 			Für die Vorschau zuerst {selected.label} öffnen, damit Wetterdaten da sind.
 		</p>
+	{/if}
+
+	{#if detail}
+		<h3 class="mb-2 mt-6 text-sm font-medium uppercase tracking-wide text-muted-foreground">
+			Beim Antippen · Detailansicht
+		</h3>
+		<div class="max-w-[390px]" bind:clientWidth={detailWidth}>
+			<div class="overflow-hidden rounded-[1.5rem] ring-1 ring-border" style="height:{720 * detailScale}px">
+				<iframe
+					title="Detailansicht in Scriptable"
+					srcdoc={detail}
+					sandbox="allow-same-origin"
+					class="origin-top-left border-0"
+					style="width:390px;height:720px;transform:scale({detailScale})"
+				></iframe>
+			</div>
+		</div>
 	{/if}
 </section>
