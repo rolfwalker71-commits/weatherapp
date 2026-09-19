@@ -13,6 +13,7 @@
 		syncLiveActivities,
 		type LiveActivityPrefs
 	} from '$lib/live-activities';
+	import ScriptableWidgets from './ScriptableWidgets.svelte';
 	import SettingsSheet from './SettingsSheet.svelte';
 	import ThemePanel from './ThemePanel.svelte';
 
@@ -173,6 +174,10 @@
 					Zum Home-Bildschirm: Browser-Menü → App installieren oder Zum Startbildschirm.
 				</p>
 			{/if}
+		</section>
+
+		<section class="{panelClass(chromeState.chrome)} min-w-0 p-5 sm:p-6 lg:col-span-2">
+			<ScriptableWidgets />
 		</section>
 	</div>
 </section>
