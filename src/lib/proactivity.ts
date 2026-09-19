@@ -1,4 +1,4 @@
-import { formatTemp, formatTime } from './format';
+import { formatTemp, formatTime, isNaiveLocalTime } from './format';
 import type { Place, WeatherBundle } from './types';
 
 const SNAPSHOT_KEY = 'weather.forecastSnapshots';
@@ -70,6 +70,8 @@ function writeJson(key: string, value: unknown): void {
 }
 
 function dayKeyInZone(iso: string, timeZone?: string): string {
+	// Provider times are already wall-clock of the place.
+	if (timeZone && isNaiveLocalTime(iso)) return iso.slice(0, 10);
 	try {
 		return new Intl.DateTimeFormat('en-CA', {
 			timeZone: timeZone || undefined,

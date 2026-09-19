@@ -2,7 +2,11 @@ import type { Place, WeatherBundle } from './types';
 
 const FAVORITES_KEY = 'weather.favorites';
 const LAST_PLACE_KEY = 'weather.lastPlace';
-const LAST_BUNDLE_KEY = 'weather.lastBundle';
+/** Legacy single-bundle cache; read once for migration, then removed. */
+const LEGACY_BUNDLE_KEY = 'weather.lastBundle';
+/** Per-place bundle cache, most recent first. */
+const BUNDLES_KEY = 'weather.bundles';
+const MAX_CACHED_BUNDLES = 6;
 const RECENT_KEY = 'weather.recent';
 const HOME_KEY = 'weather.homePlace';
 
@@ -51,12 +55,47 @@ export function saveLastPlace(place: Place): void {
 	writeJson(LAST_PLACE_KEY, place);
 }
 
-export function loadLastBundle(): WeatherBundle | null {
-	return readJson<WeatherBundle | null>(LAST_BUNDLE_KEY, null);
+function isBundle(value: unknown): value is WeatherBundle {
+	const bundle = value as WeatherBundle | null;
+	return (
+		!!bundle &&
+		!!bundle.place &&
+		Number.isFinite(bundle.place.latitude) &&
+		Number.isFinite(bundle.place.longitude) &&
+		!!bundle.current
+	);
 }
 
-export function saveLastBundle(bundle: WeatherBundle): void {
-	writeJson(LAST_BUNDLE_KEY, bundle);
+function readBundles(): WeatherBundle[] {
+	const list = readJson<unknown[]>(BUNDLES_KEY, []);
+	const bundles = Array.isArray(list) ? list.filter(isBundle) : [];
+	const legacy = readJson<unknown>(LEGACY_BUNDLE_KEY, null);
+	if (isBundle(legacy) && !bundles.some((item) => samePlace(item.place, legacy.place))) {
+		bundles.push(legacy);
+	}
+	return bundles;
+}
+
+/** Cached bundle for exactly this place — never a bundle of some other place. */
+export function loadCachedBundle(place: Place | null | undefined): WeatherBundle | null {
+	if (!place) return null;
+	return readBundles().find((bundle) => samePlace(bundle.place, place)) ?? null;
+}
+
+export function saveCachedBundle(bundle: WeatherBundle): void {
+	if (typeof localStorage === 'undefined') return;
+	const rest = readBundles().filter((item) => !samePlace(item.place, bundle.place));
+	try {
+		writeJson(BUNDLES_KEY, [bundle, ...rest].slice(0, MAX_CACHED_BUNDLES));
+		localStorage.removeItem(LEGACY_BUNDLE_KEY);
+	} catch {
+		// Quota: keep at least the newest bundle.
+		try {
+			writeJson(BUNDLES_KEY, [bundle]);
+		} catch {
+			/* storage unavailable */
+		}
+	}
 }
 
 export function loadRecent(): Place[] {

@@ -8,11 +8,11 @@ import { applyProactivity, loadProactivityNotice, type ProactivityNotice } from 
 import { syncPreferences } from './push-client';
 import {
 	loadFavorites,
+	loadCachedBundle,
 	loadHomePlace,
-	loadLastBundle,
 	loadLastPlace,
 	pushRecent,
-	saveLastBundle,
+	saveCachedBundle,
 	saveLastPlace,
 	samePlace,
 	toggleFavorite
@@ -79,9 +79,7 @@ function dropFavoriteKey(key: string): void {
 function seedFavoriteFromCurrent(places: Place[]): void {
 	const current = weatherState.bundle;
 	if (!current) return;
-	const match = places.find(
-		(item) => samePlace(item, current.place) || samePlace(item, weatherState.place)
-	);
+	const match = places.find((item) => samePlace(item, current.place));
 	if (!match) return;
 	const key = favoriteKey(match);
 	favoriteWeather.bundles = { ...favoriteWeather.bundles, [key]: current };
@@ -170,13 +168,31 @@ export async function loadFavoriteHeroes(): Promise<void> {
 
 let inFlight: AbortController | null = null;
 
+function restoreCached(bundle: WeatherBundle): WeatherBundle {
+	return emptyExtras({ ...bundle, allHours: bundle.allHours ?? bundle.hours });
+}
+
+/**
+ * Switch the visible place and its bundle together. `weatherState.bundle` is only ever
+ * a bundle of `weatherState.place`: the current one if it already matches, else the
+ * cached bundle for that place, else nothing (skeleton while loading).
+ */
+function showPlace(place: Place): void {
+	weatherState.place = place;
+	if (weatherState.bundle && samePlace(weatherState.bundle.place, place)) return;
+	const cached = loadCachedBundle(place);
+	weatherState.bundle = cached ? restoreCached(cached) : null;
+	weatherState.stale = Boolean(cached);
+	weatherState.proactivity = cached ? loadProactivityNotice(place) : null;
+}
+
 export async function loadPlace(place: Place, options?: { recent?: boolean }): Promise<void> {
 	inFlight?.abort();
 	const controller = new AbortController();
 	inFlight = controller;
 	weatherState.loading = true;
 	weatherState.error = null;
-	weatherState.place = place;
+	showPlace(place);
 	saveLastPlace(place);
 	if (options?.recent !== false) {
 		pushRecent(place);
@@ -184,11 +200,11 @@ export async function loadPlace(place: Place, options?: { recent?: boolean }): P
 
 	try {
 		const bundle = await fetchWeather(place, controller.signal);
-		if (inFlight !== controller) return;
+		if (inFlight !== controller || !samePlace(bundle.place, weatherState.place)) return;
 		weatherState.bundle = bundle;
 		weatherState.stale = false;
 		weatherState.proactivity = applyProactivity(place, bundle);
-		saveLastBundle(bundle);
+		saveCachedBundle(bundle);
 		void syncLiveActivities(bundle);
 		void syncPreferences(loadNotifyPrefs(), {
 			latitude: place.latitude,
@@ -199,10 +215,9 @@ export async function loadPlace(place: Place, options?: { recent?: boolean }): P
 			/* push server optional */
 		});
 	} catch (error) {
-		if ((error as Error).name === 'AbortError') return;
-		const cached = loadLastBundle();
-		if (cached && samePlace(cached.place, place)) {
-			weatherState.bundle = cached;
+		if ((error as Error).name === 'AbortError' || inFlight !== controller) return;
+		// showPlace() already put this place's own cached bundle (if any) in state.
+		if (weatherState.bundle && samePlace(weatherState.bundle.place, place)) {
 			weatherState.stale = true;
 			weatherState.proactivity = loadProactivityNotice(place);
 			weatherState.error = 'Offline — zuletzt gespeicherte Daten.';
@@ -220,17 +235,7 @@ export function hydrateFromCache(): void {
 	const stored = loadFavorites();
 	weatherState.favorites = Array.isArray(stored) ? stored.filter(isUsablePlace) : [];
 	const last = loadLastPlace();
-	const cached = loadLastBundle();
-	if (last) weatherState.place = last;
-	if (cached) {
-		weatherState.bundle = emptyExtras({
-			...cached,
-			allHours: cached.allHours ?? cached.hours
-		});
-		weatherState.place = cached.place;
-		weatherState.stale = true;
-		weatherState.proactivity = loadProactivityNotice(cached.place);
-	}
+	if (isUsablePlace(last)) showPlace(last);
 }
 
 async function loadFallbackPlace(reason: string): Promise<void> {

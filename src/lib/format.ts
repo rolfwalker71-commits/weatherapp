@@ -65,7 +65,20 @@ export function formatDayMonth(iso: string): string {
 	return dayMonth.format(new Date(iso));
 }
 
+const NAIVE_LOCAL = /^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/;
+
+/**
+ * Open-Meteo (`timezone=auto`) returns wall-clock times of the place without an offset,
+ * e.g. sunrise `2026-09-19T05:41`. Those must not be parsed as device-local and then
+ * shifted into `timeZone` again; only instants with Z/offset (station, alerts) convert.
+ */
+export function isNaiveLocalTime(iso: string): boolean {
+	return NAIVE_LOCAL.test(iso);
+}
+
 export function formatTime(iso: string, timeZone?: string): string {
+	const naive = timeZone ? NAIVE_LOCAL.exec(iso) : null;
+	if (naive) return `${naive[1]}:${naive[2]}`;
 	if (!timeZone) return timeFmt.format(new Date(iso));
 	try {
 		return new Intl.DateTimeFormat('de-CH', {
