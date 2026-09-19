@@ -514,6 +514,157 @@
 		filter: drop-shadow(0 0.0625rem 0.125rem rgb(0 0 0 / 0.22));
 	}
 
+	/* Hero glyph comes alive per scene: glowing sun, rocking moon, drifting cloud. */
+	.hero-glyph {
+		position: relative;
+		isolation: isolate;
+		display: inline-flex;
+	}
+
+	.hero-glyph::before {
+		content: '';
+		position: absolute;
+		inset: -40%;
+		z-index: -1;
+		border-radius: 50%;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.hero-glyph .hero-weather {
+		will-change: transform;
+	}
+
+	.hero-glyph[data-scene='clear']::before {
+		background: radial-gradient(
+			circle,
+			rgb(255 250 210 / 0.95) 0%,
+			rgb(255 208 70 / 0.6) 32%,
+			transparent 66%
+		);
+		animation: hero-glyph-glow 3.2s ease-in-out infinite;
+	}
+
+	.hero-glyph[data-scene='clear'] .hero-weather {
+		animation: hero-glyph-spin 40s linear infinite;
+	}
+
+	.hero-glyph[data-scene='partly']::before {
+		inset: -25%;
+		background: radial-gradient(circle, rgb(255 236 150 / 0.55) 0%, transparent 62%);
+		animation: hero-glyph-glow 4s ease-in-out infinite;
+	}
+
+	.hero-glyph[data-scene='partly'] .hero-weather,
+	.hero-glyph[data-scene='cloud'] .hero-weather {
+		animation: hero-glyph-drift 7s ease-in-out infinite;
+	}
+
+	.hero-glyph[data-scene='night']::before {
+		inset: -30%;
+		background: radial-gradient(circle, rgb(220 228 255 / 0.5) 0%, transparent 62%);
+		animation: hero-glyph-glow 5s ease-in-out infinite;
+	}
+
+	.hero-glyph[data-scene='night'] .hero-weather {
+		animation: hero-glyph-rock 8s ease-in-out infinite;
+	}
+
+	.hero-glyph[data-scene='rain'] .hero-weather {
+		animation: hero-glyph-bob 2.4s ease-in-out infinite;
+	}
+
+	.hero-glyph[data-scene='snow'] .hero-weather {
+		animation: hero-glyph-rock 4s ease-in-out infinite;
+	}
+
+	.hero-glyph[data-scene='storm']::before,
+	.hero-glyph[data-scene='hail']::before {
+		inset: -20%;
+		background: radial-gradient(circle, rgb(255 255 255 / 0.9) 0%, transparent 60%);
+		animation: hero-flash 8s ease-in-out infinite;
+	}
+
+	.hero-glyph[data-scene='fog'] .hero-weather {
+		animation: hero-glyph-breathe 6s ease-in-out infinite;
+	}
+
+	.hero-glyph[data-active='false']::before,
+	.hero-glyph[data-active='false'] .hero-weather {
+		animation-play-state: paused;
+	}
+
+	@keyframes hero-glyph-glow {
+		0%,
+		100% {
+			opacity: 0.7;
+			transform: scale(0.9);
+		}
+		50% {
+			opacity: 1;
+			transform: scale(1.12);
+		}
+	}
+
+	@keyframes hero-glyph-spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	@keyframes hero-glyph-drift {
+		0%,
+		100% {
+			transform: translateX(-0.2rem);
+		}
+		50% {
+			transform: translateX(0.2rem);
+		}
+	}
+
+	@keyframes hero-glyph-rock {
+		0%,
+		100% {
+			transform: rotate(-6deg);
+		}
+		50% {
+			transform: rotate(6deg);
+		}
+	}
+
+	@keyframes hero-glyph-bob {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(0.15rem);
+		}
+	}
+
+	@keyframes hero-glyph-breathe {
+		0%,
+		100% {
+			opacity: 0.65;
+		}
+		50% {
+			opacity: 1;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.hero-glyph::before,
+		.hero-glyph .hero-weather {
+			animation: none;
+		}
+
+		.hero-glyph[data-scene='clear']::before,
+		.hero-glyph[data-scene='partly']::before,
+		.hero-glyph[data-scene='night']::before {
+			opacity: 0.85;
+		}
+	}
+
 	.wx-icon-clear,
 	.wx-icon-sun {
 		color: #e6a100;
@@ -946,6 +1097,8 @@
 	.hero-atmosphere[data-fx='night'] .hero-fx-a,
 	.hero-atmosphere[data-fx='cloud'] .hero-fx-a,
 	.hero-atmosphere[data-fx='cloud'] .hero-fx-b,
+	.hero-atmosphere[data-fx='partly'] .hero-fx-a,
+	.hero-atmosphere[data-fx='partly'] .hero-fx-b,
 	.hero-atmosphere[data-fx='rain'] .hero-fx-a,
 	.hero-atmosphere[data-fx='rain'] .hero-fx-b,
 	.hero-atmosphere[data-fx='storm'] .hero-fx-a,
@@ -1011,21 +1164,25 @@
 		);
 	}
 
-	.hero-atmosphere[data-fx='cloud'] .hero-fx-a {
+	.hero-atmosphere[data-fx='cloud'] .hero-fx-a,
+	.hero-atmosphere[data-fx='partly'] .hero-fx-a {
 		background: radial-gradient(ellipse 72% 48% at 18% 8%, rgb(255 255 255 / 0.28), transparent 70%);
 		animation: hero-cloud 24s ease-in-out infinite;
 	}
 
-	.hero-atmosphere[data-fx='cloud'] .hero-fx-b {
+	.hero-atmosphere[data-fx='cloud'] .hero-fx-b,
+	.hero-atmosphere[data-fx='partly'] .hero-fx-b {
 		background: radial-gradient(ellipse 64% 42% at 82% 28%, rgb(255 255 255 / 0.16), transparent 68%);
 		animation: hero-cloud 30s ease-in-out infinite reverse;
 	}
 
-	html.dark .hero-atmosphere[data-fx='cloud'] .hero-fx-a {
+	html.dark .hero-atmosphere[data-fx='cloud'] .hero-fx-a,
+	html.dark .hero-atmosphere[data-fx='partly'] .hero-fx-a {
 		background: radial-gradient(ellipse 72% 48% at 18% 8%, rgb(255 255 255 / 0.08), transparent 70%);
 	}
 
-	html.dark .hero-atmosphere[data-fx='cloud'] .hero-fx-b {
+	html.dark .hero-atmosphere[data-fx='cloud'] .hero-fx-b,
+	html.dark .hero-atmosphere[data-fx='partly'] .hero-fx-b {
 		background: radial-gradient(ellipse 64% 42% at 82% 28%, rgb(180 190 200 / 0.1), transparent 68%);
 	}
 

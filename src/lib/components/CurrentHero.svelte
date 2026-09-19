@@ -38,7 +38,11 @@
 	}: Props = $props();
 
 	const place = $derived(placeProp ?? weatherState.place);
-	const bundle = $derived(bundleProp ?? weatherState.bundle);
+	/** Never render another place's data under this header (race / stale cache guard). */
+	const bundle = $derived.by(() => {
+		const candidate = bundleProp ?? weatherState.bundle;
+		return candidate && samePlace(candidate.place, place) ? candidate : null;
+	});
 	const stale = $derived(staleProp ?? weatherState.stale);
 	const offline = $derived(offlineProp ?? (weatherState.error?.startsWith('Offline') ?? false));
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
@@ -108,8 +112,9 @@
 		id={onOpen ? undefined : 'jetzt'}
 		class="{panelClass(chromeState.chrome)} hero-on-{mood} relative isolate overflow-hidden p-5 sm:p-6"
 		data-mood={mood}
+		data-scene={atmosphere}
 	>
-		<div class="hero-wash" data-mood={mood} aria-hidden="true"></div>
+		<div class="hero-wash" data-mood={mood} data-scene={atmosphere} aria-hidden="true"></div>
 		<div
 			class="hero-atmosphere"
 			data-fx={atmosphere}
@@ -119,6 +124,7 @@
 			<span class="hero-fx hero-fx-a"></span>
 			<span class="hero-fx hero-fx-b"></span>
 			<span class="hero-fx hero-fx-c"></span>
+			<span class="hero-fx hero-fx-d"></span>
 		</div>
 		{#if onOpen}
 			<button
@@ -144,14 +150,21 @@
 						{placeLabel(place)}
 					</p>
 				</div>
-				<WeatherIcon
-					code={current.weather_code}
-					isDay={current.is_day === 1}
-					hero
-					class="hero-weather shrink-0 {isDesktop
-						? 'size-[4.25rem]'
-						: 'size-[4.25rem] sm:size-[5.5rem]'}"
-				/>
+				<span
+					class="hero-glyph shrink-0"
+					data-scene={atmosphere}
+					data-active={atmosphereOn}
+					aria-hidden="true"
+				>
+					<WeatherIcon
+						code={current.weather_code}
+						isDay={current.is_day === 1}
+						hero
+						class="hero-weather {isDesktop
+							? 'size-[4.25rem]'
+							: 'size-[4.25rem] sm:size-[5.5rem]'}"
+					/>
+				</span>
 			</div>
 
 			<div class="hero-now">

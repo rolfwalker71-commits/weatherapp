@@ -454,30 +454,464 @@ html[data-chrome='ios'] [class*='hero-on-'] .hero-place h2 {
 	font-weight: 600;
 }
 
-html[data-chrome='ios'] .hero-wash[data-mood='clear'] {
-	background: linear-gradient(180deg, #2e7fd9 0%, #57a4ec 100%);
+/* Weather scenes: each `data-scene` gets its own sky and live atmosphere.
+   --sun-c is the centre of the hero glyph (card padding + half the glyph), so sun rays,
+   moon glow and the glyph halo all radiate from the symbol. */
+html[data-chrome='ios'] section[data-scene] {
+	--sun-c: 3.375rem;
 }
-html[data-chrome='ios'] .hero-wash[data-mood='night'] {
-	background: linear-gradient(180deg, #0b1633 0%, #26365f 100%);
+
+@media (min-width: 640px) {
+	html[data-chrome='ios'] section[data-scene] {
+		--sun-c: 4.25rem;
+	}
 }
-html[data-chrome='ios'] .hero-wash[data-mood='rain'] {
-	background: linear-gradient(180deg, #4a5a6c 0%, #748598 100%);
+
+html[data-chrome='ios'] .hero-wash[data-scene='clear'] {
+	background:
+		radial-gradient(
+			circle at calc(100% - var(--sun-c)) var(--sun-c),
+			#fffbe8 0%,
+			#ffe888 12%,
+			rgb(255 214 64 / 0) 48%
+		),
+		linear-gradient(165deg, #ffd84a 0%, #ffba2e 48%, #ff9d24 100%);
 }
-html[data-chrome='ios'] .hero-wash[data-mood='snow'] {
-	background: linear-gradient(180deg, #7890a8 0%, #a9bccd 100%);
+html[data-chrome='ios'] .hero-wash[data-scene='partly'] {
+	background:
+		radial-gradient(
+			circle at calc(100% - var(--sun-c)) var(--sun-c),
+			rgb(255 236 150 / 0.75) 0%,
+			rgb(255 214 90 / 0.25) 18%,
+			rgb(255 214 90 / 0) 42%
+		),
+		linear-gradient(180deg, #2f7fd6 0%, #5ea3e8 60%, #86bcef 100%);
 }
-html[data-chrome='ios'] .hero-wash[data-mood='storm'] {
-	background: linear-gradient(180deg, #2b2f3a 0%, #4b5264 100%);
+html[data-chrome='ios'] .hero-wash[data-scene='night'] {
+	background: linear-gradient(180deg, #070e26 0%, #15224a 55%, #25366a 100%);
 }
-html[data-chrome='ios'] .hero-wash[data-mood='cloud'] {
-	background: linear-gradient(180deg, #5f7a96 0%, #8ea4ba 100%);
+html[data-chrome='ios'] .hero-wash[data-scene='cloud'] {
+	background: linear-gradient(180deg, #5d7289 0%, #7f93a8 55%, #95a7b9 100%);
 }
-html[data-chrome='ios'] .hero-wash[data-mood='fog'] {
-	background: linear-gradient(180deg, #7d8893 0%, #a7b0b8 100%);
+html[data-chrome='ios'] .hero-wash[data-scene='rain'] {
+	background: linear-gradient(180deg, #34424f 0%, #4d5e6f 55%, #65788b 100%);
+}
+html[data-chrome='ios'] .hero-wash[data-scene='storm'],
+html[data-chrome='ios'] .hero-wash[data-scene='hail'] {
+	background: linear-gradient(180deg, #16181f 0%, #2a2f3d 50%, #434a5c 100%);
+}
+html[data-chrome='ios'] .hero-wash[data-scene='snow'] {
+	background: linear-gradient(180deg, #5a7a9c 0%, #7894b1 55%, #92aac2 100%);
+}
+html[data-chrome='ios'] .hero-wash[data-scene='fog'] {
+	background: linear-gradient(180deg, #5b656f 0%, #75808a 55%, #88929b 100%);
 }
 
 html[data-chrome='ios'].dark .hero-wash {
 	filter: brightness(0.72) saturate(0.9);
+}
+
+/* Sunshine stays sunny in dark mode; dark type keeps it legible. */
+html[data-chrome='ios'].dark .hero-wash[data-scene='clear'] {
+	filter: brightness(0.9) saturate(0.95);
+}
+
+html[data-chrome='ios'] [class*='hero-on-'] {
+	text-shadow: 0 0.0625rem 0.125rem rgb(0 0 0 / 0.14);
+}
+
+/* Fog banks drift over the type; a firmer shadow keeps it readable. */
+html[data-chrome='ios'] section[data-scene='fog'] {
+	text-shadow: 0 0.0625rem 0.25rem rgb(0 0 0 / 0.32);
+}
+
+html[data-chrome='ios'] section[data-scene='clear'] {
+	color: #3a2300;
+	text-shadow: 0 0.0625rem 0 rgb(255 245 200 / 0.45);
+}
+
+/* --- Sun: pulsing glow and slowly turning rays --------------------------- */
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='clear'] .hero-fx-a,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='partly'] .hero-fx-a,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='night'] .hero-fx-a {
+	top: calc(var(--sun-c) - 11rem);
+	right: calc(var(--sun-c) - 11rem);
+	bottom: auto;
+	left: auto;
+	width: 22rem;
+	height: 22rem;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='clear'] .hero-fx-a {
+	background: radial-gradient(
+		circle,
+		rgb(255 255 240 / 0.9) 0%,
+		rgb(255 236 140 / 0.55) 16%,
+		rgb(255 200 60 / 0.18) 38%,
+		transparent 62%
+	);
+	animation: hero-sun 5s ease-in-out infinite;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='clear'] .hero-fx-b,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='partly'] .hero-fx-d {
+	display: block;
+	top: calc(var(--sun-c) - 22rem);
+	right: calc(var(--sun-c) - 22rem);
+	bottom: auto;
+	left: auto;
+	width: 44rem;
+	height: 44rem;
+	background: repeating-conic-gradient(
+		from 0deg,
+		rgb(255 255 255 / 0.3) 0deg 3.5deg,
+		rgb(255 255 255 / 0) 5deg 13deg,
+		rgb(255 255 255 / 0.3) 15deg
+	);
+	-webkit-mask-image: radial-gradient(circle, #000 0%, rgb(0 0 0 / 0.55) 18%, transparent 52%);
+	mask-image: radial-gradient(circle, #000 0%, rgb(0 0 0 / 0.55) 18%, transparent 52%);
+	animation: ios-sun-rays 80s linear infinite;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='partly'] .hero-fx-d {
+	opacity: 0.45;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='partly'] .hero-fx-a {
+	background: radial-gradient(
+		circle,
+		rgb(255 250 220 / 0.6) 0%,
+		rgb(255 220 110 / 0.28) 20%,
+		transparent 55%
+	);
+	animation: hero-sun 6s ease-in-out infinite;
+}
+
+/* Warm light spilling across the bottom of a sunny card. */
+html[data-chrome='ios'] .hero-atmosphere[data-fx='clear'] .hero-fx-c {
+	display: block;
+	background: radial-gradient(120% 60% at 0% 110%, rgb(255 120 0 / 0.22), transparent 70%);
+	animation: hero-sun 9s ease-in-out infinite reverse;
+}
+
+/* --- Clouds: soft puffs drifting across ---------------------------------- */
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='cloud'] .hero-fx-a,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='cloud'] .hero-fx-b,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='cloud'] .hero-fx-c,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='partly'] .hero-fx-b,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='partly'] .hero-fx-c,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='rain'] .hero-fx-d,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='storm'] .hero-fx-d,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='hail'] .hero-fx-d {
+	display: block;
+	right: auto;
+	bottom: auto;
+	width: 70%;
+	height: 42%;
+	background:
+		radial-gradient(ellipse 26% 42% at 26% 62%, rgb(255 255 255 / 0.34), transparent 72%),
+		radial-gradient(ellipse 30% 56% at 50% 44%, rgb(255 255 255 / 0.38), transparent 72%),
+		radial-gradient(ellipse 26% 40% at 74% 60%, rgb(255 255 255 / 0.3), transparent 72%),
+		radial-gradient(ellipse 48% 30% at 50% 74%, rgb(255 255 255 / 0.26), transparent 74%);
+	animation: ios-cloud-drift 46s linear infinite;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='cloud'] .hero-fx-a,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='partly'] .hero-fx-b {
+	top: 0;
+	animation-delay: -18s;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='cloud'] .hero-fx-b,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='partly'] .hero-fx-c {
+	top: 34%;
+	width: 55%;
+	opacity: 0.7;
+	animation-duration: 64s;
+	animation-delay: -44s;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='cloud'] .hero-fx-c {
+	top: 66%;
+	width: 80%;
+	opacity: 0.55;
+	animation-duration: 80s;
+	animation-delay: -12s;
+}
+
+/* Rain reads clearly against the darker iOS skies. */
+html[data-chrome='ios'] .hero-atmosphere[data-fx='rain'] .hero-fx-a,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='storm'] .hero-fx-a,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='hail'] .hero-fx-a {
+	opacity: 0.75;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='rain'] .hero-fx-b,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='storm'] .hero-fx-b {
+	opacity: 0.55;
+}
+
+/* Rain and storm clouds hang low and dark. */
+html[data-chrome='ios'] .hero-atmosphere[data-fx='rain'] .hero-fx-d,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='storm'] .hero-fx-d,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='hail'] .hero-fx-d {
+	top: -8%;
+	width: 90%;
+	opacity: 0.55;
+	animation-duration: 38s;
+	animation-delay: -20s;
+}
+
+/* --- Night: twinkling stars and a rare shooting star ---------------------- */
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='night'] .hero-fx-a {
+	background: radial-gradient(
+		circle,
+		rgb(214 224 255 / 0.36) 0%,
+		rgb(120 140 230 / 0.16) 30%,
+		transparent 60%
+	);
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='night'] .hero-fx-b,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='night'] .hero-fx-c {
+	display: block;
+	background-image:
+		radial-gradient(circle at 12% 18%, #fff 0 0.06rem, transparent 0.09rem),
+		radial-gradient(circle at 46% 8%, rgb(255 255 255 / 0.8) 0 0.05rem, transparent 0.08rem),
+		radial-gradient(circle at 78% 34%, #fff 0 0.07rem, transparent 0.1rem),
+		radial-gradient(circle at 30% 56%, rgb(255 255 255 / 0.7) 0 0.045rem, transparent 0.075rem),
+		radial-gradient(circle at 64% 72%, rgb(255 255 255 / 0.85) 0 0.055rem, transparent 0.085rem),
+		radial-gradient(circle at 90% 88%, rgb(255 255 255 / 0.7) 0 0.05rem, transparent 0.08rem);
+	background-size: 9rem 7rem;
+	animation: ios-twinkle 3.6s ease-in-out infinite;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='night'] .hero-fx-c {
+	background-size: 13rem 11rem;
+	background-position: 4rem 3rem;
+	animation-duration: 5.2s;
+	animation-delay: -2.1s;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='night'] .hero-fx-d {
+	display: block;
+	top: 14%;
+	right: auto;
+	bottom: auto;
+	left: 8%;
+	width: 7rem;
+	height: 0.0625rem;
+	border-radius: 999px;
+	background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.9));
+	transform-origin: right center;
+	opacity: 0;
+	animation: ios-shooting-star 13s ease-in infinite 4s;
+}
+
+/* --- Snow: three depths of flakes, falling and swaying ------------------- */
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='snow'] .hero-fx-a,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='snow'] .hero-fx-b,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='snow'] .hero-fx-c {
+	display: block;
+	top: -9rem;
+	right: -1.5rem;
+	bottom: 0;
+	left: -1.5rem;
+	opacity: 1;
+	background-image:
+		radial-gradient(circle at 10% 12%, #fff 0 0.17rem, transparent 0.22rem),
+		radial-gradient(circle at 58% 6%, rgb(255 255 255 / 0.9) 0 0.13rem, transparent 0.18rem),
+		radial-gradient(circle at 84% 40%, #fff 0 0.19rem, transparent 0.24rem),
+		radial-gradient(circle at 34% 50%, rgb(255 255 255 / 0.85) 0 0.12rem, transparent 0.17rem),
+		radial-gradient(circle at 70% 78%, #fff 0 0.15rem, transparent 0.2rem),
+		radial-gradient(circle at 20% 88%, rgb(255 255 255 / 0.9) 0 0.14rem, transparent 0.19rem);
+	background-size: 9rem 9rem;
+	background-position: 0 0;
+	--fall: 9rem;
+	animation:
+		ios-snow-fall 7s linear infinite,
+		ios-snow-sway 3.5s ease-in-out infinite alternate;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='snow'] .hero-fx-b {
+	top: -6rem;
+	background-size: 6rem 6rem;
+	background-position: 2rem 1rem;
+	opacity: 0.75;
+	--fall: 6rem;
+	animation-duration: 6.5s, 4.5s;
+	animation-delay: -2s, -1.5s;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='snow'] .hero-fx-c {
+	top: -4rem;
+	background-size: 4rem 4rem;
+	background-position: 1rem 2rem;
+	opacity: 0.45;
+	--fall: 4rem;
+	animation-duration: 7.5s, 5.5s;
+	animation-delay: -4s, -3s;
+}
+
+/* Snow layer settling along the bottom of the card. */
+html[data-chrome='ios'] .hero-atmosphere[data-fx='snow'] .hero-fx-d {
+	display: block;
+	background: linear-gradient(0deg, rgb(255 255 255 / 0.22), transparent 26%);
+}
+
+/* --- Fog: layered banks drifting past ------------------------------------ */
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='fog'] .hero-fx-a,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='fog'] .hero-fx-b,
+html[data-chrome='ios'] .hero-atmosphere[data-fx='fog'] .hero-fx-c {
+	display: block;
+	right: auto;
+	left: -40%;
+	width: 180%;
+	background: linear-gradient(
+		90deg,
+		transparent 0%,
+		rgb(255 255 255 / 0.36) 20%,
+		rgb(255 255 255 / 0.12) 42%,
+		rgb(255 255 255 / 0.4) 64%,
+		transparent 88%
+	);
+	filter: blur(1.25rem);
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='fog'] .hero-fx-a {
+	top: 4%;
+	height: 34%;
+	animation: ios-fog-drift 18s ease-in-out infinite alternate;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='fog'] .hero-fx-b {
+	top: 36%;
+	height: 32%;
+	opacity: 0.8;
+	animation: ios-fog-drift 26s ease-in-out infinite alternate-reverse;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='fog'] .hero-fx-c {
+	top: 66%;
+	height: 36%;
+	animation: ios-fog-drift 22s ease-in-out infinite alternate;
+	animation-delay: -9s;
+}
+
+html[data-chrome='ios'] .hero-atmosphere[data-fx='fog'] .hero-fx-d {
+	display: block;
+	background: linear-gradient(180deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.28));
+	animation: ios-fog-breathe 12s ease-in-out infinite;
+}
+
+/* --- Hero glyph per scene ------------------------------------------------ */
+
+html[data-chrome='ios'] .hero-glyph[data-scene='clear'] .hero-weather {
+	color: #fffbe6;
+	filter: drop-shadow(0 0 0.375rem rgb(255 170 0 / 0.95)) drop-shadow(0 0 1rem rgb(255 140 0 / 0.55));
+}
+
+html[data-chrome='ios'] .hero-glyph[data-scene='partly'] .hero-weather {
+	filter: drop-shadow(0 0 0.5rem rgb(255 220 120 / 0.7));
+}
+
+html[data-chrome='ios'] .hero-glyph[data-scene='night'] .hero-weather {
+	color: #f3f1ff;
+	filter: drop-shadow(0 0 0.5rem rgb(190 200 255 / 0.8));
+}
+
+html[data-chrome='ios'] section[data-scene='clear'] .hero-now-strip {
+	background: rgb(255 255 255 / 0.3);
+	box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.5);
+}
+
+html[data-chrome='ios'] section[data-scene='clear'] .hero-proactive {
+	background: rgb(255 255 255 / 0.35);
+}
+
+@keyframes ios-sun-rays {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Starts left of the card, ends past its right edge (element is 70% of the card). */
+@keyframes ios-cloud-drift {
+	from {
+		transform: translateX(-100%);
+	}
+	to {
+		transform: translateX(145%);
+	}
+}
+
+@keyframes ios-twinkle {
+	0%,
+	100% {
+		opacity: 0.35;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
+@keyframes ios-shooting-star {
+	0%,
+	88% {
+		opacity: 0;
+		transform: translate(0, 0) rotate(18deg) scaleX(0.3);
+	}
+	90% {
+		opacity: 1;
+	}
+	96%,
+	100% {
+		opacity: 0;
+		transform: translate(12rem, 3.9rem) rotate(18deg) scaleX(1);
+	}
+}
+
+/* One tile per loop, so the fall never jumps. */
+@keyframes ios-snow-fall {
+	from {
+		transform: translateY(0);
+	}
+	to {
+		transform: translateY(var(--fall));
+	}
+}
+
+@keyframes ios-snow-sway {
+	from {
+		translate: -0.6rem 0;
+	}
+	to {
+		translate: 0.6rem 0;
+	}
+}
+
+@keyframes ios-fog-drift {
+	from {
+		transform: translateX(-14%);
+	}
+	to {
+		transform: translateX(14%);
+	}
+}
+
+@keyframes ios-fog-breathe {
+	0%,
+	100% {
+		opacity: 0.6;
+	}
+	50% {
+		opacity: 1;
+	}
 }
 
 html[data-chrome='ios'] .hero-now-strip {
