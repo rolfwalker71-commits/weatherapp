@@ -12,7 +12,7 @@ function readPreference(): ChromePreference {
 
 export const chromeState = $state({
 	preference: 'auto' as ChromePreference,
-	chrome: 'android' as Chrome,
+	chrome: 'ios' as Chrome,
 	width: 0
 });
 
@@ -25,7 +25,7 @@ export function isTabletLayout(): boolean {
 
 function applyChrome(): void {
 	chromeState.width = window.innerWidth;
-	const next = resolveChrome(chromeState.preference, window.innerWidth);
+	const next = resolveChrome(chromeState.preference);
 	chromeState.chrome = next;
 	document.documentElement.dataset.chrome = next;
 	if (typeof document !== 'undefined') {

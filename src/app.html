@@ -8,7 +8,7 @@
 			name="viewport"
 			content="width=device-width, initial-scale=1, viewport-fit=cover"
 		/>
-		<meta name="theme-color" content="#006874" />
+		<meta name="theme-color" content="#f2f2f7" />
 		<meta
 			name="description"
 			content="Wetter für die Schweiz und die Welt — aktuell, stündlich, 7 Tage, Luftqualität und Pollen."
@@ -36,30 +36,23 @@
 					document.documentElement.classList.toggle('dark', dark);
 					document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
 
+					// iOS design everywhere unless a chrome is picked explicitly (see resolveChrome).
 					var pref = localStorage.getItem('chrome-pref') || 'auto';
 					var chrome =
-						pref === 'auto'
-							? (window.Capacitor && window.Capacitor.getPlatform() === 'ios') ||
-								/iPhone|iPod/.test(navigator.userAgent)
-								? 'ios'
-								: window.matchMedia('(min-width: 1024px)').matches
-								? 'desktop'
-								: 'android'
-							: pref;
-					if (chrome !== 'android' && chrome !== 'desktop' && chrome !== 'ios') {
-						chrome = 'android';
-					}
+						pref === 'android' || pref === 'desktop' || pref === 'ios' ? pref : 'ios';
 					document.documentElement.dataset.chrome = chrome;
 					var themeColor = document.querySelector('meta[name="theme-color"]');
 					if (themeColor) {
-						if (chrome === 'desktop') {
+						if (chrome === 'ios') {
+							themeColor.setAttribute('content', dark ? '#000000' : '#f2f2f7');
+						} else if (chrome === 'desktop') {
 							themeColor.setAttribute('content', dark ? '#202020' : '#f3f3f3');
 						} else {
 							themeColor.setAttribute('content', dark ? '#121314' : '#006874');
 						}
 					}
 				} catch (e) {
-					document.documentElement.dataset.chrome = 'android';
+					document.documentElement.dataset.chrome = 'ios';
 				}
 			})();
 		</script>

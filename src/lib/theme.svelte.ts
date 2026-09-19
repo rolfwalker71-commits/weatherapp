@@ -27,7 +27,9 @@ export function applyTheme(preference = themeState.preference): void {
 	const themeColor = document.querySelector('meta[name="theme-color"]');
 	if (themeColor) {
 		const chrome = document.documentElement.dataset.chrome;
-		if (chrome === 'desktop') {
+		if (chrome === 'ios') {
+			themeColor.setAttribute('content', dark ? '#000000' : '#f2f2f7');
+		} else if (chrome === 'desktop') {
 			themeColor.setAttribute('content', dark ? '#202020' : '#f3f3f3');
 		} else {
 			themeColor.setAttribute('content', dark ? '#121314' : '#006874');

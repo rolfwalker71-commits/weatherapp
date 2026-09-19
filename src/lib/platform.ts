@@ -3,8 +3,6 @@ import { Capacitor } from '@capacitor/core';
 export type Chrome = 'android' | 'desktop' | 'ios';
 export type ChromePreference = Chrome | 'auto';
 
-export const LG_BREAKPOINT = 1024;
-
 /** True inside the Capacitor shell (iOS app), false in the browser/PWA. */
 export function isNativeApp(): boolean {
 	return Capacitor.isNativePlatform();
@@ -18,16 +16,10 @@ export function serverUrl(path: string): string {
 	return isNativeApp() ? `${APP_ORIGIN}${path}` : path;
 }
 
-/** iPhone/iPod. iPad stays on the width-based choice: its wide layout is the desktop one. */
-export function isAppleMobile(): boolean {
-	if (typeof navigator === 'undefined') return false;
-	return /iPhone|iPod/.test(navigator.userAgent);
-}
-
-export function resolveChrome(preference: ChromePreference, width: number): Chrome {
-	if (preference !== 'auto') return preference;
-	if (Capacitor.getPlatform() === 'ios' || isAppleMobile()) return 'ios';
-	return width >= LG_BREAKPOINT ? 'desktop' : 'android';
+/** The iOS design is the default everywhere — native app and PWA on every device alike.
+ * Android and desktop chromes stay reachable through an explicit `chrome-pref`. */
+export function resolveChrome(preference: ChromePreference): Chrome {
+	return preference === 'auto' ? 'ios' : preference;
 }
 
 export function panelClass(chrome: Chrome): string {
