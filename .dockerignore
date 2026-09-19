@@ -12,3 +12,5 @@ build
 *.log
 push-api/node_modules
 push-api/data
+apns/
+*.p8

@@ -14,8 +14,14 @@ services:
       PUSH_SEND_ENABLED: ${PUSH_SEND_ENABLED:-true}
       PUSH_TEST_TOKEN: ${PUSH_TEST_TOKEN:-}
       PUSH_POLL_MS: ${PUSH_POLL_MS:-600000}
+      # iPhone push (APNs). Leer = iOS-Push aus. Schlüssel als ./apns/AuthKey.p8 neben diese Datei legen.
+      APNS_KEY_ID: ${APNS_KEY_ID:-}
+      APNS_TEAM_ID: ${APNS_TEAM_ID:-}
+      APNS_KEY_FILE: ${APNS_KEY_FILE:-/run/apns/AuthKey.p8}
+      APNS_BUNDLE_ID: ${APNS_BUNDLE_ID:-ch.rolfwalker.wetter}
     volumes:
       - weather-data:/data
+      - ./apns:/run/apns:ro
     restart: unless-stopped
 
 volumes:

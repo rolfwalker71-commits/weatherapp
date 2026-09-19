@@ -12,3 +12,7 @@ vite.config.ts.timestamp-*
 .idea
 *.log
 push-api/data
+
+# APNs signing key (docker-compose mounts ./apns)
+apns/
+*.p8
