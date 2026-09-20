@@ -5,7 +5,7 @@
 	import { formatPercent, formatTemp, formatTime, formatWind } from '$lib/format';
 	import { unitsState } from '$lib/units.svelte';
 	import type { HourPoint } from '$lib/types';
-	import { getWmo, weatherMood } from '$lib/wmo';
+	import { getWmo, heroAtmosphere, weatherMood } from '$lib/wmo';
 	import AppIcon from './AppIcon.svelte';
 	import WeatherIcon from './WeatherIcon.svelte';
 
@@ -19,6 +19,7 @@
 	const isDesktop = $derived(chromeState.chrome === 'desktop');
 	const wmo = $derived(hour ? getWmo(hour.code, hour.isDay) : null);
 	const mood = $derived(hour ? weatherMood(hour.code, hour.isDay) : 'cloud');
+	const atmosphere = $derived(hour ? heroAtmosphere(hour.code, hour.isDay) : 'cloud');
 	const uvTone = $derived(scaleFillClass(uvLevel(hour?.uv).tone));
 </script>
 
@@ -31,8 +32,11 @@
 			onclick={onClose}
 		></button>
 		<div role="dialog" aria-modal="true" aria-labelledby="hour-title" class="wx-sheet">
-			<div class="hero-wash" data-mood={mood} aria-hidden="true"></div>
-			<div class="hero-on-{mood} relative flex min-h-0 flex-1 flex-col">
+			<div class="hero-wash" data-mood={mood} data-scene={atmosphere} aria-hidden="true"></div>
+			<div
+				class="hero-on-{mood} relative flex min-h-0 flex-1 flex-col"
+				data-scene={atmosphere}
+			>
 				<div class="wx-sheet-head px-5 pt-5">
 					{#if !isDesktop}
 						<div class="mx-auto mb-4 h-1.5 w-12 rounded-full bg-current/30" aria-hidden="true"></div>

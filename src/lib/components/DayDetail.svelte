@@ -16,7 +16,7 @@
 		hoursOnDay
 	} from '$lib/format';
 	import type { DayPoint, HourPoint } from '$lib/types';
-	import { getWmo, weatherMood } from '$lib/wmo';
+	import { getWmo, heroAtmosphere, weatherMood } from '$lib/wmo';
 	import { unitsState } from '$lib/units.svelte';
 	import { weatherState } from '$lib/weather.svelte';
 	import HScroll from './HScroll.svelte';
@@ -38,6 +38,7 @@
 	const maxPrecip = $derived(Math.max(1, ...dayHours.map((hour) => hour.precipMm)));
 	const wmo = $derived(day ? getWmo(day.code, true) : null);
 	const mood = $derived(day ? weatherMood(day.code, true) : 'cloud');
+	const atmosphere = $derived(day ? heroAtmosphere(day.code, true) : 'cloud');
 	const uvTone = $derived(scaleFillClass(uvLevel(day?.uvMax).tone));
 	const now = $derived(weatherState.bundle ? new Date(weatherState.bundle.current.time).getTime() : Date.now());
 	const todayDate = $derived(weatherState.bundle?.days[0]?.date);
@@ -61,8 +62,11 @@
 			onclick={onClose}
 		></button>
 		<div role="dialog" aria-modal="true" aria-labelledby="day-title" class="wx-sheet">
-			<div class="hero-wash" data-mood={mood} aria-hidden="true"></div>
-			<div class="hero-on-{mood} relative flex min-h-0 flex-1 flex-col">
+			<div class="hero-wash" data-mood={mood} data-scene={atmosphere} aria-hidden="true"></div>
+			<div
+				class="hero-on-{mood} relative flex min-h-0 flex-1 flex-col"
+				data-scene={atmosphere}
+			>
 				<div class="wx-sheet-head px-5 pt-5">
 					{#if !isDesktop}
 						<div class="mx-auto mb-4 h-1.5 w-12 rounded-full bg-current/30" aria-hidden="true"></div>

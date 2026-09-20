@@ -457,12 +457,14 @@ html[data-chrome='ios'] [class*='hero-on-'] .hero-place h2 {
 /* Weather scenes: each `data-scene` gets its own sky and live atmosphere.
    --sun-c is the centre of the hero glyph (card padding + half the glyph), so sun rays,
    moon glow and the glyph halo all radiate from the symbol. */
-html[data-chrome='ios'] section[data-scene] {
+html[data-chrome='ios'] section[data-scene],
+html[data-chrome='ios'] .wx-sheet [data-scene] {
 	--sun-c: 3.375rem;
 }
 
 @media (min-width: 640px) {
-	html[data-chrome='ios'] section[data-scene] {
+	html[data-chrome='ios'] section[data-scene],
+	html[data-chrome='ios'] .wx-sheet [data-scene] {
 		--sun-c: 4.25rem;
 	}
 }
@@ -520,12 +522,17 @@ html[data-chrome='ios'] [class*='hero-on-'] {
 	text-shadow: 0 0.0625rem 0.125rem rgb(0 0 0 / 0.14);
 }
 
+/* The hero carries the scene on its <section>, the day/hour sheets on a <div>
+   inside .wx-sheet; both need the same sky-dependent ink. */
+
 /* Fog banks drift over the type; a firmer shadow keeps it readable. */
-html[data-chrome='ios'] section[data-scene='fog'] {
+html[data-chrome='ios'] section[data-scene='fog'],
+html[data-chrome='ios'] .wx-sheet [data-scene='fog'] {
 	text-shadow: 0 0.0625rem 0.25rem rgb(0 0 0 / 0.32);
 }
 
-html[data-chrome='ios'] section[data-scene='clear'] {
+html[data-chrome='ios'] section[data-scene='clear'],
+html[data-chrome='ios'] .wx-sheet [data-scene='clear'] {
 	color: #3a2300;
 	text-shadow: 0 0.0625rem 0 rgb(255 245 200 / 0.45);
 }
@@ -1239,6 +1246,24 @@ html[data-chrome='ios'] .wx-sheet [class*='hero-on-'] .icon-btn {
 
 html[data-chrome='ios'] .wx-sheet [class*='hero-on-'] p.font-extrabold {
 	font-weight: 300;
+}
+
+/* Sunny sheets carry dark type, so the fills lighten and the controls take the
+   same brown ink instead of white. */
+html[data-chrome='ios'] .wx-sheet [data-scene='clear'] .bg-muted,
+html[data-chrome='ios'] .wx-sheet [data-scene='clear'] .bg-secondary,
+html[data-chrome='ios'] .wx-sheet [data-scene='clear'] [class*='wx-chip-'],
+html[data-chrome='ios'] .wx-sheet [data-scene='clear'] [class*='wx-scale-'] {
+	background: rgb(255 255 255 / 0.34);
+}
+
+html[data-chrome='ios'] .wx-sheet [data-scene='clear'] .icon-btn {
+	color: #3a2300;
+	background: rgb(255 255 255 / 0.4);
+}
+
+html[data-chrome='ios'] .wx-sheet [data-scene='clear'] button[aria-pressed='true'] {
+	background: rgb(255 255 255 / 0.95);
 }
 
 /* Level tiles (air quality, pollen, UV): neutral fill with the level in an accessible system colour,
