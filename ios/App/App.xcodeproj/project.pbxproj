@@ -11,6 +11,8 @@
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		3F4E6FE922378D06CA1BE5FA /* WidgetBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C2D2EF7237D5F6DE987663 /* WidgetBridgePlugin.swift */; };
 		4280C1A91869F937AD55BF35 /* WeatherCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F294D824FB53CE1F01F7379 /* WeatherCore.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E101 /* MoonCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E102 /* MoonCore.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E103 /* MoonWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E104 /* MoonWidget.swift */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
@@ -64,6 +66,8 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		5F294D824FB53CE1F01F7379 /* WeatherCore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeatherCore.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E102 /* MoonCore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MoonCore.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E104 /* MoonWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MoonWidget.swift; sourceTree = "<group>"; };
 		60CCFF1865A3472AA171F6CC /* WeatherActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeatherActivityAttributes.swift; sourceTree = "<group>"; };
 		7FCC8D996BCFE675DDD2D891 /* App.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		8D122917B0BC9E317BECA2DA /* WeatherLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeatherLiveActivity.swift; sourceTree = "<group>"; };
@@ -140,6 +144,8 @@
 			children = (
 				5F294D824FB53CE1F01F7379 /* WeatherCore.swift */,
 				33C4EC98C1D88924406F5C00 /* WeatherWidget.swift */,
+				A1B2C3D4E5F6A7B8C9D0E102 /* MoonCore.swift */,
+				A1B2C3D4E5F6A7B8C9D0E104 /* MoonWidget.swift */,
 				D8A7545A4A73B08684367953 /* Info.plist */,
 				CD6AFB94D4278389E2EAF1A2 /* WeatherWidget.entitlements */,
 				8D122917B0BC9E317BECA2DA /* WeatherLiveActivity.swift */,
@@ -266,6 +272,8 @@
 			files = (
 				4280C1A91869F937AD55BF35 /* WeatherCore.swift in Sources */,
 				2F30C72C371C3EE159A81D3A /* WeatherWidget.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E101 /* MoonCore.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E103 /* MoonWidget.swift in Sources */,
 				CCA4B1D4F0485A25FC865EFD /* WeatherActivityAttributes.swift in Sources */,
 				FCD111E4D67AB9A9D311341F /* WeatherLiveActivity.swift in Sources */,
 			);

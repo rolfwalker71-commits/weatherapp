@@ -640,6 +640,7 @@ struct WeatherWidget: Widget {
 struct WeatherWidgetBundle: WidgetBundle {
     var body: some Widget {
         WeatherWidget()
+        MoonWidget()
         WeatherLiveActivity()
     }
 }
