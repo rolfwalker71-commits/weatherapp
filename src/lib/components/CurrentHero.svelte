@@ -20,6 +20,8 @@
 	import { getWmo, heroAtmosphere, weatherMood } from '$lib/wmo';
 	import { clockState, isFavorite, starPlace, weatherState } from '$lib/weather.svelte';
 	import WeatherIcon from './WeatherIcon.svelte';
+	import MoonPhase from './MoonPhase.svelte';
+	import { moonTimesLine, moonView } from '$lib/moon-view';
 
 	interface Props {
 		place?: Place;
@@ -99,6 +101,8 @@
 		}
 		return parts;
 	});
+	/** Favoriten show a compact moon line with rise/set in the place's own time zone. */
+	const moon = $derived(onOpen && bundle ? moonView(bundle, new Date(clockState.now)) : null);
 	const sunLine = $derived.by(() => {
 		if (!today?.sunrise || !today.sunset) return null;
 		const tz = bundle?.timezone;
@@ -245,6 +249,16 @@
 						</p>
 					{/if}
 				</div>
+			{/if}
+
+			{#if moon}
+				<p class="hero-moon flex min-w-0 items-center gap-2 text-sm leading-snug">
+					<MoonPhase cycle={moon.info.cycle} southern={moon.southern} class="size-5" />
+					<span class="min-w-0 break-words">
+						{moon.info.label}
+						<span class="tabular-nums opacity-75">· {moonTimesLine(moon.today)}</span>
+					</span>
+				</p>
 			{/if}
 
 			<div class="flex items-end justify-between gap-3">

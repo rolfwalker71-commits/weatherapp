@@ -17,6 +17,8 @@
 	import LakesCard from '$lib/components/LakesCard.svelte';
 	import MehrDrawer from '$lib/components/MehrDrawer.svelte';
 	import MehrList from '$lib/components/MehrList.svelte';
+	import MoonCard from '$lib/components/MoonCard.svelte';
+	import MoonDetail from '$lib/components/MoonDetail.svelte';
 	import NavBar from '$lib/components/NavBar.svelte';
 	import NavRail from '$lib/components/NavRail.svelte';
 	import TopicSheet from '$lib/components/TopicSheet.svelte';
@@ -32,6 +34,7 @@
 	import { hydrateFromCache, locateUser, startAutoRefresh, weatherState } from '$lib/weather.svelte';
 
 	let selectedHour = $state<HourPoint | null>(null);
+	let moonOpen = $state(false);
 	let selectedDay = $state<DayPoint | null>(null);
 	const mood = $derived(
 		weatherState.bundle
@@ -51,6 +54,10 @@
 
 	function onKey(event: KeyboardEvent) {
 		if (event.key !== 'Escape') return;
+		if (moonOpen) {
+			moonOpen = false;
+			return;
+		}
 		if (selectedHour) {
 			selectedHour = null;
 			return;
@@ -145,6 +152,7 @@
 							<CurrentHero />
 							<HourlyForecast onSelect={(hour) => (selectedHour = hour)} />
 							<WarningsCard />
+							<MoonCard onOpen={() => (moonOpen = true)} />
 						</div>
 						<DailyForecast
 							selectedDate={selectedDay?.date}
@@ -160,6 +168,7 @@
 						<CurrentHero />
 						<HourlyForecast limit={4} onSelect={(hour) => (selectedHour = hour)} />
 						<WarningsCard />
+						<MoonCard onOpen={() => (moonOpen = true)} />
 					</div>
 				{:else}
 					<section id="jetzt" hidden></section>
@@ -210,5 +219,6 @@
 	onSelectHour={(hour) => (selectedHour = hour)}
 />
 <HourDetail hour={selectedHour} onClose={() => (selectedHour = null)} />
+<MoonDetail open={moonOpen && section === 'jetzt'} onClose={() => (moonOpen = false)} />
 <TopicSheet />
 <MehrDrawer />
