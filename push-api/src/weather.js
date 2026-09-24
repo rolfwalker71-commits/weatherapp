@@ -266,6 +266,311 @@ export function briefingBody(weather) {
 	return parts.length ? parts.join(' · ') : null;
 }
 
+const BLOCKS = '▁▂▃▄▅▆▇█';
+
+/** Unicode mini chart — renders in every notification centre, including iOS home-screen apps. */
+export function sparkline(values, { floor = null, ceil = null } = {}) {
+	const finite = values.filter((value) => Number.isFinite(value));
+	// A flat line says nothing; the caller then leaves the chart row out.
+	if (finite.length < 2 || Math.max(...finite) === Math.min(...finite)) return '';
+	const low = floor ?? Math.min(...finite);
+	const high = Math.max(ceil ?? -Infinity, ...finite);
+	const span = high - low || 1;
+	return values
+		.map((value) => {
+			if (!Number.isFinite(value)) return ' ';
+			const step = Math.round(((value - low) / span) * (BLOCKS.length - 1));
+			return BLOCKS[Math.max(0, Math.min(BLOCKS.length - 1, step))];
+		})
+		.join('');
+}
+
+/** Open-Meteo returns local wall-clock ISO strings (timezone=auto): "2026-09-24T14:45" → "14:45". */
+function hhmm(iso) {
+	return typeof iso === 'string' && iso.length >= 16 ? iso.slice(11, 16) : '';
+}
+
+function degrees(value) {
+	return Number.isFinite(value) ? `${Math.round(value)}°`.replace('-', '−') : '–';
+}
+
+function placeSuffix(row) {
+	return row?.place_name ? ` · ${row.place_name}` : '';
+}
+
+function weatherEmoji(code, isDay = true) {
+	if (!Number.isFinite(code)) return '🌡️';
+	if (code >= 95) return '⛈️';
+	if (code >= 71 && code <= 77) return '🌨️';
+	if (code === 85 || code === 86) return '🌨️';
+	if (code >= 51) return '🌧️';
+	if (code === 45 || code === 48) return '🌫️';
+	if (code === 3) return '☁️';
+	if (code === 2) return isDay ? '⛅' : '☁️';
+	if (code === 1) return isDay ? '🌤️' : '🌙';
+	return isDay ? '☀️' : '🌙';
+}
+
+function formatInZone(iso, timeZone) {
+	const date = iso ? new Date(iso) : null;
+	if (!date || Number.isNaN(date.getTime())) return '';
+	try {
+		return new Intl.DateTimeFormat('de-CH', {
+			weekday: 'short',
+			hour: '2-digit',
+			minute: '2-digit',
+			timeZone: timeZone || undefined
+		}).format(date);
+	} catch {
+		return '';
+	}
+}
+
+function rainNotice(weather, row) {
+	const slots = weather.minutes || [];
+	const onsetIndex = slots.findIndex((slot) => slot.precipMm != null && slot.precipMm >= 0.1);
+	const onset = onsetIndex >= 0 ? slots[onsetIndex] : null;
+	const hour = weather.upcoming[0];
+	const snow = weather.upcoming.slice(0, 2).some((item) => (item.snowfall ?? 0) >= 0.1);
+	const thunder = weather.upcoming.slice(0, 2).some((item) => (item.code ?? 0) >= 95);
+	const noun = thunder ? 'Gewitter' : snow ? 'Schnee' : 'Regen';
+	const emoji = thunder ? '⛈️' : snow ? '🌨️' : '🌧️';
+
+	const when = onsetIndex <= 0 ? 'in Kürze' : `ab ${hhmm(onset.time)}`;
+	const title = `${emoji} ${noun} ${onsetIndex < 0 ? 'wahrscheinlich' : when}${placeSuffix(row)}`;
+
+	const amount = weather.nextHourPrecip;
+	const intensity = amount == null ? '' : amount < 1 ? 'Leichter' : amount < 4 ? 'Mässiger' : 'Kräftiger';
+	const lines = [];
+	const facts = [];
+	if (amount != null && amount >= 0.1) facts.push(`${intensity} ${noun}, etwa ${amount.toFixed(1)} mm in der nächsten Stunde`);
+	if (weather.nextHourProb != null) facts.push(`Wahrscheinlichkeit ${Math.round(weather.nextHourProb)} %`);
+	if (facts.length) lines.push(`${facts.join(' · ')}.`);
+
+	const chart = sparkline(
+		slots.map((slot) => slot.precipMm),
+		{ floor: 0, ceil: 1 }
+	);
+	if (chart.trim() && slots.length >= 2) {
+		lines.push(`${hhmm(slots[0].time)} ${chart} ${hhmm(slots[slots.length - 1].time)}`);
+	}
+
+	let dryAgain = null;
+	if (onsetIndex >= 0) {
+		dryAgain = slots.slice(onsetIndex + 1).find((slot) => slot.precipMm != null && slot.precipMm < 0.05);
+		if (!dryAgain) {
+			dryAgain = weather.upcoming
+				.slice(1)
+				.find((item) => item.precipMm != null && item.precipMm < 0.1 && (item.precipProb ?? 0) < 40);
+		}
+	}
+	const advice = thunder ? '⚡ Drinnen bleiben, bis es durch ist' : snow ? '🧤 Warm anziehen, Strassen können glatt werden' : '☂️ Schirm mitnehmen';
+	lines.push(dryAgain ? `${advice} — trocken ab ca. ${hhmm(dryAgain.time)}.` : `${advice}.`);
+	if (hour?.temperature != null) lines.push(`🌡️ ${degrees(hour.temperature)}, Wind ${Math.round(hour.wind ?? 0)} km/h`);
+
+	return {
+		category: 'rainSoon',
+		fingerprint: `rain-${weather.upcoming[0]?.time?.slice(0, 13) || 'now'}`,
+		cooldownHours: 3,
+		title,
+		body: lines.join('\n'),
+		url: '/#radar',
+		urgency: 'high',
+		ttl: 45 * 60,
+		actions: [
+			{ action: 'radar', title: '🛰️ Radar', url: '/#radar' },
+			{ action: 'verlauf', title: '🕐 Stunden', url: '/#verlauf' }
+		]
+	};
+}
+
+const SEVERITY_BADGE = {
+	moderate: { emoji: '🟡', label: 'Gefahr mässig' },
+	severe: { emoji: '🟠', label: 'Gefahr erheblich' },
+	extreme: { emoji: '🔴', label: 'Gefahr gross' }
+};
+
+function warningNotice(alert, weather, row) {
+	const badge = SEVERITY_BADGE[alert.severity] || { emoji: '⚠️', label: 'Warnung' };
+	const lines = [];
+	if (alert.headline && alert.headline !== alert.event) lines.push(alert.headline);
+	const from = formatInZone(alert.onset, weather.timezone);
+	const until = formatInZone(alert.expires, weather.timezone);
+	if (from || until) lines.push(`🕐 ${from && until ? `${from} bis ${until}` : until ? `bis ${until}` : `ab ${from}`}`);
+	lines.push(`${badge.emoji} ${badge.label}${alert.area ? ` · ${alert.area}` : ''}`);
+	if (alert.source) lines.push(`Quelle: ${alert.source}`);
+	const expiresMs = alert.expires ? new Date(alert.expires).getTime() - Date.now() : NaN;
+	return {
+		category: 'warnings',
+		fingerprint: `warn-${alert.id}`,
+		cooldownHours: 6,
+		title: `⚠️ ${alert.event || 'Wetterwarnung'}${placeSuffix(row)}`,
+		body: lines.join('\n'),
+		url: '/#jetzt',
+		urgency: 'high',
+		ttl: Number.isFinite(expiresMs) && expiresMs > 0 ? Math.min(12 * 3600, Math.round(expiresMs / 1000)) : 6 * 3600,
+		requireInteraction: alert.severity === 'severe' || alert.severity === 'extreme',
+		actions: [
+			{ action: 'jetzt', title: 'Details', url: '/#jetzt' },
+			{ action: 'radar', title: '🛰️ Radar', url: '/#radar' }
+		]
+	};
+}
+
+function frostNotice(weather, row) {
+	const current = weather.current;
+	const next = weather.upcoming.slice(0, 8);
+	const lowest = next.reduce(
+		(min, hour) => (Number.isFinite(hour.temperature) && (!min || hour.temperature < min.temperature) ? hour : min),
+		null
+	);
+	const wetSoon = next.slice(0, 4).some((hour) => (hour.precipMm ?? 0) >= 0.1);
+	const title = `${wetSoon ? '🧊 Glättegefahr' : '🥶 Frost'}${placeSuffix(row)}`;
+	const lines = [];
+	const feels = Number.isFinite(current.apparent_temperature) ? `, gefühlt ${degrees(current.apparent_temperature)}` : '';
+	lines.push(
+		`Jetzt ${degrees(current.temperature_2m)}${feels}.` +
+			(lowest ? ` Tiefstwert ${degrees(lowest.temperature)} um ${hhmm(lowest.time)}.` : '')
+	);
+	const chart = sparkline(next.map((hour) => hour.temperature));
+	if (chart.trim() && next.length >= 2) lines.push(`${hhmm(next[0].time)} ${chart} ${hhmm(next[next.length - 1].time)}`);
+	lines.push(wetSoon ? '🚗 Nässe gefriert — Brücken und Nebenstrassen meiden.' : '🚗 Scheiben kratzen, empfindliche Pflanzen abdecken.');
+	return {
+		category: 'frost',
+		fingerprint: `frost-${new Date().toISOString().slice(0, 10)}`,
+		cooldownHours: 8,
+		title,
+		body: lines.join('\n'),
+		url: '/#verlauf',
+		ttl: 3 * 3600,
+		actions: [{ action: 'verlauf', title: '🕐 Stunden', url: '/#verlauf' }]
+	};
+}
+
+function uvLabel(uv) {
+	if (uv >= 11) return 'extrem';
+	if (uv >= 8) return 'sehr hoch';
+	if (uv >= 6) return 'hoch';
+	return 'mässig';
+}
+
+function uvNotice(weather, row) {
+	const next = weather.upcoming.slice(0, 8);
+	const peak = next.reduce((best, hour) => ((hour.uv ?? -1) > (best?.uv ?? -1) ? hour : best), null);
+	const lastHigh = [...next].reverse().find((hour) => (hour.uv ?? 0) >= 6);
+	const uv = Math.round(weather.uvNow);
+	const lines = [];
+	const bits = [];
+	if (lastHigh) bits.push(`Hoch bis ca. ${hhmm(lastHigh.time)}`);
+	if (peak?.uv != null && Math.round(peak.uv) > uv) bits.push(`Spitze ${Math.round(peak.uv)} um ${hhmm(peak.time)}`);
+	if (bits.length) lines.push(`${bits.join(' · ')}.`);
+	const chart = sparkline(
+		next.map((hour) => hour.uv),
+		{ floor: 0, ceil: 10 }
+	);
+	if (chart.trim()) lines.push(`${hhmm(next[0].time)} ${chart} ${hhmm(next[next.length - 1].time)}`);
+	lines.push('🧴 Sonnencreme LSF 30+, Hut und Schatten über Mittag.');
+	return {
+		category: 'uv',
+		fingerprint: `uv-${new Date().toISOString().slice(0, 10)}`,
+		cooldownHours: 12,
+		title: `😎 UV ${uv} – ${uvLabel(uv)}${placeSuffix(row)}`,
+		body: lines.join('\n'),
+		url: '/#luft',
+		ttl: 3 * 3600,
+		actions: [{ action: 'luft', title: 'Luft & UV', url: '/#luft' }]
+	};
+}
+
+function aqiLabel(aqi) {
+	if (aqi >= 100) return 'extrem schlecht';
+	if (aqi >= 80) return 'sehr schlecht';
+	if (aqi >= 60) return 'schlecht';
+	if (aqi >= 40) return 'mässig';
+	return 'ordentlich';
+}
+
+function airNotice(weather, row) {
+	const bits = [];
+	const badAir = weather.aqi != null && weather.aqi >= 60;
+	const highPollen = weather.pollen != null && weather.pollen >= 100;
+	if (badAir) bits.push(`Luftqualität ${Math.round(weather.aqi)} (${aqiLabel(weather.aqi)})`);
+	if (highPollen) bits.push(`Pollen ${Math.round(weather.pollen)} Körner/m³ (stark)`);
+	const lines = [`${bits.join(' · ')}.`];
+	if (badAir) lines.push('🏃 Anstrengenden Sport draussen heute verschieben.');
+	if (highPollen) lines.push('🪟 Früh morgens lüften, abends Haare waschen.');
+	return {
+		category: 'air',
+		fingerprint: `air-${new Date().toISOString().slice(0, 10)}`,
+		cooldownHours: 8,
+		title: `${badAir ? '😷' : '🌳'} ${badAir && highPollen ? 'Luft & Pollen' : badAir ? 'Schlechte Luft' : 'Starker Pollenflug'}${placeSuffix(row)}`,
+		body: lines.join('\n'),
+		url: '/#luft',
+		ttl: 4 * 3600,
+		actions: [{ action: 'luft', title: 'Luft & Pollen', url: '/#luft' }]
+	};
+}
+
+function briefNotice(weather, row, body) {
+	const lines = [];
+	const range =
+		weather.todayMin != null && weather.todayMax != null
+			? `Heute ${degrees(weather.todayMin)} bis ${degrees(weather.todayMax)}`
+			: 'Heute';
+	const sky = wmoLabel(weather.todayCode);
+	const rain = weather.todayPrecipProb != null ? `Regenrisiko ${Math.round(weather.todayPrecipProb)} %` : '';
+	lines.push(`${[range, sky, rain].filter(Boolean).join(', ')}.`);
+	lines.push(body);
+	const next = weather.upcoming;
+	const chart = sparkline(next.map((hour) => hour.temperature));
+	if (chart.trim() && next.length >= 2) {
+		lines.push(`🌡️ ${hhmm(next[0].time)} ${chart} ${hhmm(next[next.length - 1].time)}`);
+	}
+	if (next.some((hour) => (hour.precipMm ?? 0) >= 0.1)) {
+		lines.push(`💧 ${hhmm(next[0].time)} ${sparkline(next.map((hour) => hour.precipMm), { floor: 0, ceil: 2 })} ${hhmm(next[next.length - 1].time)}`);
+	}
+	const greeting = row?.place_name ? `Guten Morgen, ${row.place_name}` : 'Guten Morgen';
+	return {
+		category: 'dailyBrief',
+		fingerprint: `brief-${new Date().toISOString().slice(0, 10)}`,
+		cooldownHours: 20,
+		title: `${weatherEmoji(weather.todayCode, true)} ${greeting}`,
+		body: lines.join('\n'),
+		url: '/#jetzt',
+		urgency: 'low',
+		ttl: 3 * 3600,
+		actions: [
+			{ action: 'verlauf', title: '🕐 Stunden', url: '/#verlauf' },
+			{ action: 'woche', title: '📅 Woche', url: '/#woche' }
+		]
+	};
+}
+
+/** Sample for «Testmitteilung» — real current weather, same layout as the brief. */
+export function testNotice(weather, row) {
+	const current = weather.current;
+	const lines = [
+		`Jetzt ${degrees(current.temperature_2m)}, ${weather.wmoLabel || 'aktuelles Wetter'}` +
+			(weather.todayMin != null && weather.todayMax != null
+				? ` · heute ${degrees(weather.todayMin)} bis ${degrees(weather.todayMax)}.`
+				: '.')
+	];
+	const next = weather.upcoming;
+	const chart = sparkline(next.map((hour) => hour.temperature));
+	if (chart.trim() && next.length >= 2) lines.push(`🌡️ ${hhmm(next[0].time)} ${chart} ${hhmm(next[next.length - 1].time)}`);
+	const insight = insightLine(weather);
+	if (insight) lines.push(insight);
+	lines.push('✅ So sehen deine Meldungen aus.');
+	return {
+		category: 'test',
+		title: `${weatherEmoji(current.weather_code, current.is_day === 1)} Mitteilungen aktiv${placeSuffix(row)}`,
+		body: lines.join('\n'),
+		url: '/#jetzt',
+		ttl: 10 * 60,
+		actions: [{ action: 'verlauf', title: '🕐 Stunden', url: '/#verlauf' }]
+	};
+}
+
 export function evaluateNotifications(weather, prefs, alerts) {
 	const notices = [];
 	const temps = [weather.current.temperature_2m, weather.current.apparent_temperature].filter((value) =>
@@ -277,15 +582,7 @@ export function evaluateNotifications(weather, prefs, alerts) {
 	const frostNow = temps.some((value) => value <= 1.2);
 
 	if (prefs.rain_soon && ((weather.nextHourPrecip != null && weather.nextHourPrecip >= 0.3) || weather.nextHourProb >= 70)) {
-		notices.push({
-			category: 'rainSoon',
-			fingerprint: `rain-${weather.upcoming[0]?.time?.slice(0, 13) || 'now'}`,
-			cooldownHours: 3,
-			title: 'Regen bald',
-			body: weather.nextHourPrecip >= 0.3
-				? `Niederschlag in der nächsten Stunde (${weather.nextHourPrecip.toFixed(1)} mm).`
-				: `Regenwahrscheinlichkeit ${Math.round(weather.nextHourProb)} % in der nächsten Stunde.`
-		});
+		notices.push(rainNotice(weather, prefs));
 	}
 
 	if (prefs.warnings) {
@@ -293,75 +590,78 @@ export function evaluateNotifications(weather, prefs, alerts) {
 			(alert) => alert?.id && ['moderate', 'severe', 'extreme'].includes(alert.severity)
 		);
 		for (const alert of serious.slice(0, 2)) {
-			notices.push({
-				category: 'warnings',
-				fingerprint: `warn-${alert.id}`,
-				cooldownHours: 6,
-				title: alert.event || 'Wetterwarnung',
-				body: alert.headline || alert.area || alert.event
-			});
+			notices.push(warningNotice(alert, weather, prefs));
 		}
 	}
 
 	if (prefs.frost && Number.isFinite(weather.current.temperature_2m) && (frostNow || nearFrost)) {
-		notices.push({
-			category: 'frost',
-			fingerprint: `frost-${new Date().toISOString().slice(0, 10)}`,
-			cooldownHours: 8,
-			title: 'Frost',
-			body: `Temperatur ${weather.current.temperature_2m.toFixed(0)}° (Open-Meteo).`
-		});
+		notices.push(frostNotice(weather, prefs));
 	}
 
 	if (prefs.uv && weather.current.is_day === 1 && weather.uvNow != null && weather.uvNow >= 7) {
-		notices.push({
-			category: 'uv',
-			fingerprint: `uv-${new Date().toISOString().slice(0, 10)}`,
-			cooldownHours: 12,
-			title: 'UV hoch',
-			body: `UV-Index ${weather.uvNow.toFixed(0)} — Sonne meiden, Haut schützen.`
-		});
+		notices.push(uvNotice(weather, prefs));
 	}
 
 	if (prefs.air && ((weather.aqi != null && weather.aqi >= 60) || (weather.pollen != null && weather.pollen >= 100))) {
-		const airBits = [];
-		if (weather.aqi != null && weather.aqi >= 60) airBits.push(`Luftqualität ${Math.round(weather.aqi)}`);
-		if (weather.pollen != null && weather.pollen >= 100) airBits.push(`Pollen ${Math.round(weather.pollen)}`);
-		notices.push({
-			category: 'air',
-			fingerprint: `air-${new Date().toISOString().slice(0, 10)}`,
-			cooldownHours: 8,
-			title: 'Luft & Pollen',
-			body: `${airBits.join(', ')}.`
-		});
+		notices.push(airNotice(weather, prefs));
 	}
 
 	if (prefs.daily_brief && weather.localHour >= 6 && weather.localHour <= 9) {
 		const body = briefingBody(weather);
-		if (body) {
-			notices.push({
-				category: 'dailyBrief',
-				fingerprint: `brief-${new Date().toISOString().slice(0, 10)}`,
-				cooldownHours: 20,
-				title: 'Morgenbriefing',
-				body
-			});
-		}
+		if (body) notices.push(briefNotice(weather, prefs, body));
 	}
 
 	return notices;
 }
 
+const CHANGE_URL = {
+	rainCancel: '/#verlauf',
+	rainNew: '/#radar',
+	rainEarlier: '/#radar',
+	warning: '/#jetzt',
+	windJump: '/#verlauf',
+	tempSwing: '/#woche'
+};
+
+const CHANGE_EMOJI = {
+	rainCancel: '🌤️',
+	rainNew: '🌧️',
+	rainEarlier: '🌧️',
+	warning: '⚠️',
+	windJump: '💨',
+	tempSwing: '🌡️'
+};
+
 /** Append forecast-change notice when prefs.forecast_change and a plan delta exists. */
-export function appendForecastChangeNotice(notices, change) {
+export function appendForecastChangeNotice(notices, change, weather, row) {
 	if (!change) return notices;
+	const lines = [change.body];
+	if (weather?.current) {
+		lines.push(`Jetzt ${degrees(weather.current.temperature_2m)}, ${weather.wmoLabel || 'aktuell'}.`);
+		const next = weather.upcoming || [];
+		const rainy = change.kind?.startsWith('rain');
+		const chart = rainy
+			? sparkline(next.map((hour) => hour.precipMm), { floor: 0, ceil: 2 })
+			: change.kind === 'windJump'
+				? sparkline(next.map((hour) => hour.gusts ?? hour.wind), { floor: 0 })
+				: sparkline(next.map((hour) => hour.temperature));
+		if (chart.trim() && next.length >= 2) {
+			lines.push(`${rainy ? '💧' : change.kind === 'windJump' ? '💨' : '🌡️'} ${hhmm(next[0].time)} ${chart} ${hhmm(next[next.length - 1].time)}`);
+		}
+	}
+	const url = CHANGE_URL[change.kind] || '/#jetzt';
 	notices.push({
 		category: 'forecastChange',
 		fingerprint: change.fingerprint,
 		cooldownHours: 4,
-		title: change.title,
-		body: change.body,
-		url: '/#jetzt'
+		title: `${CHANGE_EMOJI[change.kind] || '🔄'} Prognose geändert${placeSuffix(row)}`,
+		body: lines.join('\n'),
+		url,
+		ttl: 2 * 3600,
+		actions: [
+			{ action: 'open', title: 'Ansehen', url },
+			{ action: 'woche', title: '📅 Woche', url: '/#woche' }
+		]
 	});
 	return notices;
 }

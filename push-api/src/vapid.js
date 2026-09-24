@@ -9,8 +9,27 @@ function envOrEmpty(name) {
 	return process.env[name]?.trim() || '';
 }
 
+const DEFAULT_SUBJECT = 'https://myweather.rolfwalker.ch';
+
+/**
+ * Apple's Web Push service (iPhone/iPad home-screen apps) answers 403 BadJwtToken when the
+ * VAPID `sub` is not a reachable https URL or a real mailto — `mailto:…@localhost` was the old
+ * default, so nothing ever reached iOS. Such subjects fall back to the public site.
+ */
+export function usableSubject(value) {
+	const subject = value?.trim() || '';
+	if (!/^(mailto:[^@\s]+@[^@\s]+\.[^@\s]+|https:\/\/[^\s]+)$/i.test(subject)) return null;
+	if (/localhost|127\.0\.0\.1|\[::1\]|\.local\b|example\./i.test(subject)) return null;
+	return subject;
+}
+
 function resolveSubject(stored) {
-	return envOrEmpty('VAPID_SUBJECT') || stored?.trim() || 'mailto:weather@localhost';
+	const configured = envOrEmpty('VAPID_SUBJECT') || stored?.trim() || '';
+	const subject = usableSubject(configured);
+	if (!subject && configured) {
+		console.warn(`VAPID_SUBJECT «${configured}» wird von Apple abgelehnt — nutze ${DEFAULT_SUBJECT}.`);
+	}
+	return subject || usableSubject(process.env.PUBLIC_APP_URL) || DEFAULT_SUBJECT;
 }
 
 function envOverride() {

@@ -1,4 +1,5 @@
 import { PushNotifications, type Token } from '@capacitor/push-notifications';
+import { loadNotifyPrefs } from './notify-prefs';
 import type { NotifyPrefs } from './types';
 
 /**
@@ -117,10 +118,11 @@ export async function disableNativePush(request: Request, clientId: string): Pro
 }
 
 /**
- * App start: keep the server's token current (iOS may rotate it) and open the section a tapped
- * notification points to (payload `url`, e.g. "/#jetzt").
+ * App start: re-send the token with prefs and place (iOS may rotate it, and the server drops
+ * tokens after failed deliveries) and open the section a tapped notification points to
+ * (payload `url`, e.g. "/#jetzt").
  */
-export function initNativePush(request: Request, clientId: string): void {
+export function initNativePush(request: Request, clientId: string, place: () => Place | undefined): void {
 	void PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
 		const url = String(action.notification.data?.url ?? '');
 		const hash = url.includes('#') ? url.slice(url.indexOf('#')) : '';
@@ -132,10 +134,15 @@ export function initNativePush(request: Request, clientId: string): void {
 		if (receive !== 'granted') return;
 		try {
 			const token = await registerForToken();
-			if (token === storedToken()) return;
 			await request('/v1/apns-devices', {
 				method: 'POST',
-				body: JSON.stringify({ token, clientId, bundleId: 'ch.rolfwalker.wetter' })
+				body: JSON.stringify({
+					token,
+					clientId,
+					bundleId: 'ch.rolfwalker.wetter',
+					preferences: loadNotifyPrefs(),
+					place: place()
+				})
 			});
 			storeToken(token);
 		} catch {

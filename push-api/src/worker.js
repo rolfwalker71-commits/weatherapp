@@ -10,7 +10,7 @@ import {
 	wasRecentlySent
 } from './db.js';
 import { buildForecastSnapshot, diffForecastSnapshots } from './proactivity.js';
-import { sendPush } from './send.js';
+import { noticePayload, sendPush } from './send.js';
 import { appendForecastChangeNotice, evaluateNotifications, fetchPlaceWeather } from './weather.js';
 
 const DEFAULT_POLL_MS = 10 * 60 * 1000;
@@ -60,6 +60,11 @@ function recipientsByClient(db) {
 	return [...groups.values()];
 }
 
+/** Weather for one client's saved place (shared cache with the worker cycle). */
+export function weatherForClient(row) {
+	return weatherFor(row.latitude, row.longitude, { name: row.place_name || '' });
+}
+
 export async function runPushCycle(db) {
 	const clients = recipientsByClient(db);
 	const results = { considered: clients.length, sent: 0, skipped: 0, errors: 0 };
@@ -84,19 +89,14 @@ export async function runPushCycle(db) {
 				const change = diffForecastSnapshots(prevSnap, nextSnap, weather.timezone, {
 					includeWarnings: !row.warnings
 				});
-				appendForecastChangeNotice(notices, change);
+				appendForecastChangeNotice(notices, change, weather, row);
 			}
 			saveForecastSnapshot(db, row.client_id, loc, nextSnap);
 			for (const notice of notices) {
 				if (wasRecentlySent(db, row.client_id, notice.category, notice.fingerprint, notice.cooldownHours)) {
 					continue;
 				}
-				const payload = {
-					title: notice.title,
-					body: notice.body,
-					url: notice.url || '/#jetzt',
-					tag: notice.category
-				};
+				const payload = noticePayload(notice);
 				let delivered = false;
 				for (const channel of channels) {
 					const result = await sendPush(db, channel, payload);

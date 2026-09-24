@@ -57,6 +57,24 @@ export function deleteSubscription(db, endpoint, clientId) {
 	return db.prepare('DELETE FROM subscriptions WHERE endpoint = ?').run(endpoint);
 }
 
+export function getSubscription(db, endpoint) {
+	return db.prepare('SELECT * FROM subscriptions WHERE endpoint = ?').get(endpoint);
+}
+
+export function recordDelivery(db, endpoint, { ok, error }) {
+	if (ok) {
+		db.prepare(
+			`UPDATE subscriptions SET last_success_at = datetime('now'), failures = 0 WHERE endpoint = ?`
+		).run(endpoint);
+		return;
+	}
+	db.prepare(
+		`UPDATE subscriptions
+		SET last_error = ?, last_error_at = datetime('now'), failures = failures + 1
+		WHERE endpoint = ?`
+	).run(String(error || 'Zustellung fehlgeschlagen').slice(0, 240), endpoint);
+}
+
 export function upsertPreferences(db, payload) {
 	db.prepare(
 		`

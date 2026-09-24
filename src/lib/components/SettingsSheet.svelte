@@ -7,8 +7,11 @@
 	import {
 		disablePush,
 		enablePush,
+		fetchDeviceState,
 		fetchPushStatus,
+		sendTestPush,
 		syncPreferences,
+		type DeviceState,
 		type PushStatus
 	} from '$lib/push-client';
 	import type { NotifyPrefs } from '$lib/types';
@@ -27,11 +30,30 @@
 	let message = $state('');
 	let messageOk = $state(true);
 	let busy = $state(false);
+	let device = $state<DeviceState | null>(null);
+	const registered = $derived(device?.state === 'registered');
 
 	onMount(() => {
 		prefs = loadNotifyPrefs();
 		void fetchPushStatus().then((next) => (status = next));
+		void refreshDevice();
 	});
+
+	async function refreshDevice() {
+		device = await fetchDeviceState();
+	}
+
+	function when(iso: string | null | undefined): string {
+		if (!iso) return '';
+		const date = new Date(iso);
+		if (Number.isNaN(date.getTime())) return '';
+		const sameDay = date.toDateString() === new Date().toDateString();
+		return new Intl.DateTimeFormat('de-CH', {
+			...(sameDay ? {} : { weekday: 'short', day: 'numeric', month: 'short' }),
+			hour: '2-digit',
+			minute: '2-digit'
+		}).format(date);
+	}
 
 	function onWindowKey(event: KeyboardEvent) {
 		if (!embedded && event.key === 'Escape' && settingsUi.open) settingsUi.open = false;
@@ -50,6 +72,7 @@
 		message = result.message;
 		messageOk = result.ok;
 		status = await fetchPushStatus();
+		await refreshDevice();
 		busy = false;
 	}
 
@@ -68,6 +91,17 @@
 		message = result.message;
 		messageOk = result.ok;
 		status = await fetchPushStatus();
+		await refreshDevice();
+		busy = false;
+	}
+
+	async function test() {
+		busy = true;
+		const result = await sendTestPush();
+		message = result.message;
+		messageOk = result.ok;
+		// Give the push service a moment, then show the recorded delivery result.
+		setTimeout(() => void refreshDevice(), 2500);
 		busy = false;
 	}
 
@@ -76,6 +110,7 @@
 		await disablePush();
 		message = 'Abonnement entfernt.';
 		messageOk = true;
+		await refreshDevice();
 		busy = false;
 	}
 </script>
@@ -91,6 +126,50 @@
 	>
 		{status?.message ?? 'Prüfe Push-Server…'}
 	</p>
+
+	{#if device && device.state !== 'unknown' && device.state !== 'unsupported'}
+		<div
+			class="mb-4 flex items-start gap-3 px-4 py-3 {isDesktop
+				? 'rounded-md ring-1 ring-border'
+				: 'rounded-[1.25rem] bg-muted'}"
+			role="status"
+		>
+			<span
+				class="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full {registered && !device.lastError
+					? 'bg-primary text-on-primary'
+					: 'bg-background'}"
+			>
+				<AppIcon name={registered && device.lastError ? 'warning' : 'bell'} class="size-4" filled={registered} />
+			</span>
+			<span class="min-w-0 text-sm leading-snug">
+				{#if registered}
+					<span class="block font-medium">Dieses Gerät ist angemeldet</span>
+					{#if device.placeName}
+						<span class="block text-muted-foreground">Meldungen für {device.placeName}</span>
+					{/if}
+					{#if device.lastError}
+						<span class="block text-destructive">
+							Letzte Zustellung fehlgeschlagen{device.lastErrorAt ? ` (${when(device.lastErrorAt)})` : ''}:
+							{device.lastError}
+						</span>
+					{:else if device.lastSuccessAt}
+						<span class="block text-muted-foreground">Zuletzt zugestellt: {when(device.lastSuccessAt)}</span>
+					{:else}
+						<span class="block text-muted-foreground">Noch keine Meldung zugestellt — Testmitteilung senden.</span>
+					{/if}
+				{:else if device.state === 'blocked'}
+					<span class="block font-medium">Mitteilungen blockiert</span>
+					<span class="block text-muted-foreground">
+						iPhone: Einstellungen → Mitteilungen → Wetter CH. Sonst in den Website-Einstellungen des
+						Browsers erlauben.
+					</span>
+				{:else}
+					<span class="block font-medium">Dieses Gerät ist nicht angemeldet</span>
+					<span class="block text-muted-foreground">Kategorie wählen und «Gerät anmelden» tippen.</span>
+				{/if}
+			</span>
+		</div>
+	{/if}
 
 	<ul class="wx-grouped space-y-2">
 		{#each PREF_META as item (item.id)}
@@ -116,24 +195,39 @@
 	</ul>
 
 	<div class="mt-4 flex flex-wrap gap-2">
-		<button
-			type="button"
-			class="inline-flex min-h-12 items-center gap-2 bg-primary px-4 text-sm text-on-primary {isDesktop
-				? 'rounded-md'
-				: 'rounded-full'}"
-			onclick={() => void subscribe()}
-			disabled={busy}
-		>
-			<AppIcon name="bell" class="size-4" /> Gerät anmelden
-		</button>
-		<button
-			type="button"
-			class="min-h-12 px-4 text-sm {isDesktop ? 'rounded-md bg-muted' : 'rounded-full bg-muted'}"
-			onclick={() => void unsubscribe()}
-			disabled={busy}
-		>
-			Abmelden
-		</button>
+		{#if registered}
+			<button
+				type="button"
+				class="inline-flex min-h-12 items-center gap-2 bg-primary px-4 text-sm text-on-primary {isDesktop
+					? 'rounded-md'
+					: 'rounded-full'}"
+				onclick={() => void test()}
+				disabled={busy}
+			>
+				<AppIcon name="bell" class="size-4" /> Testmitteilung
+			</button>
+		{:else}
+			<button
+				type="button"
+				class="inline-flex min-h-12 items-center gap-2 bg-primary px-4 text-sm text-on-primary {isDesktop
+					? 'rounded-md'
+					: 'rounded-full'}"
+				onclick={() => void subscribe()}
+				disabled={busy || device?.state === 'unsupported'}
+			>
+				<AppIcon name="bell" class="size-4" /> Gerät anmelden
+			</button>
+		{/if}
+		{#if registered || device?.state === 'unknown'}
+			<button
+				type="button"
+				class="min-h-12 px-4 text-sm {isDesktop ? 'rounded-md bg-muted' : 'rounded-full bg-muted'}"
+				onclick={() => void unsubscribe()}
+				disabled={busy}
+			>
+				Abmelden
+			</button>
+		{/if}
 	</div>
 	{#if message}
 		<p class="mt-3 text-sm leading-snug {messageOk ? '' : 'text-destructive'}" role={messageOk ? 'status' : 'alert'}>
@@ -145,9 +239,9 @@
 			Kategorie einschalten oder «Gerät anmelden» — iOS fragt einmal nach Erlaubnis für
 			Mitteilungen. Ändern jederzeit in Einstellungen → Mitteilungen → Wetter CH.
 		{:else}
-			Kategorie einschalten oder «Gerät anmelden» — der Browser fragt nach Erlaubnis.
-			VAPID-Schlüssel erzeugt der Wetter-Container selbst in der Datenbank.
-			Auf dem Desktop braucht die Seite HTTPS (localhost ausgenommen).
+			Kategorie einschalten oder «Gerät anmelden» — der Browser fragt nach Erlaubnis. Auf
+			iPhone und iPad nur in der installierten App (Safari → Teilen → «Zum Home-Bildschirm»).
+			Die App meldet das Gerät bei jedem Öffnen erneut an, damit es angemeldet bleibt.
 		{/if}
 	</p>
 {/snippet}

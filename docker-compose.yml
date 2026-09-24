@@ -10,7 +10,7 @@ services:
       - "4425:4425"
     environment:
       SQLITE_PATH: /data/push.db
-      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:weather@localhost}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-https://myweather.rolfwalker.ch}
       PUSH_SEND_ENABLED: ${PUSH_SEND_ENABLED:-true}
       PUSH_TEST_TOKEN: ${PUSH_TEST_TOKEN:-}
       PUSH_POLL_MS: ${PUSH_POLL_MS:-600000}

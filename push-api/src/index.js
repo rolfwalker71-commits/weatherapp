@@ -6,6 +6,7 @@ import {
 	deleteApnsDevice,
 	deleteSubscription,
 	getPreferences,
+	getSubscription,
 	listApnsDevices,
 	listSubscriptions,
 	openDb,
@@ -13,9 +14,10 @@ import {
 	upsertPreferences,
 	upsertSubscription
 } from './db.js';
-import { canTriggerManualSend, getApns, sendPush } from './send.js';
+import { canTriggerManualSend, getApns, noticePayload, sendPush } from './send.js';
+import { testNotice } from './weather.js';
 import { ensureWebPushConfigured } from './vapid.js';
-import { startPushWorker } from './worker.js';
+import { startPushWorker, weatherForClient } from './worker.js';
 
 const PORT = Number(process.env.PORT || 4426);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -84,6 +86,84 @@ app.post('/v1/subscriptions', (req, res) => {
 			},
 			req.body.place
 		);
+	}
+	res.json({ ok: true });
+});
+
+/** Whether the server knows this browser's subscription and how the last delivery went. */
+app.post('/v1/subscriptions/status', (req, res) => {
+	const endpoint = String(req.body?.endpoint || '');
+	const clientId = String(req.body?.clientId || '');
+	if (!endpoint) return res.status(400).json({ error: 'endpoint fehlt' });
+	const row = getSubscription(db, endpoint);
+	if (!row || (clientId && row.client_id !== clientId)) return res.json({ registered: false });
+	const prefs = getPreferences(db, row.client_id);
+	res.json({
+		registered: true,
+		lastSuccessAt: row.last_success_at ? `${row.last_success_at.replace(' ', 'T')}Z` : null,
+		lastError: row.failures ? row.last_error : null,
+		lastErrorAt: row.failures && row.last_error_at ? `${row.last_error_at.replace(' ', 'T')}Z` : null,
+		failures: row.failures || 0,
+		placeName: prefs?.place_name || null
+	});
+});
+
+/** Service worker `pushsubscriptionchange`: carry the client over to the new endpoint. */
+app.post('/v1/subscriptions/rotate', (req, res) => {
+	const oldEndpoint = String(req.body?.oldEndpoint || '');
+	const endpoint = String(req.body?.endpoint || '');
+	const keys = req.body?.keys || {};
+	const previous = oldEndpoint ? getSubscription(db, oldEndpoint) : null;
+	if (!previous || !endpoint.startsWith('https://') || !keys.p256dh || !keys.auth) {
+		return res.status(400).json({ error: 'Ungültiges Abonnement' });
+	}
+	upsertSubscription(db, {
+		endpoint,
+		p256dh: String(keys.p256dh),
+		auth: String(keys.auth),
+		client_id: previous.client_id,
+		user_agent: previous.user_agent
+	});
+	if (endpoint !== oldEndpoint) deleteSubscription(db, oldEndpoint);
+	res.json({ ok: true });
+});
+
+const lastTestAt = new Map();
+
+/** «Testmitteilung» from the settings: only to the caller's own subscription, at most every 30 s. */
+app.post('/v1/subscriptions/test', async (req, res) => {
+	const endpoint = String(req.body?.endpoint || '');
+	const clientId = String(req.body?.clientId || '');
+	const row = endpoint ? getSubscription(db, endpoint) : null;
+	if (!row || row.client_id !== clientId) {
+		return res.status(404).json({ error: 'Dieses Gerät ist nicht angemeldet' });
+	}
+	if (!sendingEnabled) return res.status(403).json({ error: 'Versand ist auf dem Server ausgeschaltet' });
+	const last = lastTestAt.get(endpoint) || 0;
+	if (Date.now() - last < 30_000) {
+		return res.status(429).json({ error: 'Bitte kurz warten', hint: 'Höchstens eine Testmitteilung pro 30 Sekunden.' });
+	}
+	lastTestAt.set(endpoint, Date.now());
+
+	const prefs = getPreferences(db, clientId);
+	let notice = {
+		category: 'test',
+		title: '✅ Mitteilungen aktiv',
+		body: 'Dieses Gerät empfängt Wetter-Meldungen.\nOrt wählen, dann kommen Regen, Warnungen & Co. mit Details.',
+		url: '/#einstellungen',
+		ttl: 600
+	};
+	if (Number.isFinite(prefs?.latitude) && Number.isFinite(prefs?.longitude)) {
+		try {
+			const { weather } = await weatherForClient(prefs);
+			notice = testNotice(weather, prefs);
+		} catch {
+			/* plain sample */
+		}
+	}
+	const result = await sendPush(db, row, noticePayload(notice));
+	if (!result.ok) {
+		return res.status(502).json({ error: `Push-Dienst lehnt ab: ${result.reason || result.status}` });
 	}
 	res.json({ ok: true });
 });

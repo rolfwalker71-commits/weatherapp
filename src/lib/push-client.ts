@@ -25,6 +25,17 @@ function isLocalHost(hostname = typeof location === 'undefined' ? '' : location.
 	return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
 }
 
+function isAppleMobile(): boolean {
+	return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function isStandalone(): boolean {
+	return (
+		(navigator as Navigator & { standalone?: boolean }).standalone === true ||
+		window.matchMedia?.('(display-mode: standalone)').matches === true
+	);
+}
+
 export function pushBlockedReason(): string | null {
 	if (typeof window === 'undefined') return null;
 	// iOS app: Apple Push, not Web Push; permission is asked when enabling.
@@ -33,6 +44,9 @@ export function pushBlockedReason(): string | null {
 		return 'Benachrichtigungen brauchen HTTPS. Über HTTP blockiert der Browser Push (außer localhost).';
 	}
 	if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+		if (isAppleMobile() && !isStandalone()) {
+			return 'Auf iPhone und iPad gibt es Mitteilungen nur für die installierte App: in Safari Teilen → «Zum Home-Bildschirm», dann von dort öffnen.';
+		}
 		return 'Dieser Browser unterstützt kein Web Push.';
 	}
 	if (Notification.permission === 'denied') {
@@ -195,8 +209,23 @@ export async function enablePush(
 	if (blocked && !blocked.includes('blockiert. In den Browser-Einstellungen')) {
 		return { ok: false, message: blocked };
 	}
-	if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+	if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
 		return { ok: false, message: 'Dieser Browser unterstützt kein Web Push.' };
+	}
+
+	// Safari only shows the permission prompt while the tap is still "fresh": ask before any fetch.
+	const permission =
+		Notification.permission === 'default' ? await Notification.requestPermission() : Notification.permission;
+	if (permission === 'denied') {
+		return {
+			ok: false,
+			message: isAppleMobile()
+				? 'Mitteilungen sind blockiert. In den iOS-Einstellungen → Mitteilungen → Wetter CH erlauben.'
+				: 'Benachrichtigungen sind blockiert. In den Browser-Einstellungen für diese Seite erlauben.'
+		};
+	}
+	if (permission !== 'granted') {
+		return { ok: false, message: 'Benachrichtigungen wurden nicht erlaubt.' };
 	}
 
 	let key: string | null;
@@ -210,20 +239,6 @@ export async function enablePush(
 	}
 	if (!key) {
 		return { ok: false, message: 'VAPID-Schlüssel fehlt. Wetter-Container neu starten.' };
-	}
-
-	if (!('Notification' in window)) {
-		return { ok: false, message: 'Dieser Browser unterstützt keine Benachrichtigungen.' };
-	}
-	const permission = await Notification.requestPermission();
-	if (permission === 'denied') {
-		return {
-			ok: false,
-			message: 'Benachrichtigungen sind blockiert. In den Browser-Einstellungen für diese Seite erlauben.'
-		};
-	}
-	if (permission !== 'granted') {
-		return { ok: false, message: 'Benachrichtigungen wurden nicht erlaubt.' };
 	}
 
 	let registration: ServiceWorkerRegistration;
@@ -245,6 +260,7 @@ export async function enablePush(
 				applicationServerKey: urlBase64ToUint8Array(key)
 			}));
 		await registerSubscription(subscription, prefs, place);
+		lastSyncAt = Date.now();
 	} catch (error) {
 		const text = error instanceof Error ? error.message : 'Anmeldung fehlgeschlagen.';
 		if (/registration failed|push service|aborted/i.test(text)) {
@@ -260,7 +276,7 @@ export async function enablePush(
 	return {
 		ok: true,
 		message: status.sendingEnabled
-			? 'Gerät angemeldet. Der Server sendet nach den gewählten Kategorien.'
+			? 'Gerät angemeldet. Tipp: «Testmitteilung» senden und prüfen, ob sie ankommt.'
 			: 'Abonnement und Ort gespeichert. Versand ist aus (PUSH_SEND_ENABLED=false).'
 	};
 }
@@ -278,6 +294,98 @@ export async function disablePush(): Promise<void> {
 			/* local unsubscribe still happens */
 		}
 		await subscription.unsubscribe();
+	}
+}
+
+async function currentSubscription(): Promise<PushSubscription | null> {
+	if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+	const registration = await navigator.serviceWorker.getRegistration('/');
+	return (await registration?.pushManager.getSubscription()) ?? null;
+}
+
+export interface DeviceState {
+	/** registered: server has this device · off: not subscribed · blocked/unsupported: cannot be. */
+	state: 'registered' | 'off' | 'blocked' | 'unsupported' | 'unknown';
+	lastSuccessAt?: string | null;
+	lastError?: string | null;
+	lastErrorAt?: string | null;
+	placeName?: string | null;
+}
+
+/** What this device really is: permission, browser subscription and the server's record of it. */
+export async function fetchDeviceState(): Promise<DeviceState> {
+	if (isNativeApp()) return { state: 'unknown' };
+	const blocked = pushBlockedReason();
+	if (blocked) {
+		return { state: typeof Notification !== 'undefined' && Notification.permission === 'denied' ? 'blocked' : 'unsupported' };
+	}
+	if (Notification.permission !== 'granted') return { state: 'off' };
+	try {
+		const subscription = await currentSubscription();
+		if (!subscription) return { state: 'off' };
+		const data = await request<{
+			registered: boolean;
+			lastSuccessAt?: string | null;
+			lastError?: string | null;
+			lastErrorAt?: string | null;
+			placeName?: string | null;
+		}>('/v1/subscriptions/status', {
+			method: 'POST',
+			body: JSON.stringify({ endpoint: subscription.endpoint, clientId: getPushClientId() })
+		});
+		return data.registered ? { state: 'registered', ...data } : { state: 'off' };
+	} catch {
+		return { state: 'unknown' };
+	}
+}
+
+export async function sendTestPush(): Promise<{ ok: boolean; message: string }> {
+	try {
+		const subscription = await currentSubscription();
+		if (!subscription) return { ok: false, message: 'Dieses Gerät ist nicht angemeldet.' };
+		await request('/v1/subscriptions/test', {
+			method: 'POST',
+			body: JSON.stringify({ endpoint: subscription.endpoint, clientId: getPushClientId() })
+		});
+		return { ok: true, message: 'Testmitteilung gesendet — sie sollte in wenigen Sekunden erscheinen.' };
+	} catch (error) {
+		return { ok: false, message: error instanceof Error ? error.message : 'Test fehlgeschlagen.' };
+	}
+}
+
+let lastSyncAt = 0;
+const RESYNC_MS = 15 * 60 * 1000;
+
+function anyPrefOn(prefs: NotifyPrefs): boolean {
+	return Object.values(prefs).some(Boolean);
+}
+
+/**
+ * Keeps the server's record of this browser current: re-sends the subscription (the server may
+ * have dropped it after a failed delivery or a database reset) and re-subscribes when Safari lost
+ * it although notifications are still allowed. Runs on start and when the app comes back.
+ */
+export async function resyncWebPush(place?: PushPlace, force = false): Promise<void> {
+	if (isNativeApp() || pushBlockedReason()) return;
+	if (Notification.permission !== 'granted') return;
+	if (!force && Date.now() - lastSyncAt < RESYNC_MS) return;
+	const prefs = loadNotifyPrefs();
+	try {
+		let subscription = await currentSubscription();
+		if (!subscription) {
+			if (!anyPrefOn(prefs)) return;
+			const key = await fetchVapidPublicKey();
+			if (!key) return;
+			const registration = await ensureServiceWorker();
+			subscription = await registration.pushManager.subscribe({
+				userVisibleOnly: true,
+				applicationServerKey: urlBase64ToUint8Array(key)
+			});
+		}
+		await registerSubscription(subscription, prefs, place);
+		lastSyncAt = Date.now();
+	} catch {
+		/* next start or return to the app retries; the settings show the state */
 	}
 }
 
@@ -313,7 +421,38 @@ export async function fetchAvalanche(lat: number, lon: number): Promise<Avalanch
 	}
 }
 
-/** App start hook: in the iOS app, refreshes the APNs token and handles notification taps. */
-export function initPush(): void {
-	if (isNativeApp()) initNativePush(request, getPushClientId());
+function clearBadge(): void {
+	const nav = navigator as Navigator & { clearAppBadge?: () => Promise<void> };
+	void nav.clearAppBadge?.().catch(() => {});
+}
+
+/**
+ * App start hook. iOS app: refreshes the APNs token. PWA: re-registers the subscription, opens the
+ * section a tapped notification points to and clears the home-screen badge.
+ */
+export function initPush(place: () => PushPlace | undefined): () => void {
+	if (isNativeApp()) {
+		initNativePush(request, getPushClientId(), place);
+		return () => {};
+	}
+	if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return () => {};
+	const onMessage = (event: MessageEvent) => {
+		const data = event.data as { type?: string; url?: string } | null;
+		if (data?.type !== 'wx-open' || !data.url) return;
+		const url = new URL(data.url, location.origin);
+		if (url.hash && url.hash !== location.hash) location.hash = url.hash;
+	};
+	const onVisible = () => {
+		if (document.visibilityState !== 'visible') return;
+		clearBadge();
+		void resyncWebPush(place());
+	};
+	navigator.serviceWorker.addEventListener('message', onMessage);
+	document.addEventListener('visibilitychange', onVisible);
+	clearBadge();
+	void resyncWebPush(place(), true);
+	return () => {
+		navigator.serviceWorker.removeEventListener('message', onMessage);
+		document.removeEventListener('visibilitychange', onVisible);
+	};
 }

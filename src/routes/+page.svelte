@@ -77,11 +77,21 @@
 		hydrateFromCache();
 		hydrateCommute();
 		const stopRoutes = initRoutes();
-		initPush();
+		const stopPush = initPush(() =>
+			weatherState.bundle
+				? {
+						latitude: weatherState.place.latitude,
+						longitude: weatherState.place.longitude,
+						name: weatherState.place.name,
+						timezone: weatherState.bundle.timezone
+					}
+				: undefined
+		);
 		void locateUser();
 		const stopRefresh = startAutoRefresh();
 		return () => {
 			stopRoutes();
+			stopPush();
 			stopRefresh();
 		};
 	});
