@@ -51,7 +51,7 @@ export async function fetchPlaceWeather(lat, lon) {
 		'temperature_2m,precipitation,precipitation_probability,uv_index,weather_code,apparent_temperature,cloud_cover,snowfall,is_day,wind_speed_10m,wind_gusts_10m,relative_humidity_2m'
 	);
 	forecastUrl.searchParams.set('minutely_15', 'precipitation');
-	forecastUrl.searchParams.set('daily', 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code');
+	forecastUrl.searchParams.set('daily', 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code,sunrise,sunset');
 	forecastUrl.searchParams.set('timezone', 'auto');
 	forecastUrl.searchParams.set('forecast_days', '2');
 	forecastUrl.searchParams.set('wind_speed_unit', 'kmh');
@@ -139,6 +139,10 @@ export async function fetchPlaceWeather(lat, lon) {
 		current: forecast.current,
 		upcoming,
 		minutes: minutes.slice(minuteStart, minuteStart + 8),
+		// Every 15-minute slot of the forecast incl. the one in progress (Live Activities need "raining now").
+		minutesAll: minutes,
+		// Provider clock "now" as a naive local string, comparable with the slot times.
+		nowLocal: forecast.current.time,
 		nextHourPrecip,
 		nextHourProb: upcoming[0]?.precipProb ?? null,
 		todayMax: Number.isFinite(forecast.daily?.temperature_2m_max?.[0])
@@ -150,6 +154,8 @@ export async function fetchPlaceWeather(lat, lon) {
 		todayPrecipProb: Number.isFinite(forecast.daily?.precipitation_probability_max?.[0])
 			? forecast.daily.precipitation_probability_max[0]
 			: null,
+		todaySunrise: forecast.daily?.sunrise?.[0] ?? null,
+		todaySunset: forecast.daily?.sunset?.[0] ?? null,
 		todayCode: Number.isFinite(forecast.daily?.weather_code?.[0])
 			? forecast.daily.weather_code[0]
 			: forecast.current.weather_code,
@@ -326,6 +332,63 @@ function formatInZone(iso, timeZone) {
 	}
 }
 
+
+// --- Presentation data for the iOS app (docs: category, interruption level, relevance, `wx` graphic data) ---
+
+const ONE_DECIMAL = (value) => (Number.isFinite(value) ? Math.round(value * 10) / 10 : null);
+const TWO_DECIMALS = (value) => (Number.isFinite(value) ? Math.round(value * 100) / 100 : null);
+
+/** Series for the card: nulls become the previous value (or 0), so the chart has no holes. */
+function series(values, round = ONE_DECIMAL) {
+	let previous = 0;
+	return values.map((value) => {
+		const next = round(value);
+		if (next == null) return previous;
+		previous = next;
+		return next;
+	});
+}
+
+function wxPlace(weather, row) {
+	return {
+		name: row?.place_name || undefined,
+		lat: Number.isFinite(row?.latitude) ? row.latitude : undefined,
+		lon: Number.isFinite(row?.longitude) ? row.longitude : undefined,
+		tz: row?.timezone || weather?.timezone
+	};
+}
+
+/** "15:00" for today in the place's zone, "Fr. 15:00" for another day. */
+function clockOrDay(iso, timeZone) {
+	const date = iso ? new Date(iso) : null;
+	if (!date || Number.isNaN(date.getTime())) return undefined;
+	try {
+		const day = (value) => new Intl.DateTimeFormat('en-CA', { timeZone: timeZone || undefined }).format(value);
+		const clock = new Intl.DateTimeFormat('de-CH', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: timeZone || undefined }).format(date);
+		if (day(date) === day(new Date())) return clock;
+		const weekday = new Intl.DateTimeFormat('de-CH', { weekday: 'short', timeZone: timeZone || undefined }).format(date);
+		return `${weekday} ${clock}`;
+	} catch {
+		return undefined;
+	}
+}
+
+const SEVERITY_LEVEL = { minor: 1, moderate: 2, severe: 3, extreme: 4 };
+
+/** Drops undefined/null so the payload only carries what is known (the app fetches the rest itself). */
+function compact(object) {
+	return Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined && value !== null));
+}
+
+function ios(weather, row, { interruption = 'active', relevance, wx = {}, isDay }) {
+	return {
+		interruption,
+		relevance,
+		place: wxPlace(weather, row),
+		wx: compact({ isDay: isDay ?? weather.current?.is_day === 1, ...wx })
+	};
+}
+
 function rainNotice(weather, row) {
 	const slots = weather.minutes || [];
 	const onsetIndex = slots.findIndex((slot) => slot.precipMm != null && slot.precipMm >= 0.1);
@@ -369,6 +432,21 @@ function rainNotice(weather, row) {
 	if (hour?.temperature != null) lines.push(`🌡️ ${degrees(hour.temperature)}, Wind ${Math.round(hour.wind ?? 0)} km/h`);
 
 	return {
+		ios: ios(weather, row, {
+			relevance: thunder ? 0.9 : 0.8,
+			isDay: weather.upcoming[0]?.isDay,
+			wx: {
+				noun,
+				// Already raining (or imminent) = no start time; the card then says «jetzt».
+				startsAt: onsetIndex > 0 ? hhmm(onset.time) : undefined,
+				dryAt: dryAgain ? hhmm(dryAgain.time) : undefined,
+				totalMm: amount != null ? ONE_DECIMAL(amount) : undefined,
+				prob: weather.nextHourProb != null ? Math.round(weather.nextHourProb) : undefined,
+				series: series(slots.slice(0, 8).map((slot) => slot.precipMm), TWO_DECIMALS),
+				t0: slots[0] ? hhmm(slots[0].time) : undefined,
+				t1: slots.length ? hhmm(slots[Math.min(slots.length, 8) - 1].time) : undefined
+			}
+		}),
 		category: 'rainSoon',
 		fingerprint: `rain-${weather.upcoming[0]?.time?.slice(0, 13) || 'now'}`,
 		cooldownHours: 3,
@@ -400,7 +478,21 @@ function warningNotice(alert, weather, row) {
 	lines.push(`${badge.emoji} ${badge.label}${alert.area ? ` · ${alert.area}` : ''}`);
 	if (alert.source) lines.push(`Quelle: ${alert.source}`);
 	const expiresMs = alert.expires ? new Date(alert.expires).getTime() - Date.now() : NaN;
+	const level = SEVERITY_LEVEL[alert.severity] || 2;
 	return {
+		ios: ios(weather, row, {
+			interruption: level >= 3 ? 'time-sensitive' : 'active',
+			relevance: 1,
+			wx: {
+				level,
+				event: alert.event || undefined,
+				headline: alert.headline && alert.headline !== alert.event ? alert.headline : undefined,
+				area: alert.area || undefined,
+				from: clockOrDay(alert.onset, weather.timezone),
+				until: clockOrDay(alert.expires, weather.timezone),
+				source: alert.source || undefined
+			}
+		}),
 		category: 'warnings',
 		fingerprint: `warn-${alert.id}`,
 		cooldownHours: 6,
@@ -436,6 +528,19 @@ function frostNotice(weather, row) {
 	if (chart.trim() && next.length >= 2) lines.push(`${hhmm(next[0].time)} ${chart} ${hhmm(next[next.length - 1].time)}`);
 	lines.push(wetSoon ? '🚗 Nässe gefriert — Brücken und Nebenstrassen meiden.' : '🚗 Scheiben kratzen, empfindliche Pflanzen abdecken.');
 	return {
+		ios: ios(weather, row, {
+			relevance: 0.6,
+			wx: {
+				now: ONE_DECIMAL(current.temperature_2m),
+				feels: ONE_DECIMAL(current.apparent_temperature),
+				lowest: lowest ? ONE_DECIMAL(lowest.temperature) : undefined,
+				lowestAt: lowest ? hhmm(lowest.time) : undefined,
+				wet: wetSoon,
+				series: series(next.map((hour) => hour.temperature)),
+				t0: next[0] ? hhmm(next[0].time) : undefined,
+				t1: next.length ? hhmm(next[next.length - 1].time) : undefined
+			}
+		}),
 		category: 'frost',
 		fingerprint: `frost-${new Date().toISOString().slice(0, 10)}`,
 		cooldownHours: 8,
@@ -471,6 +576,19 @@ function uvNotice(weather, row) {
 	if (chart.trim()) lines.push(`${hhmm(next[0].time)} ${chart} ${hhmm(next[next.length - 1].time)}`);
 	lines.push('🧴 Sonnencreme LSF 30+, Hut und Schatten über Mittag.');
 	return {
+		ios: ios(weather, row, {
+			interruption: 'passive',
+			relevance: 0.4,
+			wx: {
+				now: uv,
+				peak: peak?.uv != null ? ONE_DECIMAL(peak.uv) : undefined,
+				peakAt: peak ? hhmm(peak.time) : undefined,
+				highUntil: lastHigh ? hhmm(lastHigh.time) : undefined,
+				series: series(next.map((hour) => hour.uv)),
+				t0: next[0] ? hhmm(next[0].time) : undefined,
+				t1: next.length ? hhmm(next[next.length - 1].time) : undefined
+			}
+		}),
 		category: 'uv',
 		fingerprint: `uv-${new Date().toISOString().slice(0, 10)}`,
 		cooldownHours: 12,
@@ -500,6 +618,14 @@ function airNotice(weather, row) {
 	if (badAir) lines.push('🏃 Anstrengenden Sport draussen heute verschieben.');
 	if (highPollen) lines.push('🪟 Früh morgens lüften, abends Haare waschen.');
 	return {
+		ios: ios(weather, row, {
+			interruption: 'passive',
+			relevance: 0.4,
+			wx: {
+				aqi: weather.aqi != null ? Math.round(weather.aqi) : undefined,
+				pollen: weather.pollen != null ? Math.round(weather.pollen) : undefined
+			}
+		}),
 		category: 'air',
 		fingerprint: `air-${new Date().toISOString().slice(0, 10)}`,
 		cooldownHours: 8,
@@ -508,6 +634,23 @@ function airNotice(weather, row) {
 		url: '/#luft',
 		ttl: 4 * 3600,
 		actions: [{ action: 'luft', title: 'Luft & Pollen', url: '/#luft' }]
+	};
+}
+
+/** `wx` of the morning brief and the test notice: range, sky, sun times and the next hours. */
+function dayCard(weather, code = weather.todayCode) {
+	const next = weather.upcoming;
+	return {
+		code: Number.isFinite(code) ? code : undefined,
+		tMin: ONE_DECIMAL(weather.todayMin) ?? undefined,
+		tMax: ONE_DECIMAL(weather.todayMax) ?? undefined,
+		rainProb: weather.todayPrecipProb != null ? Math.round(weather.todayPrecipProb) : undefined,
+		condition: wmoLabel(code) || undefined,
+		sunrise: weather.todaySunrise ? hhmm(weather.todaySunrise) : undefined,
+		sunset: weather.todaySunset ? hhmm(weather.todaySunset) : undefined,
+		series: series(next.map((hour) => hour.temperature)),
+		t0: next[0] ? hhmm(next[0].time) : undefined,
+		t1: next.length ? hhmm(next[next.length - 1].time) : undefined
 	};
 }
 
@@ -531,6 +674,12 @@ function briefNotice(weather, row, body) {
 	}
 	const greeting = row?.place_name ? `Guten Morgen, ${row.place_name}` : 'Guten Morgen';
 	return {
+		ios: ios(weather, row, {
+			interruption: 'passive',
+			relevance: 0.5,
+			isDay: true,
+			wx: dayCard(weather)
+		}),
 		category: 'dailyBrief',
 		fingerprint: `brief-${new Date().toISOString().slice(0, 10)}`,
 		cooldownHours: 20,
@@ -562,6 +711,10 @@ export function testNotice(weather, row) {
 	if (insight) lines.push(insight);
 	lines.push('✅ So sehen deine Meldungen aus.');
 	return {
+		ios: ios(weather, row, {
+			relevance: 0.3,
+			wx: dayCard(weather, current.weather_code)
+		}),
 		category: 'test',
 		title: `${weatherEmoji(current.weather_code, current.is_day === 1)} Mitteilungen aktiv${placeSuffix(row)}`,
 		body: lines.join('\n'),
@@ -650,7 +803,19 @@ export function appendForecastChangeNotice(notices, change, weather, row) {
 		}
 	}
 	const url = CHANGE_URL[change.kind] || '/#jetzt';
+	const seriesKind = change.kind?.startsWith('rain') ? 'rain' : change.kind === 'windJump' ? 'wind' : 'temp';
+	const nextHours = weather?.upcoming || [];
+	const changeSeries =
+		seriesKind === 'rain'
+			? series((weather?.minutes || []).slice(0, 8).map((slot) => slot.precipMm), TWO_DECIMALS)
+			: seriesKind === 'wind'
+				? series(nextHours.map((hour) => hour.gusts ?? hour.wind), (value) => (Number.isFinite(value) ? Math.round(value) : null))
+				: series(nextHours.map((hour) => hour.temperature));
 	notices.push({
+		ios: ios(weather, row, {
+			relevance: 0.5,
+			wx: { change: change.kind, seriesKind, series: changeSeries }
+		}),
 		category: 'forecastChange',
 		fingerprint: change.fingerprint,
 		cooldownHours: 4,

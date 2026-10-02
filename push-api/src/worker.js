@@ -9,6 +9,7 @@ import {
 	saveForecastSnapshot,
 	wasRecentlySent
 } from './db.js';
+import { runLiveActivityCycle } from './liveactivity.js';
 import { buildForecastSnapshot, diffForecastSnapshots } from './proactivity.js';
 import { noticePayload, sendPush } from './send.js';
 import { appendForecastChangeNotice, evaluateNotifications, fetchPlaceWeather } from './weather.js';
@@ -137,8 +138,22 @@ export function startPushWorker(db, { enabled, hasKeys }) {
 	const wait = setTimeout(tick, 20_000);
 	const timer = setInterval(tick, Math.max(60_000, intervalMs));
 	console.log(`push worker every ${Math.round(intervalMs / 1000)}s`);
+
+	// Live Activities (iOS lock screen) follow the nowcast more closely than the notification categories.
+	const liveMs = Math.max(60_000, Number(process.env.LIVE_ACTIVITY_POLL_MS || 5 * 60 * 1000));
+	const liveTick = () => {
+		runLiveActivityCycle(db, { weatherFor })
+			.then((summary) => {
+				if (summary.actions.length) console.log('live activity cycle', summary.actions);
+			})
+			.catch((error) => console.warn('live activity cycle failed', error.message));
+	};
+	const liveWait = setTimeout(liveTick, 40_000);
+	const liveTimer = setInterval(liveTick, liveMs);
 	return () => {
 		clearTimeout(wait);
 		clearInterval(timer);
+		clearTimeout(liveWait);
+		clearInterval(liveTimer);
 	};
 }

@@ -149,6 +149,25 @@ export function deleteApnsDevice(db, token, clientId) {
 	return db.prepare('DELETE FROM apns_devices WHERE token = ?').run(token);
 }
 
+export function getApnsDevice(db, token) {
+	return db.prepare(`SELECT *, 'apns' AS kind FROM apns_devices WHERE token = ?`).get(token);
+}
+
+/** Outcome of the last iPhone delivery, shown as «Gerät prüfen» in the app. */
+export function recordApnsDelivery(db, token, { ok, error }) {
+	if (ok) {
+		db.prepare(
+			`UPDATE apns_devices SET last_success_at = datetime('now'), failures = 0 WHERE token = ?`
+		).run(token);
+		return;
+	}
+	db.prepare(
+		`UPDATE apns_devices
+		SET last_error = ?, last_error_at = datetime('now'), failures = failures + 1
+		WHERE token = ?`
+	).run(String(error || 'Zustellung fehlgeschlagen').slice(0, 240), token);
+}
+
 export function setApnsEnvironment(db, token, environment) {
 	db.prepare('UPDATE apns_devices SET environment = ? WHERE token = ?').run(environment, token);
 }
@@ -249,4 +268,99 @@ export function setSetting(db, key, value) {
 			updated_at = datetime('now')
 	`
 	).run(key, value);
+}
+
+// --- Live Activities (ActivityKit tokens) ---------------------------------------------------------
+
+/** Replaces the push-to-start token of a client: one row per enabled kind; no kinds removes it. */
+export function replaceLiveActivityStartTokens(db, { clientId, token, kinds, bundleId, place }) {
+	const write = db.transaction(() => {
+		db.prepare(`DELETE FROM live_activity_tokens WHERE client_id = ? AND token_kind = 'start'`).run(clientId);
+		const insert = db.prepare(
+			`
+			INSERT INTO live_activity_tokens
+				(client_id, kind, token_kind, token, activity_id, bundle_id, latitude, longitude, place_name, timezone)
+			VALUES (?, ?, 'start', ?, '', ?, ?, ?, ?, ?)
+		`
+		);
+		for (const kind of kinds) {
+			insert.run(clientId, kind, token, bundleId, place?.latitude ?? null, place?.longitude ?? null, place?.name ?? null, place?.timezone ?? null);
+		}
+	});
+	write();
+}
+
+/** Stores the push token of a running activity; only one activity per kind exists, so older rows go. */
+export function upsertLiveActivityToken(db, { clientId, kind, activityId, token, bundleId, place }) {
+	const write = db.transaction(() => {
+		db.prepare(`DELETE FROM live_activity_tokens WHERE client_id = ? AND kind = ? AND token_kind = 'update'`).run(clientId, kind);
+		db.prepare(
+			`
+			INSERT INTO live_activity_tokens
+				(client_id, kind, token_kind, token, activity_id, bundle_id, latitude, longitude, place_name, timezone)
+			VALUES (?, ?, 'update', ?, ?, ?, ?, ?, ?, ?)
+		`
+		).run(clientId, kind, token, activityId, bundleId, place?.latitude ?? null, place?.longitude ?? null, place?.name ?? null, place?.timezone ?? null);
+	});
+	write();
+}
+
+export function deleteLiveActivityToken(db, clientId, activityId) {
+	const rows = db
+		.prepare(`SELECT kind FROM live_activity_tokens WHERE client_id = ? AND token_kind = 'update' AND activity_id = ?`)
+		.all(clientId, activityId);
+	db.prepare(`DELETE FROM live_activity_tokens WHERE client_id = ? AND token_kind = 'update' AND activity_id = ?`).run(clientId, activityId);
+	for (const { kind } of rows) setLiveActivityState(db, clientId, kind, { phase: 'idle', hash: null });
+}
+
+/** Drops a token Apple says is dead (410, Unregistered, BadDeviceToken). */
+export function deleteLiveActivityTokenValue(db, token) {
+	db.prepare('DELETE FROM live_activity_tokens WHERE token = ?').run(token);
+}
+
+export function setLiveActivityEnvironment(db, token, environment) {
+	db.prepare('UPDATE live_activity_tokens SET environment = ? WHERE token = ?').run(environment, token);
+}
+
+/** Every client with at least one ActivityKit token, with the rows it registered. */
+export function listLiveActivityClients(db) {
+	const groups = new Map();
+	for (const row of db.prepare('SELECT * FROM live_activity_tokens').all()) {
+		const group = groups.get(row.client_id) || { clientId: row.client_id, rows: [] };
+		group.rows.push(row);
+		groups.set(row.client_id, group);
+	}
+	return [...groups.values()];
+}
+
+export function getLiveActivityState(db, clientId, kind) {
+	return (
+		db.prepare('SELECT * FROM live_activity_state WHERE client_id = ? AND kind = ?').get(clientId, kind) || {
+			client_id: clientId,
+			kind,
+			phase: 'idle',
+			started_at: null,
+			last_push_at: null,
+			last_hash: null
+		}
+	);
+}
+
+export function setLiveActivityState(db, clientId, kind, { phase, hash, started }) {
+	db.prepare(
+		`
+		INSERT INTO live_activity_state (client_id, kind, phase, started_at, last_push_at, last_hash)
+		VALUES (?, ?, ?, ${started ? "datetime('now')" : 'NULL'}, datetime('now'), ?)
+		ON CONFLICT(client_id, kind) DO UPDATE SET
+			phase = excluded.phase,
+			started_at = ${started ? 'excluded.started_at' : 'live_activity_state.started_at'},
+			last_push_at = excluded.last_push_at,
+			last_hash = excluded.last_hash
+	`
+	).run(clientId, kind, phase, hash ?? null);
+}
+
+export function pruneLiveActivityTokens(db) {
+	db.prepare(`DELETE FROM live_activity_tokens WHERE token_kind = 'update' AND updated_at < datetime('now', '-2 days')`).run();
+	db.prepare(`DELETE FROM live_activity_tokens WHERE token_kind = 'start' AND updated_at < datetime('now', '-60 days')`).run();
 }

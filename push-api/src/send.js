@@ -1,6 +1,14 @@
 import webpush from 'web-push';
-import { alertPayload, apnsConfig, isDeadToken, sendApns } from './apns.js';
-import { deleteApnsDevice, deleteSubscription, recordDelivery, setApnsEnvironment } from './db.js';
+import { alertOptions, alertPayload, apnsConfig, isDeadToken, sendApns } from './apns.js';
+import {
+	deleteApnsDevice,
+	deleteLiveActivityTokenValue,
+	deleteSubscription,
+	recordApnsDelivery,
+	recordDelivery,
+	setApnsEnvironment,
+	setLiveActivityEnvironment
+} from './db.js';
 
 let apns;
 
@@ -20,14 +28,37 @@ export function getApns() {
 async function sendApnsAlert(db, row, payload) {
 	const config = getApns();
 	if (!config) return { token: row.token, ok: false, status: 0, reason: 'APNs nicht konfiguriert' };
-	const result = await sendApns(config, row, { body: alertPayload(payload) });
+	const result = await sendApns(config, row, { ...alertOptions(payload), body: alertPayload(payload) });
 	if (result.ok && result.environment && result.environment !== row.environment && result.environment !== 'simulator') {
 		setApnsEnvironment(db, row.token, result.environment);
 	}
 	if (!result.ok && isDeadToken(result)) {
 		deleteApnsDevice(db, row.token);
+	} else {
+		recordApnsDelivery(db, row.token, result.ok ? { ok: true } : { ok: false, error: result.reason || result.status });
 	}
 	return { token: row.token, ok: result.ok, status: result.status, reason: result.reason };
+}
+
+/**
+ * ActivityKit push (Live Activities): same transport as an alert with `apns-push-type: liveactivity` and the
+ * `.push-type.liveactivity` topic. `row` is a live_activity_tokens row (`token`, `environment`).
+ */
+export async function sendLiveActivity(db, row, aps, { priority = 10, expiration } = {}, send = sendApns) {
+	const config = getApns();
+	if (!config) return { token: row.token, ok: false, status: 0, reason: 'APNs nicht konfiguriert' };
+	const result = await send(config, row, {
+		pushType: 'liveactivity',
+		topicSuffix: '.push-type.liveactivity',
+		priority,
+		expiration: expiration ?? Math.floor(Date.now() / 1000) + 3600,
+		body: { aps }
+	});
+	if (result.ok && result.environment && result.environment !== row.environment && result.environment !== 'simulator') {
+		setLiveActivityEnvironment(db, row.token, result.environment);
+	}
+	if (!result.ok && isDeadToken(result)) deleteLiveActivityTokenValue(db, row.token);
+	return { token: row.token, ok: result.ok, status: result.status, reason: result.reason, dead: !result.ok && isDeadToken(result) };
 }
 
 /**
@@ -42,6 +73,8 @@ export function noticePayload(notice) {
 		tag: notice.category,
 		category: notice.category,
 		timestamp: Date.now(),
+		// Presentation data for the iOS app (category, interruption level, relevance, `wx` graphic data); web clients ignore it.
+		ios: notice.ios,
 		actions: notice.actions || [],
 		requireInteraction: Boolean(notice.requireInteraction),
 		urgency: notice.urgency || 'normal',
@@ -65,10 +98,11 @@ function describePushError(error) {
 /** Delivers one notification to one channel: a web subscription or (kind 'apns') an iPhone. */
 export async function sendPush(db, row, payload) {
 	if (row.kind === 'apns') return sendApnsAlert(db, row, payload);
+	const { ios: _ios, ...webPayload } = payload;
 	try {
 		await webpush.sendNotification(
 			{ endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } },
-			JSON.stringify(payload),
+			JSON.stringify(webPayload),
 			{
 				// A rain notice is worthless an hour later; the morning brief can wait for the phone.
 				TTL: payload.ttl ?? 60 * 60,

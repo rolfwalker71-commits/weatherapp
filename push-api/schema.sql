@@ -73,7 +73,39 @@ CREATE TABLE IF NOT EXISTS apns_devices (
 	environment TEXT NOT NULL DEFAULT 'auto',
 	bundle_id TEXT,
 	created_at TEXT NOT NULL DEFAULT (datetime('now')),
-	updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+	updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+	last_success_at TEXT,
+	last_error TEXT,
+	last_error_at TEXT,
+	failures INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_apns_devices_client ON apns_devices(client_id);
+
+CREATE TABLE IF NOT EXISTS live_activity_tokens (
+	client_id TEXT NOT NULL,
+	kind TEXT NOT NULL,
+	token_kind TEXT NOT NULL,
+	token TEXT NOT NULL,
+	activity_id TEXT NOT NULL DEFAULT '',
+	environment TEXT NOT NULL DEFAULT 'auto',
+	bundle_id TEXT,
+	latitude REAL,
+	longitude REAL,
+	place_name TEXT,
+	timezone TEXT,
+	updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+	PRIMARY KEY (client_id, kind, token_kind, activity_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_live_activity_tokens_token ON live_activity_tokens(token);
+
+CREATE TABLE IF NOT EXISTS live_activity_state (
+	client_id TEXT NOT NULL,
+	kind TEXT NOT NULL,
+	phase TEXT NOT NULL DEFAULT 'idle',
+	started_at TEXT,
+	last_push_at TEXT,
+	last_hash TEXT,
+	PRIMARY KEY (client_id, kind)
+);

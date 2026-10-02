@@ -70,7 +70,7 @@ function session(environment) {
 	return client;
 }
 
-function post(config, environment, token, { pushType, topic, priority, expiration, body }) {
+function post(config, environment, token, { pushType, topic, priority, expiration, collapseId, body }) {
 	return new Promise((resolve) => {
 		const headers = {
 			':method': 'POST',
@@ -82,6 +82,7 @@ function post(config, environment, token, { pushType, topic, priority, expiratio
 			'content-type': 'application/json'
 		};
 		if (expiration != null) headers['apns-expiration'] = String(expiration);
+		if (collapseId) headers['apns-collapse-id'] = collapseId;
 		let request;
 		try {
 			request = session(environment).request(headers);
@@ -132,7 +133,7 @@ function simctlPush(config, body) {
  * Sends one push. `device.environment` is 'auto' until a delivery succeeds; a token from a
  * development build is only valid on the sandbox host, so 'auto' tries production, then sandbox.
  */
-export async function sendApns(config, device, { pushType = 'alert', topicSuffix = '', priority = 10, expiration, body }) {
+export async function sendApns(config, device, { pushType = 'alert', topicSuffix = '', priority = 10, expiration, collapseId, body }) {
 	if (config.transport === 'simctl') {
 		if (pushType !== 'alert') {
 			return { ok: false, status: 0, reason: 'simctl liefert nur normale Mitteilungen' };
@@ -140,7 +141,7 @@ export async function sendApns(config, device, { pushType = 'alert', topicSuffix
 		return simctlPush(config, body);
 	}
 	const topic = `${config.bundleId}${topicSuffix}`;
-	const request = { pushType, topic, priority, expiration, body };
+	const request = { pushType, topic, priority, expiration, collapseId, body };
 	const order =
 		device.environment === 'sandbox' || device.environment === 'production'
 			? [device.environment]
@@ -160,13 +161,56 @@ export function isDeadToken(result) {
 	return result.status === 410 || result.reason === 'Unregistered' || result.reason === 'BadDeviceToken';
 }
 
-export function alertPayload({ title, body, url, tag }) {
+/** «Zürich» → "zuerich": ASCII slug for thread ids and collapse ids. */
+export function placeSlug(name) {
+	const slug = String(name || '')
+		.toLowerCase()
+		.replace(/ä/g, 'ae')
+		.replace(/ö/g, 'oe')
+		.replace(/ü/g, 'ue')
+		.replace(/ß/g, 'ss')
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '')
+		.slice(0, 40);
+	return slug || 'ort';
+}
+
+/** Categories that can wait: delivered at normal instead of high priority. */
+const LOW_PRIORITY = new Set(['dailyBrief', 'uv', 'air']);
+/** A refreshed notice replaces the undelivered older one of the same kind and place. */
+const COLLAPSING = new Set(['rainSoon', 'uv', 'air']);
+
+/**
+ * APNs alert body. Title and body are the text every client shows; with `ios` (category, interruption level,
+ * relevance and the `wx` graphic data of weather.js) the iOS app's notification extensions draw the rich card.
+ * Without `category` this is the plain notification of the first version.
+ */
+export function alertPayload({ title, body, url, tag, category, ios }) {
+	const rich = Boolean(category && ios);
+	const place = ios?.place;
+	const aps = {
+		alert: { title, body },
+		sound: 'default',
+		'thread-id': rich ? `wx.${category}.${placeSlug(place?.name)}` : tag || 'wetter'
+	};
+	if (rich) {
+		aps.category = `wx.${category}`;
+		aps['mutable-content'] = 1;
+		aps['interruption-level'] = ios.interruption || 'active';
+		aps['relevance-score'] = ios.relevance ?? 0.5;
+	}
+	const payload = { aps, url: url || '/#jetzt' };
+	if (rich && ios.wx) payload.wx = { v: 1, kind: category, place, ...ios.wx };
+	return payload;
+}
+
+/** APNs headers that depend on the notification kind (priority, expiry, collapse id). */
+export function alertOptions({ category, ttl, ios }) {
 	return {
-		aps: {
-			alert: { title, body },
-			sound: 'default',
-			'thread-id': tag || 'wetter'
-		},
-		url: url || '/#jetzt'
+		priority: LOW_PRIORITY.has(category) ? 5 : 10,
+		expiration: Number.isFinite(ttl) ? Math.floor(Date.now() / 1000) + Math.round(ttl) : undefined,
+		collapseId: COLLAPSING.has(category) ? `wx.${category}.${placeSlug(ios?.place?.name)}`.slice(0, 64) : undefined
 	};
 }

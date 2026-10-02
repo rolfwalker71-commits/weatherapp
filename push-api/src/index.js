@@ -4,13 +4,17 @@ import { fetchMeteoalarm } from './alerts.js';
 import { fetchAvalanche } from './avalanche.js';
 import {
 	deleteApnsDevice,
+	deleteLiveActivityToken,
 	deleteSubscription,
+	getApnsDevice,
 	getPreferences,
 	getSubscription,
 	listApnsDevices,
 	listSubscriptions,
 	openDb,
+	replaceLiveActivityStartTokens,
 	upsertApnsDevice,
+	upsertLiveActivityToken,
 	upsertPreferences,
 	upsertSubscription
 } from './db.js';
@@ -47,6 +51,8 @@ app.get('/v1/status', (_req, res) => {
 		// iOS app: whether this server can reach iPhones (APNs key or local simulator transport).
 		hasApns: Boolean(apns),
 		apnsTransport: apns?.transport ?? null,
+		// ActivityKit pushes need the real APNs transport (the simulator path cannot deliver them).
+		liveActivities: apns?.transport === 'apns',
 		message: sendingEnabled
 			? 'Versand eingeschaltet — der Worker prüft Kategorien periodisch.'
 			: 'Versand aus. Subscriptions und Prefs werden gespeichert.'
@@ -200,6 +206,121 @@ app.delete('/v1/apns-devices', (req, res) => {
 	const clientId = String(req.body?.clientId || '');
 	if (!token) return res.status(400).json({ error: 'token fehlt' });
 	deleteApnsDevice(db, token, clientId || undefined);
+	res.json({ ok: true });
+});
+
+/** Whether the server knows this iPhone and how the last delivery went («Gerät prüfen» in the app). */
+app.post('/v1/apns-devices/status', (req, res) => {
+	const token = String(req.body?.token || '').toLowerCase();
+	const clientId = String(req.body?.clientId || '');
+	if (!token) return res.status(400).json({ error: 'token fehlt' });
+	const row = getApnsDevice(db, token);
+	if (!row || (clientId && row.client_id !== clientId)) return res.json({ registered: false });
+	const prefs = getPreferences(db, row.client_id);
+	res.json({
+		registered: true,
+		lastSuccessAt: row.last_success_at ? `${row.last_success_at.replace(' ', 'T')}Z` : null,
+		lastError: row.failures ? row.last_error : null,
+		lastErrorAt: row.failures && row.last_error_at ? `${row.last_error_at.replace(' ', 'T')}Z` : null,
+		failures: row.failures || 0,
+		placeName: prefs?.place_name || null
+	});
+});
+
+/** «Testmitteilung» for the iPhone: only to the caller's own device, at most every 30 s. */
+app.post('/v1/apns-devices/test', async (req, res) => {
+	const token = String(req.body?.token || '').toLowerCase();
+	const clientId = String(req.body?.clientId || '');
+	const row = token ? getApnsDevice(db, token) : null;
+	if (!row || row.client_id !== clientId) {
+		return res.status(404).json({ error: 'Dieses Gerät ist nicht angemeldet' });
+	}
+	if (!sendingEnabled) return res.status(403).json({ error: 'Versand ist auf dem Server ausgeschaltet' });
+	const last = lastTestAt.get(token) || 0;
+	if (Date.now() - last < 30_000) {
+		return res.status(429).json({ error: 'Bitte kurz warten', hint: 'Höchstens eine Testmitteilung pro 30 Sekunden.' });
+	}
+	lastTestAt.set(token, Date.now());
+
+	const prefs = getPreferences(db, clientId);
+	let notice = {
+		category: 'test',
+		title: '✅ Mitteilungen aktiv',
+		body: 'Dieses Gerät empfängt Wetter-Meldungen.\nOrt wählen, dann kommen Regen, Warnungen & Co. mit Details.',
+		url: '/#einstellungen',
+		ttl: 600
+	};
+	if (Number.isFinite(prefs?.latitude) && Number.isFinite(prefs?.longitude)) {
+		try {
+			const { weather } = await weatherForClient(prefs);
+			notice = testNotice(weather, prefs);
+		} catch {
+			/* plain sample */
+		}
+	}
+	const result = await sendPush(db, row, noticePayload(notice));
+	if (!result.ok) {
+		return res.status(502).json({ error: `Push-Dienst lehnt ab: ${result.reason || result.status}` });
+	}
+	res.json({ ok: true });
+});
+
+const LIVE_KINDS = new Set(['rain', 'warning']);
+
+function livePlace(place) {
+	if (!Number.isFinite(place?.latitude) || !Number.isFinite(place?.longitude)) return null;
+	return {
+		latitude: place.latitude,
+		longitude: place.longitude,
+		name: place.name ? String(place.name).slice(0, 80) : null,
+		timezone: place.timezone ? String(place.timezone).slice(0, 64) : null
+	};
+}
+
+const isActivityToken = (token) => /^[0-9a-f]{32,400}$/.test(token);
+
+/** Push-to-start token (iOS 17.2+) with the activity kinds the user enabled; an empty list removes it. */
+app.post('/v1/live-activity-start-tokens', (req, res) => {
+	const clientId = String(req.body?.clientId || '').slice(0, 80);
+	const token = String(req.body?.token || '').toLowerCase();
+	const kinds = [...new Set((Array.isArray(req.body?.kinds) ? req.body.kinds : []).map(String))].filter((kind) => LIVE_KINDS.has(kind));
+	if (!clientId) return res.status(400).json({ error: 'clientId fehlt' });
+	if (kinds.length && !isActivityToken(token)) return res.status(400).json({ error: 'Ungültiges Token' });
+	replaceLiveActivityStartTokens(db, {
+		clientId,
+		token,
+		kinds,
+		bundleId: String(req.body?.bundleId || '').slice(0, 120) || null,
+		place: livePlace(req.body?.place)
+	});
+	res.json({ ok: true, liveActivities: apns?.transport === 'apns' });
+});
+
+/** Push token of one running activity (also for activities the server started). */
+app.post('/v1/live-activities', (req, res) => {
+	const clientId = String(req.body?.clientId || '').slice(0, 80);
+	const kind = String(req.body?.kind || '');
+	const activityId = String(req.body?.activityId || '').slice(0, 80);
+	const token = String(req.body?.pushToken || '').toLowerCase();
+	if (!clientId || !activityId || !LIVE_KINDS.has(kind) || !isActivityToken(token)) {
+		return res.status(400).json({ error: 'Ungültige Live Activity' });
+	}
+	upsertLiveActivityToken(db, {
+		clientId,
+		kind,
+		activityId,
+		token,
+		bundleId: String(req.body?.bundleId || '').slice(0, 120) || null,
+		place: livePlace(req.body?.place)
+	});
+	res.json({ ok: true });
+});
+
+app.delete('/v1/live-activities', (req, res) => {
+	const clientId = String(req.body?.clientId || '').slice(0, 80);
+	const activityId = String(req.body?.activityId || '').slice(0, 80);
+	if (!clientId || !activityId) return res.status(400).json({ error: 'clientId/activityId fehlt' });
+	deleteLiveActivityToken(db, clientId, activityId);
 	res.json({ ok: true });
 });
 
