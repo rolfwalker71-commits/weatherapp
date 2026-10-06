@@ -88,7 +88,8 @@ app.post('/v1/subscriptions', (req, res) => {
 				uv: previous?.uv,
 				air: previous?.air,
 				dailyBrief: previous?.daily_brief,
-				forecastChange: previous?.forecast_change
+				forecastChange: previous?.forecast_change,
+				pollen: previous?.pollen
 			},
 			req.body.place
 		);
@@ -444,6 +445,7 @@ function savePrefs(clientId, preferences, place) {
 		air: preferences.air ? 1 : 0,
 		daily_brief: preferences.dailyBrief ? 1 : 0,
 		forecast_change: preferences.forecastChange ? 1 : 0,
+		pollen: preferences.pollen ? 1 : 0,
 		latitude: Number.isFinite(place?.latitude) ? place.latitude : (previous?.latitude ?? null),
 		longitude: Number.isFinite(place?.longitude) ? place.longitude : (previous?.longitude ?? null),
 		place_name: place?.name ? String(place.name).slice(0, 80) : (previous?.place_name ?? null),

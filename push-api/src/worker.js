@@ -10,6 +10,7 @@ import {
 	wasRecentlySent
 } from './db.js';
 import { runLiveActivityCycle } from './liveactivity.js';
+import { fetchSwissPollen, pollenNotice } from './pollen.js';
 import { buildForecastSnapshot, diffForecastSnapshots } from './proactivity.js';
 import { noticePayload, sendPush } from './send.js';
 import { appendForecastChangeNotice, evaluateNotifications, fetchPlaceWeather } from './weather.js';
@@ -29,7 +30,8 @@ function hasAnyPref(row) {
 		row.uv ||
 		row.air ||
 		row.daily_brief ||
-		row.forecast_change
+		row.forecast_change ||
+		row.pollen
 	);
 }
 
@@ -91,6 +93,11 @@ export async function runPushCycle(db) {
 					includeWarnings: !row.warnings
 				});
 				appendForecastChangeNotice(notices, change, weather, row);
+			}
+			if (row.pollen) {
+				// Independent of the weather: a failing pollen file never blocks the other notices.
+				const notice = pollenNotice(await fetchSwissPollen(row.latitude, row.longitude).catch(() => null), row);
+				if (notice) notices.push(notice);
 			}
 			saveForecastSnapshot(db, row.client_id, loc, nextSnap);
 			for (const notice of notices) {

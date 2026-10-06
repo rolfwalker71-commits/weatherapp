@@ -178,9 +178,9 @@ export function placeSlug(name) {
 }
 
 /** Categories that can wait: delivered at normal instead of high priority. */
-const LOW_PRIORITY = new Set(['dailyBrief', 'uv', 'air']);
+const LOW_PRIORITY = new Set(['dailyBrief', 'uv', 'air', 'pollen']);
 /** A refreshed notice replaces the undelivered older one of the same kind and place. */
-const COLLAPSING = new Set(['rainSoon', 'uv', 'air']);
+const COLLAPSING = new Set(['rainSoon', 'uv', 'air', 'pollen']);
 
 /**
  * APNs alert body. Title and body are the text every client shows; with `ios` (category, interruption level,

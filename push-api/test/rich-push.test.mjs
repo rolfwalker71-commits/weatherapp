@@ -10,7 +10,7 @@ const WX_KEYS = new Set([
 	'v', 'kind', 'place', 'scene', 'isDay', 'code', 'series', 't0', 't1', 'noun', 'startsAt', 'dryAt', 'totalMm', 'prob',
 	'level', 'event', 'headline', 'area', 'from', 'until', 'source', 'now', 'feels', 'lowest', 'lowestAt', 'wet', 'peak',
 	'peakAt', 'highUntil', 'aqi', 'pollen', 'tMin', 'tMax', 'rainProb', 'condition', 'sunrise', 'sunset', 'rainSeries',
-	'change', 'seriesKind'
+	'change', 'seriesKind', 'station', 'species'
 ]);
 
 function notices({ rain = true, frost = false } = {}) {

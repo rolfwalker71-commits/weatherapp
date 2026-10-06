@@ -79,10 +79,10 @@ export function upsertPreferences(db, payload) {
 	db.prepare(
 		`
 		INSERT INTO notification_preferences (
-			client_id, rain_soon, warnings, frost, uv, air, daily_brief, forecast_change,
+			client_id, rain_soon, warnings, frost, uv, air, daily_brief, forecast_change, pollen,
 			latitude, longitude, place_name, timezone, updated_at
 		) VALUES (
-			@client_id, @rain_soon, @warnings, @frost, @uv, @air, @daily_brief, @forecast_change,
+			@client_id, @rain_soon, @warnings, @frost, @uv, @air, @daily_brief, @forecast_change, @pollen,
 			@latitude, @longitude, @place_name, @timezone, datetime('now')
 		)
 		ON CONFLICT(client_id) DO UPDATE SET
@@ -93,6 +93,7 @@ export function upsertPreferences(db, payload) {
 			air = excluded.air,
 			daily_brief = excluded.daily_brief,
 			forecast_change = excluded.forecast_change,
+			pollen = excluded.pollen,
 			latitude = excluded.latitude,
 			longitude = excluded.longitude,
 			place_name = excluded.place_name,
@@ -122,6 +123,7 @@ export function listRecipients(db) {
 			COALESCE(p.air, 0) AS air,
 			COALESCE(p.daily_brief, 0) AS daily_brief,
 			COALESCE(p.forecast_change, 0) AS forecast_change,
+			COALESCE(p.pollen, 0) AS pollen,
 			p.latitude, p.longitude, p.place_name, p.timezone
 		FROM subscriptions s
 		LEFT JOIN notification_preferences p ON p.client_id = s.client_id
@@ -189,6 +191,7 @@ export function listApnsRecipients(db) {
 			COALESCE(p.air, 0) AS air,
 			COALESCE(p.daily_brief, 0) AS daily_brief,
 			COALESCE(p.forecast_change, 0) AS forecast_change,
+			COALESCE(p.pollen, 0) AS pollen,
 			p.latitude, p.longitude, p.place_name, p.timezone
 		FROM apns_devices d
 		LEFT JOIN notification_preferences p ON p.client_id = d.client_id

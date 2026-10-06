@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
 	air INTEGER NOT NULL DEFAULT 0,
 	daily_brief INTEGER NOT NULL DEFAULT 0,
 	forecast_change INTEGER NOT NULL DEFAULT 0,
+	pollen INTEGER NOT NULL DEFAULT 0,
 	sending_enabled INTEGER NOT NULL DEFAULT 0,
 	latitude REAL,
 	longitude REAL,
